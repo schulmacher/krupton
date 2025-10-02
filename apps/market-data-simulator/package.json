@@ -1,5 +1,5 @@
 {
-  "name": "@krupton/public-api-mock-client",
+  "name": "@krupton/market-data-simulator",
   "version": "0.1.0",
   "private": true,
   "type": "module",

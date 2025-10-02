@@ -45,6 +45,21 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.18.6)
 
+  apps/market-data-simulator:
+    dependencies:
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@krupton/interface':
+        specifier: workspace:*
+        version: link:../../packages/interface
+      '@krupton/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.3
+
   apps/public-api:
     dependencies:
       '@krupton/config':
@@ -56,21 +71,6 @@ importers:
       fastify:
         specifier: ^4.28.1
         version: 4.29.1
-      ws:
-        specifier: ^8.18.0
-        version: 8.18.3
-
-  apps/public-api-mock-client:
-    dependencies:
-      '@krupton/config':
-        specifier: workspace:*
-        version: link:../../packages/config
-      '@krupton/interface':
-        specifier: workspace:*
-        version: link:../../packages/interface
-      '@krupton/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
       ws:
         specifier: ^8.18.0
         version: 8.18.3

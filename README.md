@@ -1,4 +1,4 @@
-## Monorepo: public-api, public-api-mock-client, @krupton/interface, @krupton/config
+## Monorepo: public-api, market-data-simulator, @krupton/interface, @krupton/config
 
 ### Install
 
@@ -24,7 +24,7 @@ pnpm build
 
 ```bash
 pnpm --filter public-api start
-pnpm --filter public-api-mock-client start
+pnpm --filter market-data-simulator start
 ```
 
 

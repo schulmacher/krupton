@@ -20,7 +20,7 @@ The monorepo is organized into two main categories as defined in the pnpm worksp
 <pre>
 ├── apps/ # Application packages
 │ ├── public-api/
-│ └── public-api-mock-client/
+│ └── market-data-simulator/
 └── packages/ # Shared libraries
 ├── config/
 ├── interface/
@@ -36,7 +36,7 @@ The applications layer contains two executable packages:
 - Consumes shared interfaces and configuration packages
 - Executes on Node.js runtime with tsx for TypeScript execution
 
-**public-api-mock-client** (`@krupton/public-api-mock-client`)
+**market-data-simulator** (`@krupton/market-data-simulator`)
 - Mock WebSocket client implementation for API testing and validation
 - Depends on shared interface, utility, and configuration packages
 - Provides development and testing capabilities for the main API
