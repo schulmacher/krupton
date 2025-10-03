@@ -1,6 +1,6 @@
 # Monitoring with VictoriaMetrics
 
-Picked because it supports a single binary deployment.. simply run the exe. VictoriaMetrics includes vmui, a built-in web interface for querying and visualizing metrics, eliminating the need for external visualization tools.
+Picked because it supports a single binary deployment.. simply run the executable. VictoriaMetrics includes vmui, a built-in web interface for querying and visualizing metrics, eliminating the need for external visualization tools.
 
 * https://github.com/VictoriaMetrics/VictoriaMetrics
 * https://prometheus.io/
