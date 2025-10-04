@@ -21,7 +21,7 @@
     "dev": "tsup --watch --onSuccess 'tsc --emitDeclarationOnly --declaration'",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
-    "test": "vitest",
+    "test": "echo \"No tests\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

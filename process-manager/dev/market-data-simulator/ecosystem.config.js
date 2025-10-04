@@ -17,6 +17,18 @@ module.exports = {
         PORT: '3100',
       },
     },
+    {
+        name: 'mds-storage',
+        script: 'pnpm',
+        args: '--filter market-data-simulator dev:storage',
+        cwd: '../../../',
+        instances: 1,
+        exec_mode: 'fork',
+        env: {
+          NODE_ENV: 'development',
+          PROCESS_NAME: 'mds-storage',
+        },
+      },
   ],
 };
 

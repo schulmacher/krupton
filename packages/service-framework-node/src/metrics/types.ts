@@ -1,10 +1,4 @@
-import type {
-  Counter,
-  Gauge,
-  Histogram,
-  Summary,
-  Registry,
-} from 'prom-client';
+import type { Counter, Gauge, Histogram, Summary, Registry } from 'prom-client';
 import type { DefaultEnvContext } from '../environment/types.js';
 
 export interface MetricConfigCounter<T extends string = string> {
@@ -35,7 +29,6 @@ export interface MetricConfigSummary<T extends string = string> {
   ageBuckets?: number;
 }
 
-
 export interface MetricsConfig<TMetrics = undefined> {
   envContext: DefaultEnvContext;
   enableDefaultMetrics?: boolean;
@@ -61,3 +54,5 @@ export interface DefaultMetricsCollection {
   stopCollection: () => void;
 }
 
+export type RegisteredMetrics<Ctx extends { metricsContext: MetricsContext<unknown> }> =
+  Ctx['metricsContext']['metrics'];

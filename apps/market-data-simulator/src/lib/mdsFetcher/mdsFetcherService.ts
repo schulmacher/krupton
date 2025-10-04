@@ -1,4 +1,4 @@
-import type { MdsFetcherContext } from '../../process/mdsFetcher/context.js';
+import type { MdsFetcherContext } from '../../process/mdsFetcherProcess/context.js';
 import type { FetcherState, MdsFetcherService } from './types.js';
 
 export const createFetcherService = (context: MdsFetcherContext): MdsFetcherService => {

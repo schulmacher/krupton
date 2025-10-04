@@ -18,6 +18,7 @@ export {
   MetricConfigSummary,
   MetricsConfig,
   MetricsContext,
+  RegisteredMetrics,
 } from './metrics/types.js';
 export { createProcessLifecycle } from './processLifecycle/processLifecycle.js';
 export {
@@ -26,3 +27,4 @@ export {
   ShutdownCallback,
   ShutdownConfiguration,
 } from './processLifecycle/types.js';
+export * from './componentMetrics/componentMetrics.js';

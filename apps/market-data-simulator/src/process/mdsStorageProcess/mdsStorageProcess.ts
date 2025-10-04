@@ -1,8 +1,8 @@
 import { SF } from '@krupton/service-framework-node';
-import { createFetcherService } from '../../lib/mdsFetcher/mdsFetcherService.js';
-import type { MdsFetcherContext } from './context.js';
+import { createStorageBackupService } from '../../lib/mdsStorage/mdsStorageBackupService.js';
+import type { MdsStorageContext } from './context.js';
 
-export const startMdsFetcherService = async (context: MdsFetcherContext): Promise<void> => {
+export const startMdsStorageService = async (context: MdsStorageContext): Promise<void> => {
   const { diagnosticContext, processContext } = context;
   const logger = diagnosticContext.createRootLogger();
 
@@ -10,19 +10,19 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
     SF.createHttpServer(context, {
       healthChecks: [
         async () => ({
-          component: 'fetcher',
+          component: 'Storage',
           isHealthy: true,
         }),
       ],
     });
 
   const httpServer = createHttpServerWithHealthChecks();
-  const fetcherService = createFetcherService(context);
+  const storageService = createStorageBackupService(context);
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
-      logger.info('Shutting down fetcher service');
-      await fetcherService.stop();
+      logger.info('Shutting down Storage service');
+      await storageService.stop();
     });
   };
 
@@ -30,5 +30,5 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
 
   processContext.start();
   await httpServer.startServer();
-  await fetcherService.start();
+  await storageService.start();
 };

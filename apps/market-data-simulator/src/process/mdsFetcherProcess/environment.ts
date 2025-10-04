@@ -1,5 +1,6 @@
 import { SF } from '@krupton/service-framework-node';
 import { TB } from '@krupton/service-framework-node/typebox';
+import { getMonorepoRootDir } from '../../lib/fs.js';
 
 export const mdsFetcherEnvSchema = TB.Object({
   // Required framework variables
@@ -34,7 +35,7 @@ export const mdsFetcherEnvSchema = TB.Object({
   // Storage configuration
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
-    default: './storage',
+    default: getMonorepoRootDir('storage'),
   }),
 
   ROTATION_INTERVAL: TB.String({
