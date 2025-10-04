@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/index.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/mdsFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:fetcher": "tsx watch src/mdsFetcher.ts --clear-screen=false",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
@@ -14,6 +15,7 @@
   "dependencies": {
     "@krupton/config": "workspace:*",
     "@krupton/interface": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
     "@krupton/utils": "workspace:*",
     "ws": "^8.18.0"
   }

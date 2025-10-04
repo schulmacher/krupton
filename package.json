@@ -10,7 +10,17 @@
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "pm2:dev": "cd process-manager/dev && pm2 start ecosystem.config.js",
+    "pm2:dev:packages": "cd process-manager/dev/packages && pm2 start ecosystem.config.js",
+    "pm2:dev:mds": "cd process-manager/dev/market-data-simulator && pm2 start ecosystem.config.js",
+    "pm2:dev:mds-fetcher": "cd process-manager/dev/market-data-simulator && pm2 start ecosystem.config.js --only mds-fetcher",
+    "pm2:stop": "pm2 stop all",
+    "pm2:restart": "pm2 restart all",
+    "pm2:delete": "pm2 delete all",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 list"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
@@ -20,6 +30,7 @@
     "concurrently": "^9.2.1",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^9.1.2",
+    "pm2": "^5.4.3",
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",

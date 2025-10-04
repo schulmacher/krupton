@@ -1,0 +1,41 @@
+{
+  "name": "@krupton/service-framework-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./typebox": {
+      "types": "./dist/typebox.d.ts",
+      "source": "./src/typebox.ts",
+      "default": "./dist/typebox.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declarationMap --outDir dist",
+    "dev": "tsup --watch --onSuccess 'tsc --emitDeclarationOnly --declaration'",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@krupton/config": "workspace:*",
+    "@sinclair/typebox": "^0.34.41",
+    "fastify": "^5.2.3",
+    "prom-client": "^15.1.3"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
