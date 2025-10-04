@@ -4,7 +4,7 @@ import {
   orderRequestSchema,
   orderResponseSchema,
   wsMessageSchema,
-} from '@krupton/interface';
+} from '@krupton/api-interface';
 
 const fastify = Fastify({ logger: true });
 

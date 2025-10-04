@@ -50,7 +50,7 @@ The shared packages layer provides reusable code and configuration:
 - Exports standardized configurations for ESLint, Prettier, TypeScript, tsup bundler, and Vitest testing framework
 - Ensures consistency across all workspace packages
 
-**interface** (`@krupton/interface`)
+**interface** (`@krupton/api-interface`)
 - Shared TypeScript interfaces, types, and schemas
 - Integrates Zod library for runtime type validation
 - Built with tsup bundler and TypeScript compiler to generate declaration maps

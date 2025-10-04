@@ -40,7 +40,6 @@ export const createFetcherService = (context: MdsFetcherContext): MdsFetcherServ
     symbols,
     fetchInterval: config.FETCH_INTERVAL_MS,
     storageDir: config.STORAGE_BASE_DIR,
-    mode: config.FETCH_MODE,
   });
 
   const executeFetch = async (symbol: string, endpoint: string): Promise<void> => {
@@ -155,48 +154,12 @@ export const createFetcherService = (context: MdsFetcherContext): MdsFetcherServ
       return;
     }
 
-    logger.info('Starting fetcher service', {
-      mode: config.FETCH_MODE,
-    });
+    logger.info('Starting fetcher service');
 
     state.isRunning = true;
     serviceRunningGauge.set(1);
 
-    const executeSingleFetchCycle = () =>
-      Promise.all(
-        symbols.map((symbol) =>
-          Promise.all([
-            executeFetch(symbol, '/trades'),
-            executeFetch(symbol, '/depth'),
-            executeFetch(symbol, '/bookTicker'),
-          ]),
-        ),
-      );
-
-    const startFetchLoopBasedOnMode = async () => {
-      switch (config.FETCH_MODE) {
-        case 'recording':
-          void fetchLoop();
-          break;
-
-        case 'snapshot':
-          await executeSingleFetchCycle();
-          logger.info('Snapshot mode: single fetch completed');
-          await stop();
-          break;
-
-        case 'backfill':
-          logger.warn('Backfill mode not yet implemented, falling back to recording');
-          void fetchLoop();
-          break;
-
-        default:
-          logger.error('Unknown fetch mode', { mode: config.FETCH_MODE });
-          throw new Error(`Unknown fetch mode: ${config.FETCH_MODE}`);
-      }
-    };
-
-    await startFetchLoopBasedOnMode();
+    void fetchLoop();
   };
 
   const stop = async (): Promise<void> => {

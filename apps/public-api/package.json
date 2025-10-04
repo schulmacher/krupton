@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@krupton/config": "workspace:*",
-    "@krupton/interface": "workspace:*",
+    "@krupton/api-interface": "workspace:*",
     "fastify": "^4.28.1",
     "ws": "^8.18.0"
   }

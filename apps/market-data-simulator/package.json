@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@krupton/config": "workspace:*",
-    "@krupton/interface": "workspace:*",
+    "@krupton/api-interface": "workspace:*",
     "@krupton/service-framework-node": "workspace:*",
     "@krupton/utils": "workspace:*",
     "ws": "^8.18.0"

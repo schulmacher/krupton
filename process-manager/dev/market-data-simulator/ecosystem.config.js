@@ -13,7 +13,6 @@ module.exports = {
         PLATFORM: 'binance',
         SYMBOLS: 'BTCUSDT,ETHUSDT',
         FETCH_INTERVAL_MS: '5000',
-        FETCH_MODE: 'recording',
         PORT: '3100',
       },
     },

@@ -50,12 +50,12 @@ importers:
 
   apps/market-data-simulator:
     dependencies:
+      '@krupton/api-interface':
+        specifier: workspace:*
+        version: link:../../packages/api-interface
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@krupton/interface':
-        specifier: workspace:*
-        version: link:../../packages/interface
       '@krupton/service-framework-node':
         specifier: workspace:*
         version: link:../../packages/service-framework-node
@@ -68,18 +68,48 @@ importers:
 
   apps/public-api:
     dependencies:
+      '@krupton/api-interface':
+        specifier: workspace:*
+        version: link:../../packages/api-interface
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@krupton/interface':
-        specifier: workspace:*
-        version: link:../../packages/interface
       fastify:
         specifier: ^4.28.1
         version: 4.29.1
       ws:
         specifier: ^8.18.0
         version: 8.18.3
+
+  packages/api-client-node:
+    dependencies:
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../config
+      '@krupton/service-framework-node':
+        specifier: workspace:*
+        version: link:../service-framework-node
+      typescript:
+        specifier: '>=5.0.0'
+        version: 5.9.2
+      undici:
+        specifier: ^7.16.0
+        version: 7.16.0
+
+  packages/api-interface:
+    dependencies:
+      '@krupton/api-client-node':
+        specifier: workspace:*
+        version: link:../api-client-node
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../config
+      '@krupton/service-framework-node':
+        specifier: workspace:*
+        version: link:../service-framework-node
+      typescript:
+        specifier: '>=5.0.0'
+        version: 5.9.2
 
   packages/config:
     dependencies:
@@ -107,18 +137,6 @@ importers:
       vitest:
         specifier: ^2.1.3
         version: 2.1.9(@types/node@22.18.6)
-
-  packages/interface:
-    dependencies:
-      '@krupton/config':
-        specifier: workspace:*
-        version: link:../config
-      typescript:
-        specifier: '>=5.0.0'
-        version: 5.9.2
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
 
   packages/service-framework-node:
     dependencies:
@@ -2105,6 +2123,10 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
+  undici@7.16.0:
+    resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
+    engines: {node: '>=20.18.1'}
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
@@ -4160,6 +4182,8 @@ snapshots:
   ufo@1.6.1: {}
 
   undici-types@6.21.0: {}
+
+  undici@7.16.0: {}
 
   uri-js@4.4.1:
     dependencies:

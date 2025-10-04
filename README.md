@@ -1,4 +1,4 @@
-## Monorepo: public-api, market-data-simulator, @krupton/interface, @krupton/config
+## Monorepo: public-api, market-data-simulator, @krupton/api-interface, @krupton/config
 
 ### Install
 

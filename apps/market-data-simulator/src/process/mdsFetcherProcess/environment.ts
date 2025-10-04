@@ -37,31 +37,6 @@ export const mdsFetcherEnvSchema = TB.Object({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage'),
   }),
-
-  ROTATION_INTERVAL: TB.String({
-    description: 'File rotation interval (e.g., 1h, 1d)',
-    default: '1h',
-  }),
-
-  // Rate limiting
-  RATE_LIMIT_REQUESTS_PER_MINUTE: TB.Integer({
-    description: 'Maximum requests per minute',
-    default: 1200,
-    minimum: 1,
-  }),
-
-  RATE_LIMIT_REQUESTS_PER_SECOND: TB.Integer({
-    description: 'Maximum requests per second',
-    default: 20,
-    minimum: 1,
-  }),
-
-  // Operational mode
-  FETCH_MODE: TB.String({
-    description: 'Operational mode: recording, backfill, or snapshot',
-    default: 'recording',
-    enum: ['recording', 'backfill', 'snapshot'],
-  }),
 }) satisfies SF.DefaultEnvSchema;
 
 export type MdsFetcherEnv = TB.Static<typeof mdsFetcherEnvSchema>;
