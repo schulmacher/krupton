@@ -1,10 +1,11 @@
-import { mkdir, appendFile, readdir, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, appendFile, readdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type {
-  WriteStorageParams,
+  WriteStorageParams as AppendStorageParams,
   ReadStorageParams,
   StorageRecord,
   ReadLatestRecordParams,
+  WriteStorageParams,
 } from './types.js';
 
 const normalizeEndpointPath = (endpoint: string): string => {
@@ -31,6 +32,16 @@ const ensureDirectoryExists = async (filePath: string): Promise<void> => {
 export const createStorageIO = (baseDir: string) => {
   return {
     async writeRecord(params: WriteStorageParams): Promise<void> {
+      const { platform, endpoint, symbol, record, idx } = params;
+      const filePath = getStorageFilePath(baseDir, platform, endpoint, symbol, idx);
+
+      await ensureDirectoryExists(filePath);
+
+      const jsonLine = JSON.stringify(record) + '\n';
+      await writeFile(filePath, jsonLine, 'utf-8');
+    },
+
+    async appendRecord(params: AppendStorageParams): Promise<void> {
       const { platform, endpoint, symbol, record, idx } = params;
       const filePath = getStorageFilePath(baseDir, platform, endpoint, symbol, idx);
 

@@ -1,2 +1,2 @@
-export * from './binanceHttp.js';
-export * from './krakenHttp.js';
+export * from './binance/binanceHttp.js';
+export * from './kraken/krakenHttp.js';

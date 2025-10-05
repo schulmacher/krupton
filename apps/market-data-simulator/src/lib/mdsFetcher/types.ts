@@ -31,7 +31,7 @@ export interface FetcherConfig<E extends EndpointDefinition> {
   endpointFn: EndpointFunction<E>;
   buildRequestParams: (
     context: BuildRequestContext<E>,
-  ) => ExtractEndpointParams<E>;
+  ) => ExtractEndpointParams<E> | Promise<ExtractEndpointParams<E>>;
   onSuccess?: (
     context: FetchSuccessContext<E>,
   ) => void | Promise<void>;

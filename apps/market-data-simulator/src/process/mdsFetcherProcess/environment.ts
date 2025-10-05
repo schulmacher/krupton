@@ -10,7 +10,7 @@ export const mdsFetcherEnvSchema = TB.Object({
   LOG_LEVEL: TB.String({ default: 'debug' }),
 
   // Platform configuration
-  PLATFORM: TB.String({
+  PLATFORM: TB.Union([TB.Literal('binance'), TB.Literal('kraken')], {
     description: 'Exchange platform to fetch from (binance, kraken)',
     default: 'binance',
   }),
@@ -35,7 +35,7 @@ export const mdsFetcherEnvSchema = TB.Object({
   // Symbol configuration
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., BTCUSDT,ETHUSDT)',
-    default: 'BTCUSDT',
+    default: '',
   }),
 
   // Fetch configuration

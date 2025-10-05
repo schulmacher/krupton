@@ -54,7 +54,7 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
 
     try {
       await context.rateLimiter.throttle();
-      prevParams = buildRequestParams({ prevResponse, prevParams });
+      prevParams = await buildRequestParams({ prevResponse, prevParams });
 
       diagnosticContext.logger.debug('Executing fetch', {
         platform: env.PLATFORM,

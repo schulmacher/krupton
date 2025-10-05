@@ -14,6 +14,7 @@ export type WriteStorageParams<T = unknown> = {
   record: StorageRecord<T>;
   idx?: string;
 };
+export type AppendStorageParams<T = unknown> = WriteStorageParams<T>;
 
 export type ReadStorageParams = {
   platform: Platform;

@@ -83,6 +83,101 @@
 - Timestamp represents when the price level was last updated
 - Unlike some exchanges, each price level includes a timestamp for granular tracking
 
+### Get Tradable Asset Pairs
+
+**Endpoint:** `GET /public/AssetPairs`
+
+**Description:** Retrieves comprehensive information about all tradable asset pairs available on the exchange. This endpoint provides reference data including pair naming conventions, trading rules, fee schedules, and status information necessary for symbol validation and market data operations.
+
+**Parameters:**
+- `pair` (STRING, optional): Comma-separated list of asset pairs to query (e.g., `XBTUSD,ETHUSD`)
+- `info` (STRING, optional): Information level - `info` (all info, default), `leverage` (leverage info), `fees` (fee schedule), `margin` (margin info)
+
+**Note:** Omit parameters to retrieve information for all tradable pairs.
+
+**Response Structure:**
+```json
+{
+  "error": [],
+  "result": {
+    "XXBTZUSD": {
+      "altname": "XBTUSD",
+      "wsname": "XBT/USD",
+      "aclass_base": "currency",
+      "base": "XXBT",
+      "aclass_quote": "currency",
+      "quote": "ZUSD",
+      "pair_decimals": 1,
+      "cost_decimals": 5,
+      "lot_decimals": 8,
+      "lot_multiplier": 1,
+      "leverage_buy": [2, 3, 4, 5],
+      "leverage_sell": [2, 3, 4, 5],
+      "fees": [
+        [0, 0.26],
+        [50000, 0.24],
+        [100000, 0.22]
+      ],
+      "fees_maker": [
+        [0, 0.16],
+        [50000, 0.14],
+        [100000, 0.12]
+      ],
+      "fee_volume_currency": "ZUSD",
+      "margin_call": 80,
+      "margin_stop": 40,
+      "ordermin": "0.0001",
+      "costmin": "0.5",
+      "tick_size": "0.1",
+      "status": "online"
+    },
+    "XETHZUSD": {
+      "altname": "ETHUSD",
+      "wsname": "ETH/USD",
+      "base": "XETH",
+      "quote": "ZUSD",
+      "status": "online"
+    }
+  }
+}
+```
+
+**Key Response Fields:**
+
+- `altname`: Alternative pair name used in REST API requests
+- `wsname`: WebSocket API subscription name format (with forward slash)
+- `base`: Base asset identifier
+- `quote`: Quote asset identifier
+- `pair_decimals`: Decimal precision for pair pricing
+- `lot_decimals`: Decimal precision for order volume
+- `ordermin`: Minimum order volume for pair
+- `costmin`: Minimum order cost in quote currency
+- `tick_size`: Minimum price increment
+- `status`: Trading status (`online`, `cancel_only`, `post_only`, `limit_only`, `reduce_only`)
+
+**Pair Status Values:**
+
+- `online`: Pair available for all order types
+- `cancel_only`: Only order cancellations permitted
+- `post_only`: Only post-only limit orders permitted
+- `limit_only`: Only limit orders permitted
+- `reduce_only`: Only orders reducing position size permitted
+
+**Response Characteristics:**
+
+- Non-paginated: Returns complete pair set in single response
+- Response size: Smaller than Binance (typically < 1 MB)
+- Cache lifetime: Pair information changes infrequently
+- Recommended refresh: Every 30-60 minutes or on application initialization
+
+**Naming Convention:**
+
+Kraken employs asset identifier prefixes for internal representation:
+- `X` prefix: Typically denotes cryptocurrency assets (e.g., `XXBT` for Bitcoin, `XETH` for Ethereum)
+- `Z` prefix: Typically denotes fiat currencies (e.g., `ZUSD` for US Dollar, `ZEUR` for Euro)
+- Alternative names (`altname`) provide simplified identifiers for REST API usage
+- WebSocket names (`wsname`) use forward slash notation for stream subscriptions
+
 ## Key Differences from Binance
 
 **Asset Pair Naming:**

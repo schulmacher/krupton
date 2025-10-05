@@ -110,3 +110,76 @@ https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-e
   }
 ]
 ```
+
+### Exchange Information
+
+https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#exchange-information
+
+**Endpoint:** `GET /api/v3/exchangeInfo`
+
+**Description:** Provides comprehensive reference data for all trading symbols available on the exchange, including trading rules, filters, and permissions. This endpoint serves as the authoritative source for symbol validation and configuration discovery.
+
+**Weight:** 20
+
+**Parameters:**
+
+- `symbol` (STRING, optional): Query specific symbol
+- `symbols` (ARRAY, optional): Query specific symbols (e.g., `["BTCUSDT","ETHUSDT"]`)
+- `permissions` (STRING, optional): Filter by trading permissions (e.g., `SPOT`, `MARGIN`)
+
+**Note:** Omit all parameters to retrieve complete exchange information for all symbols.
+
+**Response Structure:**
+
+```json
+{
+  "timezone": "UTC",
+  "serverTime": 1508631584636,
+  "rateLimits": [
+    {
+      "rateLimitType": "REQUEST_WEIGHT",
+      "interval": "MINUTE",
+      "intervalNum": 1,
+      "limit": 6000
+    }
+  ],
+  "symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "status": "TRADING",
+      "baseAsset": "BTC",
+      "baseAssetPrecision": 8,
+      "quoteAsset": "USDT",
+      "quotePrecision": 8,
+      "quoteAssetPrecision": 8,
+      "orderTypes": [
+        "LIMIT",
+        "LIMIT_MAKER",
+        "MARKET",
+        "STOP_LOSS_LIMIT",
+        "TAKE_PROFIT_LIMIT"
+      ],
+      "icebergAllowed": true,
+      "ocoAllowed": true,
+      "isSpotTradingAllowed": true,
+      "isMarginTradingAllowed": true,
+      "permissions": ["SPOT", "MARGIN"]
+    }
+  ]
+}
+```
+
+**Symbol Status Values:**
+
+- `TRADING`: Symbol is actively trading and accepting orders
+- `HALT`: Trading temporarily suspended
+- `BREAK`: Trading paused for maintenance
+- `PRE_TRADING`: Symbol not yet active for trading
+- `POST_TRADING`: Symbol delisted and no longer trading
+
+**Response Characteristics:**
+
+- Non-paginated: Returns complete symbol set in single response
+- Response size: Typically 1-5 MB depending on active trading pairs
+- Cache lifetime: Exchange information changes infrequently (hours to days)
+- Recommended refresh: Every 30-60 minutes or on application initialization

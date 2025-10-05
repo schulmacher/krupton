@@ -40,7 +40,7 @@ const handleHistoricalTradesResponse = async ({
   const requestFromId = query.fromId;
   const currentLatestRecord =
     await storageIO.readLatestRecord<BinanceApi.GetHistoricalTradesResponse>({
-      platform: config.PLATFORM as 'binance' | 'kraken',
+      platform: config.PLATFORM,
       endpoint,
       symbol,
     });
@@ -74,8 +74,8 @@ const handleHistoricalTradesResponse = async ({
   const timestamp = Date.now();
 
   for (const [idx, trades] of partitionedByIndex.entries()) {
-    await storageIO.writeRecord({
-      platform: config.PLATFORM as 'binance' | 'kraken',
+    await storageIO.appendRecord({
+      platform: config.PLATFORM,
       endpoint,
       symbol,
       idx,
@@ -114,7 +114,7 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async ({
 
   const latestStorageRecord =
     await storageIO.readLatestRecord<BinanceApi.GetHistoricalTradesResponse>({
-      platform: config.PLATFORM as 'binance' | 'kraken',
+      platform: config.PLATFORM,
       endpoint,
       symbol,
     });

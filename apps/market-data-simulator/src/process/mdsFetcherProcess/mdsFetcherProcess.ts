@@ -1,4 +1,5 @@
 import { SF } from '@krupton/service-framework-node';
+import { createBinanceExchangeInfoFetcherLoop } from '../../lib/mdsFetcher/createBinanceExchangeInfoFetcherLoop.js';
 import { createBinanceHistoricalTradesFetcherLoops } from '../../lib/mdsFetcher/createBinanceHistoricalTradesFetcherLoops.js';
 import type { MdsFetcherContext } from './context.js';
 
@@ -20,10 +21,15 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
 
   const symbols = config.SYMBOLS.split(',').map((s) => s.trim());
 
-  const fetcherLoops = await createBinanceHistoricalTradesFetcherLoops({
-    context,
-    symbols,
-  });
+  const fetcherLoops = [
+    ...(await createBinanceHistoricalTradesFetcherLoops({
+      context,
+      symbols,
+    })),
+    await createBinanceExchangeInfoFetcherLoop({
+      context,
+    }),
+  ];
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {

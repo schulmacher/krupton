@@ -5,4 +5,5 @@ export const BinanceApiDefinition = {
   getOrderBook: BinanceApi.GetOrderBookEndpoint,
   getBookTicker: BinanceApi.GetBookTickerEndpoint,
   getHistoricalTrades: BinanceApi.GetHistoricalTradesEndpoint,
+  getExchangeInfo: BinanceApi.GetExchangeInfoEndpoint,
 } as const;
