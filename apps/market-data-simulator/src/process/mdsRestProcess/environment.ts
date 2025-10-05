@@ -2,22 +2,22 @@ import { SF } from '@krupton/service-framework-node';
 import { TB } from '@krupton/service-framework-node/typebox';
 import { getMonorepoRootDir } from '../../lib/fs.js';
 
-export const mdsStorageEnvSchema = TB.Object({
+export const mdsRestEnvSchema = TB.Object({
   // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'mds-storage' }),
+  PROCESS_NAME: TB.String({ default: 'mds-rest-api' }),
   NODE_ENV: TB.String({ default: 'development' }),
-  PORT: TB.Integer({ default: 3000 }),
+  PORT: TB.Integer({ default: 3002 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
 
   // Storage configuration
   STORAGE_BASE_DIR: TB.String({
-    description: 'Base directory for storing fetched data',
+    description: 'Base directory for reading stored data',
     default: getMonorepoRootDir('storage'),
   }),
-  BACKUP_BASE_DIR: TB.String({
-    description: 'Base directory for storing backup data',
-    default: '/krupton/backup',
+  PLATFORM: TB.String({
+    description: 'Platform to read data from',
+    default: 'binance',
   }),
 }) satisfies SF.DefaultEnvSchema;
 
-export type MdsStorageEnv = TB.Static<typeof mdsStorageEnvSchema>;
+export type MdsRestEnv = TB.Static<typeof mdsRestEnvSchema>;

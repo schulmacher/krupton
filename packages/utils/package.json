@@ -17,12 +17,12 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declarationMap --outDir dist",
-    "dev": "tsup --watch --onSuccess 'tsc --emitDeclarationOnly --declaration'",
+    "build": "tsc",
+    "dev": "tsc --watch",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
-    "test": "echo \"No tests\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@krupton/config": "workspace:*",

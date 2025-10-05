@@ -14,7 +14,6 @@ const defaultShutdownConfiguration: ShutdownConfiguration = {
 export function createProcessLifecycle(
   config: ProcessLifecycleConfig,
 ): ProcessLifecycleContext {
-  const logger = config.diagnosticContext.createRootLogger();
   const shutdownConfig = config.shutdownConfiguration ?? defaultShutdownConfiguration;
   
   const callbacks: ShutdownCallback[] = [];
@@ -61,20 +60,20 @@ export function createProcessLifecycle(
 
     shuttingDown = true;
 
-    logger.info('Graceful shutdown initiated', { signal });
+    config.diagnosticContext.logger.info('Graceful shutdown initiated', { signal });
 
     const forceExitTimeout = setTimeout(() => {
-      logger.fatal('Shutdown timeout exceeded, forcing exit', {
+      config.diagnosticContext.logger.fatal('Shutdown timeout exceeded, forcing exit', {
         totalTimeout: shutdownConfig.totalTimeout,
       });
       process.exit(1);
     }, shutdownConfig.totalTimeout);
 
-    await executeAllCallbacks(logger);
+    await executeAllCallbacks(config.diagnosticContext.logger);
 
     clearTimeout(forceExitTimeout);
 
-    logger.info('Graceful shutdown completed');
+    config.diagnosticContext.logger.info('Graceful shutdown completed');
     process.exit(0);
   };
 
@@ -86,7 +85,7 @@ export function createProcessLifecycle(
     reason: unknown,
     promise: Promise<unknown>,
   ): void => {
-    logger.fatal('Unhandled promise rejection detected', {
+    config.diagnosticContext.logger.fatal('Unhandled promise rejection detected', {
       reason: String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,
       promise: promise.toString(),
@@ -96,7 +95,7 @@ export function createProcessLifecycle(
   };
 
   const handleUncaughtException = (error: Error): void => {
-    logger.fatal('Uncaught exception detected', {
+    config.diagnosticContext.logger.fatal('Uncaught exception detected', {
       message: error.message,
       stack: error.stack,
       name: error.name,
@@ -106,7 +105,7 @@ export function createProcessLifecycle(
   };
 
   const handleWarning = (warning: Error): void => {
-    logger.warn('Process warning emitted', {
+    config.diagnosticContext.logger.warn('Process warning emitted', {
       name: warning.name,
       message: warning.message,
       stack: warning.stack,
@@ -119,7 +118,7 @@ export function createProcessLifecycle(
 
   const start = (): void => {
     if (started) {
-      logger.warn('Process lifecycle already started');
+      config.diagnosticContext.logger.warn('Process lifecycle already started');
       return;
     }
 
@@ -132,7 +131,7 @@ export function createProcessLifecycle(
     process.on('uncaughtException', handleUncaughtException);
     process.on('warning', handleWarning);
 
-    logger.info('Process lifecycle signal handlers registered');
+    config.diagnosticContext.logger.info('Process lifecycle signal handlers registered');
   };
 
   const shutdown = async (): Promise<void> => {

@@ -3,8 +3,11 @@
   "include": ["src"],
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": true
+    "sourceMap": true,
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
   }
 }

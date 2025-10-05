@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev:fetcher": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/mdsFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:rest": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/mdsRest.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "dev:storage": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/mdsStorage.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
@@ -13,6 +14,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@krupton/api-client-node": "workspace:*",
     "@krupton/config": "workspace:*",
     "@krupton/api-interface": "workspace:*",
     "@krupton/service-framework-node": "workspace:*",
@@ -20,5 +22,3 @@
     "ws": "^8.18.0"
   }
 }
-
-

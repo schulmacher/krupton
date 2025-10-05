@@ -903,17 +903,13 @@ describe('createApiClient', () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _noParams: typeof client.updateUser = () => client.updateUser();
 
-        // TypeScript properly catches path missing - no @ts-expect-error needed
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _bodyOnly: typeof client.updateUser = () =>
-          // @ts-expect-error - path required but missing
-          client.updateUser({ body: { name: 'John' } });
+        // TypeScript properly catches path missing
+        // @ts-expect-error - path required but missing
+        client.updateUser({ body: { name: 'John' } });
 
-        // TypeScript properly catches body missing - no @ts-expect-error needed
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _pathOnly: typeof client.updateUser = () =>
-          // @ts-expect-error - body required but missing
-          client.updateUser({ path: { userId: '123' } });
+        // TypeScript properly catches body missing
+        // @ts-expect-error - body required but missing
+        client.updateUser({ path: { userId: '123' } });
 
         expect(client.updateUser).toBeDefined();
       });
@@ -932,14 +928,13 @@ describe('createApiClient', () => {
           endpoints,
         );
 
-        // These should be valid TypeScript (no @ts-expect-error needed)
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _noParams: typeof client.listUsers = () => client.listUsers();
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _withUndefined: typeof client.listUsers = () =>
-          client.listUsers(undefined);
+        // These should be valid TypeScript
+        expect(() => client.listUsers()).toBeDefined();
+        expect(() => client.listUsers(undefined)).toBeDefined();
 
         expect(client.listUsers).toBeDefined();
+        expect(client.listUsers.definition).toBeDefined();
+        expect(client.listUsers.definition.path).toBe('/users');
       });
     });
   });

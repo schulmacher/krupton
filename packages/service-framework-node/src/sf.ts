@@ -12,10 +12,13 @@ export { createHttpServer } from './httpServer/httpServer.js';
 export { HealthCheckResult, HttpServerConfig, ServiceContext } from './httpServer/types.js';
 export { createMetricsContext } from './metrics/metrics.js';
 export {
+  MetricConfig,
   MetricConfigCounter,
   MetricConfigGauge,
   MetricConfigHistogram,
   MetricConfigSummary,
+  MetricFromConfig,
+  MetricsFromConfigs,
   MetricsConfig,
   MetricsContext,
   RegisteredMetrics,

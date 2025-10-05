@@ -7,6 +7,7 @@ export const mdsFetcherEnvSchema = TB.Object({
   PROCESS_NAME: TB.String({ default: 'mds-fetcher' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3000 }),
+  LOG_LEVEL: TB.String({ default: 'debug' }),
 
   // Platform configuration
   PLATFORM: TB.String({
@@ -16,8 +17,20 @@ export const mdsFetcherEnvSchema = TB.Object({
 
   API_BASE_URL: TB.String({
     description: 'Base URL for the exchange API',
-    default: 'https://api.binance.com',
+    default: 'https://testnet.binance.vision',
   }),
+
+  API_KEY: TB.Optional(
+    TB.String({
+      description: 'API key for authenticated endpoints (optional for public endpoints)',
+    }),
+  ),
+
+  API_SECRET: TB.Optional(
+    TB.String({
+      description: 'API secret for signing authenticated requests (optional for public endpoints)',
+    }),
+  ),
 
   // Symbol configuration
   SYMBOLS: TB.String({
@@ -28,7 +41,19 @@ export const mdsFetcherEnvSchema = TB.Object({
   // Fetch configuration
   FETCH_INTERVAL_MS: TB.Integer({
     description: 'Interval between fetch operations in milliseconds',
-    default: 5000,
+    default: 0,
+  }),
+
+  // Rate limit configuration
+  RATE_LIMIT_MAX_REQUESTS: TB.Integer({
+    description: 'Maximum number of requests allowed in the rate limit window',
+    default: 2400,
+    minimum: 1,
+  }),
+
+  RATE_LIMIT_WINDOW_MS: TB.Integer({
+    description: 'Rate limit window duration in milliseconds',
+    default: 60000,
     minimum: 1000,
   }),
 
@@ -40,4 +65,3 @@ export const mdsFetcherEnvSchema = TB.Object({
 }) satisfies SF.DefaultEnvSchema;
 
 export type MdsFetcherEnv = TB.Static<typeof mdsFetcherEnvSchema>;
-

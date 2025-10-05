@@ -11,8 +11,8 @@ import {
 import type {
   ApiClient,
   ApiClientConfig,
-  EndpointImplementation,
-  DerivedRequestParams,
+  EndpointClientImplementation,
+  ExtractEndpointParams,
   EndpointDefinition,
   EndpointFunction,
 } from './types.js';
@@ -57,8 +57,8 @@ const validatePathSchema = (
 const createApiImplementation = <T extends EndpointDefinition>(
   config: ApiClientConfig,
   definition: T,
-): EndpointImplementation<T> => {
-  return (async (params?: DerivedRequestParams<T>) => {
+): EndpointClientImplementation<T> => {
+  return (async (params?: ExtractEndpointParams<T>) => {
     let url = config.baseUrl + definition.path;
 
     if (params?.path) {
@@ -84,6 +84,7 @@ const createApiImplementation = <T extends EndpointDefinition>(
       method: definition.method,
       headers: {
         'Content-Type': 'application/json',
+        ...config.headers,
       },
       body: params?.body && definition.method !== 'GET' ? JSON.stringify(params.body) : undefined,
     };
@@ -109,14 +110,14 @@ const createApiImplementation = <T extends EndpointDefinition>(
     }
 
     return response.body.json();
-  }) as EndpointImplementation<T>;
+  }) as EndpointClientImplementation<T>;
 };
 
 const createApiImplementationWithValidation = <T extends EndpointDefinition>(
   config: ApiClientConfig,
   definition: T,
-): EndpointImplementation<T> => {
-  return (async (params?: DerivedRequestParams<T>) => {
+): EndpointClientImplementation<T> => {
+  return (async (params?: ExtractEndpointParams<T>) => {
     // Validate query params
     if (params?.query && definition.querySchema) {
       const valid = Value.Check(definition.querySchema, params.query);
@@ -178,6 +179,7 @@ const createApiImplementationWithValidation = <T extends EndpointDefinition>(
       method: definition.method,
       headers: {
         'Content-Type': 'application/json',
+        ...config.headers,
       },
       body: params?.body && definition.method !== 'GET' ? JSON.stringify(params.body) : undefined,
     };
@@ -215,7 +217,7 @@ const createApiImplementationWithValidation = <T extends EndpointDefinition>(
     }
 
     return responseBody;
-  }) as EndpointImplementation<T>;
+  }) as EndpointClientImplementation<T>;
 };
 
 export const createApiClient = <T extends Record<string, EndpointDefinition>>(
@@ -230,11 +232,15 @@ export const createApiClient = <T extends Record<string, EndpointDefinition>>(
   const enableValidation = config.validation ?? true;
 
   for (const [endpointName, definition] of Object.entries(endpoints)) {
-    client[endpointName as keyof T] = (
-      enableValidation
-        ? createApiImplementationWithValidation(config, definition)
-        : createApiImplementation(config, definition)
-    ) as EndpointFunction<T[keyof T]>;
+    const baseImplementation = enableValidation
+      ? createApiImplementationWithValidation(config, definition)
+      : createApiImplementation(config, definition);
+    
+    const implementationWithDefinition = Object.assign(baseImplementation, {
+      definition,
+    });
+    
+    client[endpointName as keyof T] = implementationWithDefinition as EndpointFunction<T[keyof T]>;
   }
 
   return client;

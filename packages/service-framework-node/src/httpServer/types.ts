@@ -23,6 +23,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     logger: Logger;
     correlationId: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ctx: ServiceContext<any, any>;
     startTime: number;
   }

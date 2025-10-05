@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { HttpServerConfig, ServiceContext } from './types.js';
+import { httpServerMetrics } from '../componentMetrics/componentMetrics.js';
 
 interface HttpServerEnv {
   PORT: number;
@@ -15,6 +16,13 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
     requestIdLogLabel: 'correlationId',
     requestIdHeader: 'x-correlation-id',
   });
+
+  const httpRequestsTotal = context.metricsContext.createCounter(
+    httpServerMetrics.httpRequestsTotal,
+  );
+  const httpRequestDuration = context.metricsContext.createHistogram(
+    httpServerMetrics.httpRequestDuration,
+  );
 
   fastify.decorateRequest('ctx');
   fastify.decorateRequest('logger');
@@ -49,6 +57,23 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
       statusCode: reply.statusCode,
       duration_ms: duration,
     });
+
+    const route = request.routeOptions?.url || request.url;
+    const durationSeconds = duration / 1000;
+
+    httpRequestsTotal.inc({
+      method: request.method,
+      route,
+      status_code: String(reply.statusCode),
+    });
+
+    httpRequestDuration.observe(
+      {
+        method: request.method,
+        route,
+      },
+      durationSeconds,
+    );
   });
 
   fastify.get('/metrics', async (_request, reply) => {
@@ -113,7 +138,7 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
       host: '0.0.0.0',
     });
 
-    context.diagnosticContext.createRootLogger().info('Server started', {
+    context.diagnosticContext.logger.info('Server started', {
       port: context.envContext.config.PORT,
       environment: context.envContext.config.NODE_ENV,
     });

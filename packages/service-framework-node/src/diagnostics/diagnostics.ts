@@ -179,13 +179,12 @@ export function createDiagnosticContext(
 ): DiagnosticContext {
   const correlationIdGenerator = createCorrelationIdGenerator();
   const serviceName = envContext.config.PROCESS_NAME;
+  const rootId = correlationIdGenerator.generateRootId();
+  const rootLogger = createLogger(serviceName, rootId, config);
 
   return {
     correlationIdGenerator,
-    createRootLogger: () => {
-      const rootId = correlationIdGenerator.generateRootId();
-      return createLogger(serviceName, rootId, config);
-    },
+    logger: rootLogger,
     createChildLogger: (correlationId: string) => {
       return createLogger(serviceName, correlationId, config);
     },

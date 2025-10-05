@@ -193,15 +193,14 @@ describe('createDiagnosticContext', () => {
   it('creates diagnostic context with correlation ID generator', () => {
     const context = createDiagnosticContext(createTestEnvContext());
     expect(context.correlationIdGenerator).toBeDefined();
-    expect(context.createRootLogger).toBeDefined();
+    expect(context.logger).toBeDefined();
     expect(context.createChildLogger).toBeDefined();
   });
 
   it('creates root logger with generated correlation ID', () => {
     const context = createDiagnosticContext(createTestEnvContext(), { outputFormat: 'json' });
-    const logger = context.createRootLogger();
 
-    logger.info('Test message');
+    context.logger.info('Test message');
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     const logOutput = consoleLogSpy.mock.calls[0][0];

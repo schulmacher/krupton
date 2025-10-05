@@ -4,7 +4,6 @@ import { createStorageBackup } from './mdsStorageBackup.js';
 
 export const createStorageBackupService = (context: MdsStorageServiceContext) => {
   const { envContext, diagnosticContext, metricsContext } = context;
-  const logger = diagnosticContext.createRootLogger();
   const config = envContext.config;
 
   const storageIO = createStorageIO(config.STORAGE_BASE_DIR);
@@ -14,7 +13,7 @@ export const createStorageBackupService = (context: MdsStorageServiceContext) =>
     const stats = await storageIO.getStorageStats();
     const backupMetadata = storageBackup.getBackupMetadata();
 
-    logger.debug('Updating storage metrics', {
+    diagnosticContext.logger.debug('Updating storage metrics', {
       totalSize: stats.totalSizeBytes,
       fileCount: stats.fileCount,
       lastBackup: backupMetadata.lastBackupTimestamp,
@@ -32,7 +31,7 @@ export const createStorageBackupService = (context: MdsStorageServiceContext) =>
 
   return {
     async start(): Promise<void> {
-      logger.info('Starting storage service', {
+      diagnosticContext.logger.info('Starting storage service', {
         storageBaseDir: config.STORAGE_BASE_DIR,
         backupBaseDir: config.BACKUP_BASE_DIR,
       });
@@ -40,22 +39,19 @@ export const createStorageBackupService = (context: MdsStorageServiceContext) =>
       await storageBackup.start();
       await updateMetrics();
 
-      setInterval(
-        () => {
-          updateMetrics().catch((error) => {
-            logger.error('Error updating metrics', { error });
-          });
-        },
-        60 * 1000,
-      );
+      setInterval(() => {
+        updateMetrics().catch((error) => {
+          diagnosticContext.logger.error('Error updating metrics', { error });
+        });
+      }, 60 * 1000);
 
-      logger.info('Storage service started');
+      diagnosticContext.logger.info('Storage service started');
     },
 
     async stop(): Promise<void> {
-      logger.info('Stopping storage service');
+      diagnosticContext.logger.info('Stopping storage service');
       await storageBackup.stop();
-      logger.info('Storage service stopped');
+      diagnosticContext.logger.info('Storage service stopped');
     },
 
     getStorageIO: () => storageIO,
@@ -64,4 +60,3 @@ export const createStorageBackupService = (context: MdsStorageServiceContext) =>
 };
 
 export type StorageService = ReturnType<typeof createStorageBackupService>;
-

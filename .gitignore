@@ -113,3 +113,6 @@ Temporary Items
 tmp
 temp
 *.tmp
+
+# Storage
+/storage

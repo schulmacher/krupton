@@ -1,10 +1,10 @@
 import { SF } from '@krupton/service-framework-node';
-import { createFetcherService } from '../../lib/mdsFetcher/mdsFetcherService.js';
+import { createBinanceHistoricalTradesFetcherLoops } from '../../lib/mdsFetcher/createBinanceHistoricalTradesFetcherLoops.js';
 import type { MdsFetcherContext } from './context.js';
 
 export const startMdsFetcherService = async (context: MdsFetcherContext): Promise<void> => {
-  const { diagnosticContext, processContext } = context;
-  const logger = diagnosticContext.createRootLogger();
+  const { diagnosticContext, processContext, envContext } = context;
+  const config = envContext.config;
 
   const createHttpServerWithHealthChecks = () =>
     SF.createHttpServer(context, {
@@ -17,12 +17,18 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
     });
 
   const httpServer = createHttpServerWithHealthChecks();
-  const fetcherService = createFetcherService(context);
+
+  const symbols = config.SYMBOLS.split(',').map((s) => s.trim());
+
+  const fetcherLoops = await createBinanceHistoricalTradesFetcherLoops({
+    context,
+    symbols,
+  });
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
-      logger.info('Shutting down fetcher service');
-      await fetcherService.stop();
+      diagnosticContext.logger.info('Shutting down fetcher services');
+      await Promise.all(fetcherLoops.map((service) => service.stop()));
     });
   };
 
@@ -30,5 +36,5 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
 
   processContext.start();
   await httpServer.startServer();
-  await fetcherService.start();
+  await Promise.all(fetcherLoops.map((service) => service.start()));
 };

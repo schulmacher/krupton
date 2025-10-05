@@ -5,49 +5,58 @@ import type {
 } from '../../metrics/types.js';
 
 const writeOperations: MetricConfigCounter<'platform' | 'endpoint' | 'status'> = {
+  type: 'counter',
   name: 'storage_write_operations_total',
   help: 'Total number of storage write operations',
   labelNames: ['platform', 'endpoint', 'status'] as const,
 };
 
 const readOperations: MetricConfigCounter<'platform' | 'endpoint' | 'status'> = {
+  type: 'counter',
   name: 'storage_read_operations_total',
   help: 'Total number of storage read operations',
   labelNames: ['platform', 'endpoint', 'status'] as const,
 };
 
 const backupOperations: MetricConfigCounter = {
+  type: 'counter',
   name: 'storage_backup_operations_total',
   help: 'Total number of successful backup operations',
 };
 
 const backupFailures: MetricConfigCounter = {
+  type: 'counter',
   name: 'storage_backup_failures_total',
   help: 'Total number of failed backup operations',
 };
 
 const storageSize: MetricConfigGauge = {
+  type: 'gauge',
   name: 'storage_size_bytes',
   help: 'Total storage consumption in bytes',
 };
 
 const fileCount: MetricConfigGauge<'platform'> = {
+  type: 'gauge',
   name: 'storage_file_count',
   help: 'Number of storage files',
   labelNames: ['platform'] as const,
 };
 
 const backupLastTimestamp: MetricConfigGauge = {
+  type: 'gauge',
   name: 'storage_backup_last_timestamp_seconds',
   help: 'Unix timestamp of the most recent successful backup',
 };
 
 const backupSize: MetricConfigGauge = {
+  type: 'gauge',
   name: 'storage_backup_size_bytes',
   help: 'Total size of backup ZIP archives in remote storage',
 };
 
 const writeDuration: MetricConfigHistogram<'platform' | 'endpoint'> = {
+  type: 'histogram',
   name: 'storage_write_duration_seconds',
   help: 'Duration of storage write operations',
   labelNames: ['platform', 'endpoint'] as const,
@@ -55,12 +64,14 @@ const writeDuration: MetricConfigHistogram<'platform' | 'endpoint'> = {
 };
 
 const backupDuration: MetricConfigHistogram = {
+  type: 'histogram',
   name: 'storage_backup_duration_seconds',
   help: 'Duration of backup operations',
   buckets: [1, 5, 10, 30, 60, 120, 300],
 };
 
 const fileSize: MetricConfigHistogram<'platform'> = {
+  type: 'histogram',
   name: 'storage_file_size_bytes',
   help: 'Distribution of storage file sizes',
   labelNames: ['platform'] as const,

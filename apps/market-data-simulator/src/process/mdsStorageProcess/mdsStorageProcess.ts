@@ -4,7 +4,6 @@ import type { MdsStorageContext } from './context.js';
 
 export const startMdsStorageService = async (context: MdsStorageContext): Promise<void> => {
   const { diagnosticContext, processContext } = context;
-  const logger = diagnosticContext.createRootLogger();
 
   const createHttpServerWithHealthChecks = () =>
     SF.createHttpServer(context, {
@@ -21,7 +20,7 @@ export const startMdsStorageService = async (context: MdsStorageContext): Promis
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
-      logger.info('Shutting down Storage service');
+      diagnosticContext.logger.info('Shutting down Storage service');
       await storageService.stop();
     });
   };

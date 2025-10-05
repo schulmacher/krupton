@@ -1,19 +1,14 @@
-import {
-  Registry,
-  Counter,
-  Gauge,
-  Histogram,
-  Summary,
-  collectDefaultMetrics,
-} from 'prom-client';
+import { Counter, Gauge, Histogram, Registry, Summary, collectDefaultMetrics } from 'prom-client';
 import type {
+  DefaultMetricsCollection,
+  MetricConfig,
   MetricConfigCounter,
   MetricConfigGauge,
   MetricConfigHistogram,
   MetricConfigSummary,
   MetricsConfig,
   MetricsContext,
-  DefaultMetricsCollection,
+  MetricsFromConfigs,
 } from './types.js';
 
 const defaultHistogramBuckets = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10];
@@ -66,7 +61,6 @@ function validateLabelNames(labelNames: readonly string[] | undefined): void {
 
 export function createDefaultMetricsCollection(
   registry: Registry,
-  config: MetricsConfig<unknown>,
   fullPrefix: string,
 ): DefaultMetricsCollection {
   let isCollecting = false;
@@ -91,9 +85,21 @@ export function createDefaultMetricsCollection(
   };
 }
 
-export function createMetricsContext<TMetrics = undefined>(
-  config: MetricsConfig<TMetrics>,
-): MetricsContext<TMetrics> {
+export function createMetricsContext<TMetricsConfigs extends Record<string, MetricConfig>>(
+  config: MetricsConfig<TMetricsConfigs>,
+): MetricsContext<MetricsFromConfigs<TMetricsConfigs>>;
+export function createMetricsContext(
+  config: MetricsConfig<Record<string, MetricConfig>>,
+): MetricsContext<undefined>;
+export function createMetricsContext<
+  TMetricsConfigs extends Record<string, MetricConfig> | undefined,
+>(
+  config: MetricsConfig<TMetricsConfigs & Record<string, MetricConfig>>,
+): MetricsContext<
+  TMetricsConfigs extends Record<string, MetricConfig>
+    ? MetricsFromConfigs<TMetricsConfigs>
+    : undefined
+> {
   const registry = new Registry();
 
   const normalizedServiceName = normalizeServiceName(config.envContext.config.PROCESS_NAME);
@@ -102,83 +108,115 @@ export function createMetricsContext<TMetrics = undefined>(
     : `${normalizedServiceName}_`;
 
   const defaultMetricsCollection = config.enableDefaultMetrics
-    ? createDefaultMetricsCollection(registry, config, fullPrefix)
+    ? createDefaultMetricsCollection(registry, fullPrefix)
     : undefined;
 
   if (defaultMetricsCollection) {
     defaultMetricsCollection.startCollection();
   }
 
+  function createMetricFromConfig<T extends string>(
+    metricConfig: MetricConfig<T>,
+  ): Counter<T> | Gauge<T> | Histogram<T> | Summary<T> {
+    switch (metricConfig.type) {
+      case 'counter':
+        return createCounter(metricConfig);
+      case 'gauge':
+        return createGauge(metricConfig);
+      case 'histogram':
+        return createHistogram(metricConfig);
+      case 'summary':
+        return createSummary(metricConfig);
+      default:
+        throw new Error(`Unknown metric type: ${(metricConfig as MetricConfig).type}`);
+    }
+  }
+
+  function createCounter<T extends string>(config: MetricConfigCounter<T>): Counter<T> {
+    validateMetricName(config.name);
+    validateLabelNames(config.labelNames);
+
+    const counter = new Counter<T>({
+      name: `${fullPrefix}${config.name}`,
+      help: config.help,
+      labelNames: config.labelNames ? (config.labelNames as T[]) : [],
+      registers: [registry],
+    });
+
+    return counter;
+  }
+
+  function createGauge<T extends string>(config: MetricConfigGauge<T>): Gauge<T> {
+    validateMetricName(config.name);
+    validateLabelNames(config.labelNames);
+
+    const gauge = new Gauge<T>({
+      name: `${fullPrefix}${config.name}`,
+      help: config.help,
+      labelNames: config.labelNames ? (config.labelNames as T[]) : [],
+      registers: [registry],
+    });
+
+    return gauge;
+  }
+
+  function createHistogram<T extends string>(config: MetricConfigHistogram<T>): Histogram<T> {
+    validateMetricName(config.name);
+    validateLabelNames(config.labelNames);
+
+    const buckets = config.buckets ?? defaultHistogramBuckets;
+
+    const histogram = new Histogram<T>({
+      name: `${fullPrefix}${config.name}`,
+      help: config.help,
+      labelNames: config.labelNames ? (config.labelNames as T[]) : [],
+      buckets,
+      registers: [registry],
+    });
+
+    return histogram;
+  }
+
+  function createSummary<T extends string>(config: MetricConfigSummary<T>): Summary<T> {
+    validateMetricName(config.name);
+    validateLabelNames(config.labelNames);
+
+    const percentiles = config.percentiles ?? defaultSummaryPercentiles;
+    const maxAgeSeconds = config.maxAgeSeconds ?? defaultSummaryMaxAgeSeconds;
+    const ageBuckets = config.ageBuckets ?? defaultSummaryAgeBuckets;
+
+    const summary = new Summary<T>({
+      name: `${fullPrefix}${config.name}`,
+      help: config.help,
+      labelNames: config.labelNames ? (config.labelNames as T[]) : [],
+      percentiles,
+      maxAgeSeconds,
+      ageBuckets,
+      registers: [registry],
+    });
+
+    return summary;
+  }
+
+  const instantiatedMetrics = config.metrics
+    ? (Object.entries(config.metrics).reduce(
+        (acc, [key, metricConfig]) => {
+          acc[key] = createMetricFromConfig(metricConfig);
+          return acc;
+        },
+        {} as Record<string, Counter<string> | Gauge<string> | Histogram<string> | Summary<string>>,
+      ) as MetricsFromConfigs<TMetricsConfigs & Record<string, MetricConfig>>)
+    : undefined;
+
   return {
     getRegistry(): Registry {
       return registry;
     },
 
-    createCounter<T extends string>(config: MetricConfigCounter<T>): Counter<T> {
-      validateMetricName(config.name);
-      validateLabelNames(config.labelNames);
-
-      const counter = new Counter<T>({
-        name: `${fullPrefix}${config.name}`,
-        help: config.help,
-        labelNames: config.labelNames ? (config.labelNames as T[]) : [],
-        registers: [registry],
-      });
-
-      return counter;
-    },
-
-    createGauge<T extends string>(config: MetricConfigGauge<T>): Gauge<T> {
-      validateMetricName(config.name);
-      validateLabelNames(config.labelNames);
-
-      const gauge = new Gauge<T>({
-        name: `${fullPrefix}${config.name}`,
-        help: config.help,
-        labelNames: config.labelNames ? (config.labelNames as T[]) : [],
-        registers: [registry],
-      });
-
-      return gauge;
-    },
-
-    createHistogram<T extends string>(config: MetricConfigHistogram<T>): Histogram<T> {
-      validateMetricName(config.name);
-      validateLabelNames(config.labelNames);
-
-      const buckets = config.buckets ?? defaultHistogramBuckets;
-
-      const histogram = new Histogram<T>({
-        name: `${fullPrefix}${config.name}`,
-        help: config.help,
-        labelNames: config.labelNames ? (config.labelNames as T[]) : [],
-        buckets,
-        registers: [registry],
-      });
-
-      return histogram;
-    },
-
-    createSummary<T extends string>(config: MetricConfigSummary<T>): Summary<T> {
-      validateMetricName(config.name);
-      validateLabelNames(config.labelNames);
-
-      const percentiles = config.percentiles ?? defaultSummaryPercentiles;
-      const maxAgeSeconds = config.maxAgeSeconds ?? defaultSummaryMaxAgeSeconds;
-      const ageBuckets = config.ageBuckets ?? defaultSummaryAgeBuckets;
-
-      const summary = new Summary<T>({
-        name: `${fullPrefix}${config.name}`,
-        help: config.help,
-        labelNames: config.labelNames ? (config.labelNames as T[]) : [],
-        percentiles,
-        maxAgeSeconds,
-        ageBuckets,
-        registers: [registry],
-      });
-
-      return summary;
-    },
+    createCounter,
+    createGauge,
+    createHistogram,
+    createSummary,
 
     async getMetricsAsString(): Promise<string> {
       return await registry.metrics();
@@ -195,7 +233,10 @@ export function createMetricsContext<TMetrics = undefined>(
       registry.clear();
     },
 
-    metrics: config.metrics as TMetrics,
-  };
+    metrics: instantiatedMetrics,
+  } as unknown as MetricsContext<
+    TMetricsConfigs extends Record<string, MetricConfig>
+      ? MetricsFromConfigs<TMetricsConfigs>
+      : undefined
+  >;
 }
-

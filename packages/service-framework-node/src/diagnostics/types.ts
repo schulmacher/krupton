@@ -33,6 +33,6 @@ export interface DiagnosticConfig {
 
 export interface DiagnosticContext {
   correlationIdGenerator: CorrelationIdGenerator;
-  createRootLogger: () => Logger;
+  logger: Logger;
   createChildLogger: (correlationId: string) => Logger;
 }

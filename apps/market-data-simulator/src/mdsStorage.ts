@@ -6,9 +6,7 @@ const bootstrap = async (): Promise<void> => {
   try {
     const context = createMdsStorageContext();
 
-    const logger = context.diagnosticContext.createRootLogger();
-
-    logger.info('Bootstrapping mdsStorage service', {
+    context.diagnosticContext.logger.info('Bootstrapping mdsStorage service', {
       processName: context.envContext.config.PROCESS_NAME,
       nodeEnv: context.envContext.nodeEnv,
     });

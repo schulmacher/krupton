@@ -5,31 +5,26 @@ import { mdsStorageEnvSchema } from './environment.js';
 export const createMdsStorageContext = () => {
   const envContext = SF.createEnvContext(mdsStorageEnvSchema);
 
-  const diagnosticContext = SF.createDiagnosticContext(envContext);
-
-  const metricsContextBase = SF.createMetricsContext({
-    envContext,
-    enableDefaultMetrics: true,
+  const diagnosticContext = SF.createDiagnosticContext(envContext, {
+    minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
   });
-
-  const metrics = {
-    writeOperations: metricsContextBase.createCounter(SF.mdsStorageMetrics.writeOperations),
-    readOperations: metricsContextBase.createCounter(SF.mdsStorageMetrics.readOperations),
-    backupOperations: metricsContextBase.createCounter(SF.mdsStorageMetrics.backupOperations),
-    backupFailures: metricsContextBase.createCounter(SF.mdsStorageMetrics.backupFailures),
-    storageSize: metricsContextBase.createGauge(SF.mdsStorageMetrics.storageSize),
-    fileCount: metricsContextBase.createGauge(SF.mdsStorageMetrics.fileCount),
-    backupLastTimestamp: metricsContextBase.createGauge(SF.mdsStorageMetrics.backupLastTimestamp),
-    backupSize: metricsContextBase.createGauge(SF.mdsStorageMetrics.backupSize),
-    writeDuration: metricsContextBase.createHistogram(SF.mdsStorageMetrics.writeDuration),
-    backupDuration: metricsContextBase.createHistogram(SF.mdsStorageMetrics.backupDuration),
-    fileSize: metricsContextBase.createHistogram(SF.mdsStorageMetrics.fileSize),
-  };
 
   const metricsContext = SF.createMetricsContext({
     envContext,
     enableDefaultMetrics: true,
-    metrics,
+    metrics: {
+      writeOperations: SF.mdsStorageMetrics.writeOperations,
+      readOperations: SF.mdsStorageMetrics.readOperations,
+      backupOperations: SF.mdsStorageMetrics.backupOperations,
+      backupFailures: SF.mdsStorageMetrics.backupFailures,
+      storageSize: SF.mdsStorageMetrics.storageSize,
+      fileCount: SF.mdsStorageMetrics.fileCount,
+      backupLastTimestamp: SF.mdsStorageMetrics.backupLastTimestamp,
+      backupSize: SF.mdsStorageMetrics.backupSize,
+      writeDuration: SF.mdsStorageMetrics.writeDuration,
+      backupDuration: SF.mdsStorageMetrics.backupDuration,
+      fileSize: SF.mdsStorageMetrics.fileSize,
+    },
   });
 
   const processContext = SF.createProcessLifecycle({
@@ -49,4 +44,3 @@ export type MdsStorageContext = ReturnType<typeof createMdsStorageContext>;
 export type MdsStorageMetrics = SF.RegisteredMetrics<MdsStorageContext>;
 
 export type MdsStorageServiceContext = SF.ServiceContext<MdsStorageEnv, MdsStorageMetrics>;
-

@@ -140,4 +140,3 @@ export const createStorageBackup = (storageBaseDir: string, backupBaseDir: strin
 };
 
 export type StorageBackup = ReturnType<typeof createStorageBackup>;
-

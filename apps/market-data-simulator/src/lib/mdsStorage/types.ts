@@ -12,6 +12,7 @@ export type WriteStorageParams<T = unknown> = {
   endpoint: string;
   symbol: string;
   record: StorageRecord<T>;
+  idx?: string;
 };
 
 export type ReadStorageParams = {
@@ -21,6 +22,12 @@ export type ReadStorageParams = {
   startTimestamp?: number;
   endTimestamp?: number;
   limit?: number;
+};
+
+export type ReadLatestRecordParams = {
+  platform: Platform;
+  endpoint: string;
+  symbol: string;
 };
 
 export type BackupMetadata = {
@@ -39,4 +46,3 @@ export type StorageStats = {
   fileCount: number;
   platformStats: Record<Platform, { sizeBytes: number; fileCount: number }>;
 };
-

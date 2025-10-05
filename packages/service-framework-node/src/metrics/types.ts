@@ -2,18 +2,21 @@ import type { Counter, Gauge, Histogram, Summary, Registry } from 'prom-client';
 import type { DefaultEnvContext } from '../environment/types.js';
 
 export interface MetricConfigCounter<T extends string = string> {
+  type: 'counter';
   name: string;
   help: string;
   labelNames?: readonly T[];
 }
 
 export interface MetricConfigGauge<T extends string = string> {
+  type: 'gauge';
   name: string;
   help: string;
   labelNames?: readonly T[];
 }
 
 export interface MetricConfigHistogram<T extends string = string> {
+  type: 'histogram';
   name: string;
   help: string;
   labelNames?: readonly T[];
@@ -21,6 +24,7 @@ export interface MetricConfigHistogram<T extends string = string> {
 }
 
 export interface MetricConfigSummary<T extends string = string> {
+  type: 'summary';
   name: string;
   help: string;
   labelNames?: readonly T[];
@@ -29,12 +33,32 @@ export interface MetricConfigSummary<T extends string = string> {
   ageBuckets?: number;
 }
 
-export interface MetricsConfig<TMetrics = undefined> {
+export type MetricConfig<T extends string = string> =
+  | MetricConfigCounter<T>
+  | MetricConfigGauge<T>
+  | MetricConfigHistogram<T>
+  | MetricConfigSummary<T>;
+
+export type MetricFromConfig<T> = T extends MetricConfigCounter<infer L>
+  ? Counter<L>
+  : T extends MetricConfigGauge<infer L>
+    ? Gauge<L>
+    : T extends MetricConfigHistogram<infer L>
+      ? Histogram<L>
+      : T extends MetricConfigSummary<infer L>
+        ? Summary<L>
+        : never;
+
+export type MetricsFromConfigs<T extends Record<string, MetricConfig>> = {
+  [K in keyof T]: MetricFromConfig<T[K]>;
+};
+
+export interface MetricsConfig<TMetricsConfigs extends Record<string, MetricConfig> = Record<string, MetricConfig>> {
   envContext: DefaultEnvContext;
   enableDefaultMetrics?: boolean;
   defaultMetricsInterval?: number;
   prefix?: string;
-  metrics?: TMetrics;
+  metrics?: TMetricsConfigs;
 }
 
 export interface MetricsContext<TMetrics = undefined> {

@@ -42,7 +42,7 @@ const createTestServiceContext = (): ServiceContext<{
         createScopedId: vi.fn((parent, scope) => `${parent}.${scope}`),
         extractRootId: vi.fn((id) => id.split('.')[0]),
       },
-      createRootLogger: vi.fn().mockReturnValue(mockLogger),
+      logger: mockLogger,
       createChildLogger: vi.fn().mockReturnValue(mockLogger),
     },
     metricsContext: {
@@ -496,7 +496,6 @@ describe('createHttpServer', () => {
     it('should log server start', async () => {
       const context = createTestServiceContext();
       const mockLogger = createMockLogger();
-      vi.mocked(context.diagnosticContext.createRootLogger).mockReturnValue(mockLogger);
       const server = createHttpServer(context);
 
       vi.spyOn(server, 'listen').mockResolvedValue(undefined as never);

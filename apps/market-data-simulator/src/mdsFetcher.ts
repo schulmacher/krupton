@@ -6,9 +6,7 @@ const bootstrap = async (): Promise<void> => {
   try {
     const context = createMdsFetcherContext();
 
-    const logger = context.diagnosticContext.createRootLogger();
-
-    logger.info('Bootstrapping mdsFetcher service', {
+    context.diagnosticContext.logger.info('Bootstrapping mdsFetcher service', {
       processName: context.envContext.config.PROCESS_NAME,
       nodeEnv: context.envContext.nodeEnv,
       platform: context.envContext.config.PLATFORM,

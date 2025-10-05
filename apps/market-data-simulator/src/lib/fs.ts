@@ -14,4 +14,3 @@ export const getMonorepoRootDir = (...paths: string[]): string => {
   const appRoot = getAppRootDir();
   return resolve(appRoot, '..', '..', ...paths);
 };
-
