@@ -116,3 +116,18 @@ temp
 
 # Storage
 /storage
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work.sum
+bin/
+vendor/
+
+# Go build cache
+go-build/
