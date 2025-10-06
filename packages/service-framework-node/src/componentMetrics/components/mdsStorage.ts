@@ -17,9 +17,9 @@ const readOperations: MetricConfigCounter<'platform' | 'endpoint' | 'status'> = 
   labelNames: ['platform', 'endpoint', 'status'] as const,
 };
 
-const backupOperations: MetricConfigCounter = {
+const backupSuccesses: MetricConfigCounter = {
   type: 'counter',
-  name: 'storage_backup_operations_total',
+  name: 'storage_backup_successes_total',
   help: 'Total number of successful backup operations',
 };
 
@@ -66,11 +66,11 @@ const backupSize: MetricConfigGauge = {
 export const mdsStorageMetrics = {
   writeOperations,
   readOperations,
-  backupOperations,
-  backupFailures,
   directoryStorageSize,
   directoryFileCount,
   directoryLastUpdated,
+  backupSuccesses,
+  backupFailures,
   backupLastTimestamp,
   backupSize,
 };

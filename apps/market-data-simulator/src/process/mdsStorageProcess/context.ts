@@ -16,7 +16,7 @@ export const createMdsStorageContext = () => {
       directoryStorageSize: SF.mdsStorageMetrics.directoryStorageSize,
       directoryFileCount: SF.mdsStorageMetrics.directoryFileCount,
       directoryLastUpdated: SF.mdsStorageMetrics.directoryLastUpdated,
-      backupOperations: SF.mdsStorageMetrics.backupOperations,
+      backupSuccesses: SF.mdsStorageMetrics.backupSuccesses,
       backupFailures: SF.mdsStorageMetrics.backupFailures,
       backupLastTimestamp: SF.mdsStorageMetrics.backupLastTimestamp,
       backupSize: SF.mdsStorageMetrics.backupSize,

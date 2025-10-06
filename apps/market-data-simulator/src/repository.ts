@@ -4,19 +4,8 @@ import { createBinanceExchangeInfoEntity } from './storageEntity/binanceExchange
 import { createBinanceHistoricalTradeEntity } from './storageEntity/binanceHistoricalTradeEntity.js';
 import { createBinanceOrderBookEntity } from './storageEntity/binanceOrderBookEntity.js';
 
-type ContextWithStorageDir = {
-  envContext: {
-    config: {
-      STORAGE_BASE_DIR: string;
-      PLATFORM: string;
-    };
-  };
-};
-
-export const createEndpointStorageRepository = (context: ContextWithStorageDir) => {
-  const { envContext } = context;
-  const platform = envContext.config.PLATFORM;
-  const baseDir = join(envContext.config.STORAGE_BASE_DIR, platform);
+export const createEndpointStorageRepository = (storageBaseDir: string, platform: string) => {
+  const baseDir = join(storageBaseDir, platform);
 
   return {
     binanceBookTicker: createBinanceBookTickerEntity(baseDir),

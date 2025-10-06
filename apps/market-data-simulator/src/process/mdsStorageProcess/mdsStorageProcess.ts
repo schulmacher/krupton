@@ -1,7 +1,7 @@
 import { SF } from '@krupton/service-framework-node';
-// import { createStorageBackupService } from '../../lib/mdsStorage/mdsStorageBackupService.js';
 import type { MdsStorageContext } from './context.js';
 import { createStorageStatsReporter } from '../../lib/mdsStorage/storageStatsReporter.js';
+import { createStorageBackupScheduler } from '../../lib/mdsStorage/storageBackupScheduler.js';
 
 export const startMdsStorageService = async (context: MdsStorageContext): Promise<void> => {
   const { diagnosticContext, processContext } = context;
@@ -17,14 +17,14 @@ export const startMdsStorageService = async (context: MdsStorageContext): Promis
     });
 
   const httpServer = createHttpServerWithHealthChecks();
-  // const storageService = createStorageBackupService(context);
   const storageStatsReporter = createStorageStatsReporter(context, context.envContext.config.STORAGE_BASE_DIR);
+  const storageBackupScheduler = createStorageBackupScheduler(context, context.envContext.config.BACKUP_INTERVAL_MS);
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
       diagnosticContext.logger.info('Shutting down Storage service');
-      // await storageService.stop();
       await storageStatsReporter.stop();
+      await storageBackupScheduler.stop();
     });
   };
 
@@ -32,6 +32,6 @@ export const startMdsStorageService = async (context: MdsStorageContext): Promis
 
   processContext.start();
   await httpServer.startServer();
-  // await storageService.start();
   await storageStatsReporter.start();
+  await storageBackupScheduler.start();
 };

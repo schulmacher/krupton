@@ -1,7 +1,6 @@
-import { SF } from '@krupton/service-framework-node';
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApiDefinition } from '@krupton/api-interface';
-import { createStorageIO } from '../../lib/mdsStorage/mdsStorageIO.js';
+import { SF } from '@krupton/service-framework-node';
 import { createMdsFetcherRateLimiter } from '../../lib/mdsFetcher/mdsFetcherRateLimiter.js';
 import { createEndpointStorageRepository } from '../../repository.js';
 import type { MdsFetcherEnv } from './environment.js';
@@ -21,10 +20,10 @@ export const createMdsFetcherContext = () => {
       fetchCounter: SF.mdsFetcherMetrics.fetchCounter,
       fetchDuration: SF.mdsFetcherMetrics.fetchDuration,
       activeSymbolsGauge: SF.mdsFetcherMetrics.activeSymbolsGauge,
-      lastFetchTimestampGauge:SF.mdsFetcherMetrics.lastFetchTimestampGauge,
+      lastFetchTimestampGauge: SF.mdsFetcherMetrics.lastFetchTimestampGauge,
       totalFetchesGauge: SF.mdsFetcherMetrics.totalFetchesGauge,
-      totalErrorsGauge: SF.mdsFetcherMetrics.totalErrorsGauge
-    }
+      totalErrorsGauge: SF.mdsFetcherMetrics.totalErrorsGauge,
+    },
   });
 
   const processContext = SF.createProcessLifecycle({
@@ -39,15 +38,18 @@ export const createMdsFetcherContext = () => {
   const binanceClient = createApiClient(
     {
       baseUrl: envContext.config.API_BASE_URL,
-      headers: envContext.config.API_KEY ? createBinanceAuthHeaders(envContext.config.API_KEY) : undefined,
+      headers: envContext.config.API_KEY
+        ? createBinanceAuthHeaders(envContext.config.API_KEY)
+        : undefined,
       validation: true,
     },
     BinanceApiDefinition,
   );
 
-  const storageIO = createStorageIO(envContext.config.STORAGE_BASE_DIR);
-
-  const endpointStorageRepository = createEndpointStorageRepository({ envContext });
+  const endpointStorageRepository = createEndpointStorageRepository(
+    envContext.config.STORAGE_BASE_DIR,
+    envContext.config.PLATFORM,
+  );
 
   return {
     envContext,
@@ -56,7 +58,6 @@ export const createMdsFetcherContext = () => {
     processContext,
     rateLimiter,
     binanceClient,
-    storageIO,
     endpointStorageRepository,
   };
 };

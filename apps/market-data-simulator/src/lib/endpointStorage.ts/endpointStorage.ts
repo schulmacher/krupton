@@ -1,7 +1,8 @@
 import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 import type { TB } from '@krupton/service-framework-node/typebox';
-import { appendFile, mkdir, open, readdir, readFile, writeFile, truncate } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { appendFile, open, readdir, readFile, truncate, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { ensureDirectoryExistsForFile } from '../fs';
 
 export type StorageRecord<TResponse, TRequest> = {
   timestamp: number;
@@ -29,11 +30,6 @@ type GetFileInfoParams = {
 
 const normalizeEndpointPath = (endpoint: string): string => {
   return endpoint.replace(/^\/+/, '').replace(/\//g, '_');
-};
-
-const ensureDirectoryExists = async (filePath: string): Promise<void> => {
-  const dir = dirname(filePath);
-  await mkdir(dir, { recursive: true });
 };
 
 export const createEndpointStorage = <T extends EndpointDefinition>(
@@ -115,7 +111,7 @@ export const createEndpointStorage = <T extends EndpointDefinition>(
       const { record, relativePath } = params;
       const filePath = getFilePath(relativePath);
 
-      await ensureDirectoryExists(filePath);
+      await ensureDirectoryExistsForFile(filePath);
 
       const jsonLine = JSON.stringify(record) + '\n';
       await writeFile(filePath, jsonLine, 'utf-8');
@@ -125,7 +121,7 @@ export const createEndpointStorage = <T extends EndpointDefinition>(
       const { record, relativePath } = params;
       const filePath = getFilePath(relativePath);
 
-      await ensureDirectoryExists(filePath);
+      await ensureDirectoryExistsForFile(filePath);
 
       const jsonLine = JSON.stringify(record) + '\n';
       await appendFile(filePath, jsonLine, 'utf-8');
@@ -173,9 +169,7 @@ export const createEndpointStorage = <T extends EndpointDefinition>(
       }
     },
 
-    async replaceLastRecord(
-      params: WriteRecordParams<ResponseType, RequestType>,
-    ): Promise<void> {
+    async replaceLastRecord(params: WriteRecordParams<ResponseType, RequestType>): Promise<void> {
       const { record, relativePath } = params;
       const filePath = getFilePath(relativePath);
 

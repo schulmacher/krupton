@@ -16,8 +16,9 @@ export const mdsStorageEnvSchema = TB.Object({
   }),
   BACKUP_BASE_DIR: TB.String({
     description: 'Base directory for storing backup data',
-    default: '/krupton/backup',
+    default: getMonorepoRootDir('tmp', 'backup'),
   }),
+  BACKUP_INTERVAL_MS: TB.Integer({ default: 3 * 60 * 60 * 1000 }), // Default: 3 hours
 }) satisfies SF.DefaultEnvSchema;
 
 export type MdsStorageEnv = TB.Static<typeof mdsStorageEnvSchema>;

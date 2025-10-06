@@ -1,20 +1,8 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { DirectoryStats, FileInfo } from './types';
 
 export const STORAGE_DIRECTORY_PATTERNS = ['binance/**', 'kraken/**', 'victoria_metrics'];
-
-interface DirectoryStats {
-  directory: string;
-  fileCount: number;
-  sizeBytes: number;
-  lastUpdated: number;
-}
-
-interface FileInfo {
-  path: string;
-  size: number;
-  mtime: number;
-}
 
 const collectFilesRecursively = async (dirPath: string): Promise<FileInfo[]> => {
   const files: FileInfo[] = [];
@@ -96,14 +84,12 @@ export const readStorageStats = async (baseDir: string): Promise<DirectoryStats[
     }
   }
 
-  const result: DirectoryStats[] = Array.from(directoryMap.entries()).map(
-    ([directory, stats]) => ({
-      directory,
-      fileCount: stats.fileCount,
-      sizeBytes: stats.sizeBytes,
-      lastUpdated: stats.lastUpdated,
-    }),
-  );
+  const result: DirectoryStats[] = Array.from(directoryMap.entries()).map(([directory, stats]) => ({
+    directory,
+    fileCount: stats.fileCount,
+    sizeBytes: stats.sizeBytes,
+    lastUpdated: stats.lastUpdated,
+  }));
 
   // Sort by directory name for consistent output
   result.sort((a, b) => a.directory.localeCompare(b.directory));
