@@ -1,30 +1,17 @@
 import { BinanceApi } from '@krupton/api-interface';
-import { arrayToMultiMap, sleep } from '@krupton/utils';
-import type { MdsFetcherContext } from '../../process/mdsFetcherProcess/context.js';
-import { createMdsFetcherLoop } from './mdsFetcherLoop.js';
-import type { MdsFetcherLoop } from './types.js';
+import { sleep } from '@krupton/utils';
+import type { MdsFetcherContext } from '../process/mdsFetcherProcess/context.js';
+import { createMdsFetcherLoop } from '../lib/mdsFetcher/mdsFetcherLoop.js';
+import type { MdsFetcherLoop } from '../lib/mdsFetcher/types.js';
 
-interface CreateBinanceHistoricalTradesFetcherLoopsParams {
-  context: MdsFetcherContext;
-  symbols: string[];
-}
-
-interface HandleTradesResponseParams {
-  query: BinanceApi.GetHistoricalTradesQuery;
-  response: BinanceApi.GetHistoricalTradesResponse;
-  context: MdsFetcherContext;
-  endpoint: string;
-  symbol: string;
-}
-
-const handleHistoricalTradesResponse = async ({
-  query,
-  response,
-  context,
-  endpoint,
-  symbol,
-}: HandleTradesResponseParams): Promise<void> => {
-  const { diagnosticContext, processContext, envContext, storageIO } = context;
+const handleHistoricalTradesResponse = async (
+  context: MdsFetcherContext,
+  query: BinanceApi.GetHistoricalTradesQuery,
+  response: BinanceApi.GetHistoricalTradesResponse,
+  endpoint: string,
+  symbol: string,
+): Promise<void> => {
+  const { diagnosticContext, processContext, envContext, endpointStorageRepository } = context;
   const config = envContext.config;
 
   if (!response || response.length === 0) {
@@ -38,16 +25,9 @@ const handleHistoricalTradesResponse = async ({
   }
 
   const requestFromId = query.fromId;
-  const currentLatestRecord =
-    await storageIO.readLatestRecord<BinanceApi.GetHistoricalTradesResponse>({
-      platform: config.PLATFORM,
-      endpoint,
-      symbol,
-    });
+  const currentLatestRecord = await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
 
-  const latestStoredFromId = currentLatestRecord?.params.query
-    ? (currentLatestRecord.params.query as { fromId?: number }).fromId
-    : undefined;
+  const latestStoredFromId = currentLatestRecord?.request.query?.fromId;
 
   if (
     requestFromId !== undefined &&
@@ -66,58 +46,29 @@ const handleHistoricalTradesResponse = async ({
     return;
   }
 
-  const partitionedByIndex = arrayToMultiMap(
+  await endpointStorageRepository.binanceHistoricalTrade.write({
+    request: { query },
     response,
-    (trade: { id: number }) => `${Math.floor(trade.id / 1e5)}`,
-  );
+  });
 
-  const timestamp = Date.now();
-
-  for (const [idx, trades] of partitionedByIndex.entries()) {
-    await storageIO.appendRecord({
-      platform: config.PLATFORM,
-      endpoint,
-      symbol,
-      idx,
-      record: {
-        timestamp,
-        endpoint,
-        params: query,
-        response: trades,
-      },
-    });
-
-    diagnosticContext.logger.info('Response saved to storage', {
-      platform: config.PLATFORM,
-      symbol,
-      endpoint,
-      idx,
-      requestFromId,
-      recordCount: trades.length,
-    });
-  }
+  diagnosticContext.logger.info('Response saved to storage', {
+    platform: config.PLATFORM,
+    symbol,
+    endpoint,
+    requestFromId,
+    recordCount: response.length,
+  });
 };
 
-interface CreateFetcherLoopForSymbolParams {
-  context: MdsFetcherContext;
-  symbol: string;
-  endpoint: string;
-}
-
-const createBinanceHistoricalTradesFetcherLoopForSymbol = async ({
-  context,
-  symbol,
-  endpoint,
-}: CreateFetcherLoopForSymbolParams): Promise<MdsFetcherLoop> => {
-  const { diagnosticContext, envContext, binanceClient, storageIO } = context;
+const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
+  context: MdsFetcherContext,
+  symbol: string,
+  endpoint: string,
+): Promise<MdsFetcherLoop> => {
+  const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
   const config = envContext.config;
 
-  const latestStorageRecord =
-    await storageIO.readLatestRecord<BinanceApi.GetHistoricalTradesResponse>({
-      platform: config.PLATFORM,
-      endpoint,
-      symbol,
-    });
+  const latestStorageRecord = await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
   const latestStorageRecordMaxId = latestStorageRecord?.response?.reduce(
     (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
     0,
@@ -165,20 +116,14 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async ({
       };
     },
     onSuccess: async ({ query, response }) =>
-      handleHistoricalTradesResponse({
-        query,
-        response,
-        context,
-        endpoint,
-        symbol,
-      }),
+      handleHistoricalTradesResponse(context, query, response, endpoint, symbol),
   });
 };
 
-export const createBinanceHistoricalTradesFetcherLoops = async ({
-  context,
-  symbols,
-}: CreateBinanceHistoricalTradesFetcherLoopsParams): Promise<MdsFetcherLoop[]> => {
+export const createBinanceHistoricalTradesFetcherLoops = async (
+  context: MdsFetcherContext,
+  symbols: string[],
+): Promise<MdsFetcherLoop[]> => {
   const { binanceClient } = context;
   const endpoint = binanceClient.getHistoricalTrades.definition.path;
 
@@ -190,13 +135,9 @@ export const createBinanceHistoricalTradesFetcherLoops = async ({
           ...context.diagnosticContext,
           logger: context.diagnosticContext.createChildLogger(symbol),
         },
-      }
+      };
 
-      return createBinanceHistoricalTradesFetcherLoopForSymbol({
-        context: childContext,
-        symbol,
-        endpoint,
-      });
+      return createBinanceHistoricalTradesFetcherLoopForSymbol(childContext, symbol, endpoint);
     }),
   );
 

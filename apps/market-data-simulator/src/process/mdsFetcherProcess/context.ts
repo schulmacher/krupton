@@ -3,6 +3,7 @@ import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-n
 import { BinanceApiDefinition } from '@krupton/api-interface';
 import { createStorageIO } from '../../lib/mdsStorage/mdsStorageIO.js';
 import { createMdsFetcherRateLimiter } from '../../lib/mdsFetcher/mdsFetcherRateLimiter.js';
+import { createEndpointStorageRepository } from '../../repository.js';
 import type { MdsFetcherEnv } from './environment.js';
 import { mdsFetcherEnvSchema } from './environment.js';
 
@@ -46,6 +47,8 @@ export const createMdsFetcherContext = () => {
 
   const storageIO = createStorageIO(envContext.config.STORAGE_BASE_DIR);
 
+  const endpointStorageRepository = createEndpointStorageRepository({ envContext });
+
   return {
     envContext,
     diagnosticContext,
@@ -54,6 +57,7 @@ export const createMdsFetcherContext = () => {
     rateLimiter,
     binanceClient,
     storageIO,
+    endpointStorageRepository,
   };
 };
 

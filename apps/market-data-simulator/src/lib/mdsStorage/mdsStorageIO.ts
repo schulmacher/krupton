@@ -116,6 +116,88 @@ export const createStorageIO = (baseDir: string) => {
       }
     },
 
+    async appendOrOverwriteIfIdenticalResponse(params: AppendStorageParams): Promise<{ wasOverwritten: boolean }> {
+      const { platform, endpoint, symbol, record, idx } = params;
+      const filePath = getStorageFilePath(baseDir, platform, endpoint, symbol, idx);
+
+      await ensureDirectoryExists(filePath);
+
+      try {
+        const fileContent = await readFile(filePath, 'utf-8');
+        const lines = fileContent.split('\n').filter((line) => line.length > 0);
+
+        if (lines.length > 0) {
+          const lastLine = lines[lines.length - 1]!;
+          const lastRecord = JSON.parse(lastLine) as StorageRecord;
+
+          if (JSON.stringify(lastRecord.response) === JSON.stringify(record.response)) {
+            lines[lines.length - 1] = JSON.stringify(record);
+            await writeFile(filePath, lines.join('\n') + '\n', 'utf-8');
+            return { wasOverwritten: true };
+          }
+        }
+
+        const jsonLine = JSON.stringify(record) + '\n';
+        await appendFile(filePath, jsonLine, 'utf-8');
+        return { wasOverwritten: false };
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          const jsonLine = JSON.stringify(record) + '\n';
+          await writeFile(filePath, jsonLine, 'utf-8');
+          return { wasOverwritten: false };
+        }
+        throw error;
+      }
+    },
+
+    // TODO the ordering is flawed, move to repositories and entities where each endpoints "entity" implements this method
+    async getLatestFileInfo(params: ReadLatestRecordParams): Promise<{ idx: string; recordCount: number } | null> {
+      const { platform, endpoint, symbol } = params;
+      const normalizedEndpoint = normalizeEndpointPath(endpoint);
+      const directoryPath = join(baseDir, platform, normalizedEndpoint, symbol);
+
+      try {
+        const files = await readdir(directoryPath);
+
+        if (files.length === 0) {
+          return null;
+        }
+
+        const jsonlFiles = files.filter((file) => file.endsWith('.jsonl'));
+
+        if (jsonlFiles.length === 0) {
+          return null;
+        }
+
+        const sortedFiles = jsonlFiles.sort((a, b) => {
+          const getComparableValue = (filename: string): string => {
+            return filename.replace('.jsonl', '');
+          };
+          return getComparableValue(a).localeCompare(getComparableValue(b));
+        });
+
+        const latestFile = sortedFiles[sortedFiles.length - 1]!;
+        const idx = latestFile.replace('.jsonl', '');
+        const filePath = join(directoryPath, latestFile);
+
+        const fileContent = await readFile(filePath, 'utf-8');
+        const lines = fileContent
+          .trim()
+          .split('\n')
+          .filter((line) => line.length > 0);
+
+        return {
+          idx,
+          recordCount: lines.length,
+        };
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          return null;
+        }
+        throw error;
+      }
+    },
+
     async getStorageStats() {
       console.log('[MOCK] Getting storage stats');
 

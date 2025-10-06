@@ -1,6 +1,8 @@
 import { SF } from '@krupton/service-framework-node';
-import { createBinanceExchangeInfoFetcherLoop } from '../../lib/mdsFetcher/createBinanceExchangeInfoFetcherLoop.js';
-import { createBinanceHistoricalTradesFetcherLoops } from '../../lib/mdsFetcher/createBinanceHistoricalTradesFetcherLoops.js';
+import { createBinanceBookTickerFetcherLoops } from '../../fetchers/createBinanceBookTickerFetcherLoops.js';
+import { createBinanceExchangeInfoFetcherLoop } from '../../fetchers/createBinanceExchangeInfoFetcherLoop.js';
+import { createBinanceHistoricalTradesFetcherLoops } from '../../fetchers/createBinanceHistoricalTradesFetcherLoops.js';
+import { createBinanceOrderBookFetcherLoops } from '../../fetchers/createBinanceOrderBookFetcherLoops.js';
 import type { MdsFetcherContext } from './context.js';
 
 export const startMdsFetcherService = async (context: MdsFetcherContext): Promise<void> => {
@@ -19,16 +21,15 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  const symbols = config.SYMBOLS.split(',').map((s) => s.trim());
+  const symbols = config.SYMBOLS.split(',')
+    .map((s) => s.trim())
+    .filter((s) => !!s);
 
   const fetcherLoops = [
-    ...(await createBinanceHistoricalTradesFetcherLoops({
-      context,
-      symbols,
-    })),
-    await createBinanceExchangeInfoFetcherLoop({
-      context,
-    }),
+    ...(await createBinanceHistoricalTradesFetcherLoops(context, symbols)),
+    ...(await createBinanceBookTickerFetcherLoops(context, symbols)),
+    ...(await createBinanceOrderBookFetcherLoops(context, symbols)),
+    await createBinanceExchangeInfoFetcherLoop(context),
   ];
 
   const registerGracefulShutdownCallback = () => {

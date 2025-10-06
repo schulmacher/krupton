@@ -6,7 +6,7 @@ export const GetBookTickerEndpoint = {
   method: 'GET',
   querySchema: TB.Object({
     symbol: TB.Optional(TB.String()),
-    symbols: TB.Optional(TB.Array(TB.String(), { maxItems: 100 })),
+    // symbols: TB.Optional(TB.Array(TB.String(), { maxItems: 100 })),
   }),
   responseSchema: TB.Union([
     TB.Object({
