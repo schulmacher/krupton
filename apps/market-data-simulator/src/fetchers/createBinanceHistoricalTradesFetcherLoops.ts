@@ -51,7 +51,7 @@ const handleHistoricalTradesResponse = async (
     response,
   });
 
-  diagnosticContext.logger.info('Response saved to storage', {
+  diagnosticContext.logger.debug('Response saved to storage', {
     platform: config.PLATFORM,
     symbol,
     endpoint,

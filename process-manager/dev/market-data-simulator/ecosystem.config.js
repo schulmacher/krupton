@@ -1,4 +1,5 @@
 const PORTS = require('../../ports.js');
+const { DEV_LOG_LEVEL } = require('../const.js');
 
 module.exports = {
   apps: [
@@ -13,7 +14,7 @@ module.exports = {
         NODE_ENV: 'development',
         PROCESS_NAME: 'mds-fetcher',
         PLATFORM: 'binance',
-        LOG_LEVEL: 'debug',
+        LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.MDS_FETCHER,
         SYMBOLS: 'BTCUSDT,ETHUSDT',
         // SYMBOLS: 'KASUSDT,USDTKAS',
@@ -31,7 +32,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         PROCESS_NAME: 'mds-storage',
-        LOG_LEVEL: 'debug',
+        LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.MDS_STORAGE,
       },
     },

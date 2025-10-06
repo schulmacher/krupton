@@ -15,6 +15,21 @@ dashboardBuilder & {
 	#duration:        "1h"
 	#refreshInterval: "30s"
 
+	#variables: [
+		{
+			kind: "TextVariable"
+			spec: {
+				name:  "partialDirectory"
+				value: ""
+				display: {
+					name:        "Directory"
+					description: "Directory name filter (partial match, leave empty for all)"
+					hidden:      false
+				}
+			}
+		},
+	]
+
 	#panelGroups: panelGroupsBuilder & {
 		#input: [
 			{
@@ -46,7 +61,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum(mds_storage_storage_size_bytes)"
+												query: "sum(mds_storage_storage_size_bytes{directory=~\".*${partialDirectory}.*\"})"
 											}
 										}
 									}
@@ -79,7 +94,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum(mds_storage_storage_file_count)"
+												query: "sum(mds_storage_storage_file_count{directory=~\".*${partialDirectory}.*\"})"
 											}
 										}
 									}
@@ -112,7 +127,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "time() - max(mds_storage_storage_directory_last_updated_seconds)"
+												query: "time() - max(mds_storage_storage_directory_last_updated_seconds{directory=~\".*${partialDirectory}.*\"})"
 											}
 										}
 									}
@@ -138,6 +153,10 @@ dashboardBuilder & {
 								spec: {
 									legend: position: "bottom"
 									yAxis: format: unit: "bytes"
+									visual: {
+										display: "line"
+										stack: "all"
+									}
 								}
 							}
 							queries: [
@@ -151,7 +170,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_size_bytes"
+												query:            "mds_storage_storage_size_bytes{directory=~\".*${partialDirectory}.*\"}"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -185,7 +204,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "topk(5, mds_storage_storage_size_bytes)"
+												query:            "topk(5, mds_storage_storage_size_bytes{directory=~\".*${partialDirectory}.*\"})"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -225,7 +244,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_file_count"
+												query:            "mds_storage_storage_file_count{directory=~\".*${partialDirectory}.*\"}"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -259,7 +278,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "topk(5, mds_storage_storage_file_count)"
+												query:            "topk(5, mds_storage_storage_file_count{directory=~\".*${partialDirectory}.*\"})"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -299,7 +318,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "time() - mds_storage_storage_directory_last_updated_seconds"
+												query:            "time() - mds_storage_storage_directory_last_updated_seconds{directory=~\".*${partialDirectory}.*\"}"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -336,7 +355,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_directory_last_updated_seconds"
+												query:            "mds_storage_storage_directory_last_updated_seconds{directory=~\".*${partialDirectory}.*\"}"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -376,7 +395,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "rate(mds_storage_storage_size_bytes[5m])"
+												query:            "rate(mds_storage_storage_size_bytes{directory=~\".*${partialDirectory}.*\"}[5m])"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
@@ -410,7 +429,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "rate(mds_storage_storage_file_count[5m])"
+												query:            "rate(mds_storage_storage_file_count{directory=~\".*${partialDirectory}.*\"}[5m])"
 												seriesNameFormat: "{{directory}}"
 											}
 										}
