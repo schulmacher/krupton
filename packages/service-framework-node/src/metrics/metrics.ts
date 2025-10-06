@@ -61,7 +61,6 @@ function validateLabelNames(labelNames: readonly string[] | undefined): void {
 
 export function createDefaultMetricsCollection(
   registry: Registry,
-  fullPrefix: string,
 ): DefaultMetricsCollection {
   let isCollecting = false;
 
@@ -73,7 +72,6 @@ export function createDefaultMetricsCollection(
 
       collectDefaultMetrics({
         register: registry,
-        prefix: fullPrefix,
       });
 
       isCollecting = true;
@@ -108,7 +106,7 @@ export function createMetricsContext<
     : `${normalizedServiceName}_`;
 
   const defaultMetricsCollection = config.enableDefaultMetrics
-    ? createDefaultMetricsCollection(registry, fullPrefix)
+    ? createDefaultMetricsCollection(registry)
     : undefined;
 
   if (defaultMetricsCollection) {

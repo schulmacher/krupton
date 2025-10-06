@@ -4,12 +4,14 @@ import type {
 } from '../../metrics/types.js';
 
 const httpRequestsTotal: MetricConfigCounter<'method' | 'route' | 'status_code'> = {
+  type: 'counter',
   name: 'http_requests_total',
   help: 'Total number of HTTP requests',
   labelNames: ['method', 'route', 'status_code'] as const,
 };
 
 const httpRequestDuration: MetricConfigHistogram<'method' | 'route'> = {
+  type: 'histogram',
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route'] as const,

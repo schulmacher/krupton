@@ -25,6 +25,12 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
     .map((s) => s.trim())
     .filter((s) => !!s);
 
+
+  context.metricsContext.metrics.totalFetchesGauge.set(0);
+  context.metricsContext.metrics.lastFetchTimestampGauge.set(0);
+  context.metricsContext.metrics.totalErrorsGauge.set(0);
+  context.metricsContext.metrics.activeSymbolsGauge.set(symbols.length);
+
   const fetcherLoops = [
     ...(await createBinanceHistoricalTradesFetcherLoops(context, symbols)),
     ...(await createBinanceBookTickerFetcherLoops(context, symbols)),

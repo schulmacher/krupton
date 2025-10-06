@@ -1,0 +1,11 @@
+package mydac
+
+kind: "Project"
+metadata: {
+	name: "default"
+}
+spec: {
+	display: {
+		name: "default"
+	}
+}

@@ -21,8 +21,8 @@ export const createMdsFetcherContext = () => {
       fetchCounter: SF.mdsFetcherMetrics.fetchCounter,
       fetchDuration: SF.mdsFetcherMetrics.fetchDuration,
       activeSymbolsGauge: SF.mdsFetcherMetrics.activeSymbolsGauge,
-      totalFetchesGauge: SF.mdsFetcherMetrics.totalFetchesGauge,
       lastFetchTimestampGauge:SF.mdsFetcherMetrics.lastFetchTimestampGauge,
+      totalFetchesGauge: SF.mdsFetcherMetrics.totalFetchesGauge,
       totalErrorsGauge: SF.mdsFetcherMetrics.totalErrorsGauge
     }
   });

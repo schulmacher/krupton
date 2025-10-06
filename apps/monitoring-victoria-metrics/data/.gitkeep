@@ -1,0 +1,2 @@
+# This directory stores VictoriaMetrics time-series data
+# The directory itself is tracked but contents are ignored via .gitignore

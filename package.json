@@ -15,6 +15,7 @@
     "pm2:dev:packages": "cd process-manager/dev/packages && pm2 start ecosystem.config.js",
     "pm2:dev:mds": "cd process-manager/dev/market-data-simulator && pm2 start ecosystem.config.js",
     "pm2:dev:mds-fetcher": "cd process-manager/dev/market-data-simulator && pm2 start ecosystem.config.js --only mds-fetcher",
+    "pm2:dev:monitoring": "cd process-manager/dev/monitoring && pm2 start ecosystem.config.js",
     "pm2:test:mds-fetcher": "cd process-manager/test/market-data-simulator && pm2 start ecosystem.config.js --only mds-fetcher",
     "pm2:stop": "pm2 stop all",
     "pm2:restart": "pm2 restart all",

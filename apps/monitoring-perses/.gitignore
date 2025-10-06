@@ -1,0 +1,16 @@
+# Perses data directory
+data/*
+!data/globaldatasources/
+
+# Downloaded binary
+bin/
+
+# Plugins
+plugins-archive/
+plugins/
+
+# Node modules
+node_modules/
+
+# folder used to store the results of the `percli dac build` command
+built

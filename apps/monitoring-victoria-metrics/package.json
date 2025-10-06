@@ -1,0 +1,15 @@
+{
+  "name": "victoria-metrics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VictoriaMetrics time-series database for monitoring infrastructure",
+  "type": "module",
+  "scripts": {
+    "download:vm": "node scripts/download-vm.js",
+    "start": "victoria-metrics-prod -storageDataPath=./data -retentionPeriod=12 -httpListenAddr=:8428",
+    "start:scrape": "victoria-metrics-prod -storageDataPath=./data -retentionPeriod=12 -httpListenAddr=:8428 -promscrape.config=./prometheus.yml"
+  },
+  "dependencies": {
+    "tar-fs": "^3.0.6"
+  }
+}

@@ -1,0 +1,50 @@
+# Prometheus scrape configuration for VictoriaMetrics
+# VictoriaMetrics supports Prometheus scrape config format
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # Market Data Simulator - Fetcher Service
+  - job_name: 'mds-fetcher'
+    static_configs:
+      - targets: ['localhost:3000']
+        labels:
+          service: 'market-data-simulator'
+          component: 'fetcher'
+          environment: 'development'
+
+  # Market Data Simulator - REST API Service
+  - job_name: 'mds-rest-api'
+    static_configs:
+      - targets: ['localhost:3002']
+        labels:
+          service: 'market-data-simulator'
+          component: 'rest-api'
+          environment: 'development'
+
+  # Market Data Simulator - Storage Service
+  - job_name: 'mds-storage'
+    static_configs:
+      - targets: ['localhost:3001']
+        labels:
+          service: 'market-data-simulator'
+          component: 'storage'
+          environment: 'development'
+
+  # Public API Service (when available)
+  - job_name: 'public-api'
+    static_configs:
+      - targets: ['localhost:3100']
+        labels:
+          service: 'public-api'
+          environment: 'development'
+
+  # VictoriaMetrics self-monitoring
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['localhost:8428']
+        labels:
+          service: 'victoriametrics'
+          environment: 'development'

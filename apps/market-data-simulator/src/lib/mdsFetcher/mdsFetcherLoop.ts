@@ -36,10 +36,6 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
     totalErrorsGauge,
   } = metricsContext.metrics;
 
-  totalFetchesGauge.set(0);
-  lastFetchTimestampGauge.set(0);
-  totalErrorsGauge.set(0);
-
   diagnosticContext.logger.info('Fetcher loop initialized', {
     platform: env.PLATFORM,
     symbol: symbol,
@@ -49,11 +45,10 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
   });
 
   const executeFetch = async (): Promise<void> => {
-    const startTime = Date.now();
     const endpointPath = endpointFn.definition.path;
+    let startTime = Date.now();
 
     try {
-      await context.rateLimiter.throttle();
       prevParams = await buildRequestParams({ prevResponse, prevParams });
 
       diagnosticContext.logger.debug('Executing fetch', {
@@ -62,10 +57,42 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
         endpoint: endpointPath,
         params: prevParams,
       });
-
+    
+      await context.rateLimiter.throttle();
+      startTime = Date.now();
       const response = await endpointFn(prevParams);
-
       context.rateLimiter.recordRequest();
+    
+      const duration = (Date.now() - startTime) / 1000;
+
+      state.fetchCount++;
+      state.lastFetchTime = Date.now();
+
+      try {
+        fetchCounter.inc({
+          platform: env.PLATFORM,
+          endpoint: endpointPath,
+          status: 'success',
+        });
+  
+        fetchDuration.observe(
+          {
+            platform: env.PLATFORM,
+            endpoint: endpointPath,
+          },
+          duration,
+        );
+  
+        totalFetchesGauge.set(state.fetchCount);
+        lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
+      } catch (error) {
+        diagnosticContext.logger.error('Fetch monitoring failed', {
+          platform: env.PLATFORM,
+          symbol: symbol,
+          endpoint: endpointPath,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       if (onSuccess) {
         await onSuccess({
@@ -75,28 +102,6 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
       }
 
       prevResponse = response;
-
-      const duration = (Date.now() - startTime) / 1000;
-
-      fetchCounter.inc({
-        platform: env.PLATFORM,
-        endpoint: endpointPath,
-        status: 'success',
-      });
-
-      fetchDuration.observe(
-        {
-          platform: env.PLATFORM,
-          endpoint: endpointPath,
-        },
-        duration,
-      );
-
-      state.fetchCount++;
-      state.lastFetchTime = Date.now();
-
-      totalFetchesGauge.set(state.fetchCount);
-      lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
 
       diagnosticContext.logger.debug('Fetch completed', {
         platform: env.PLATFORM,
