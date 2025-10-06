@@ -3,7 +3,7 @@ import { registerGetRecentTradesEndpoint } from '../../lib/mdsRest/getRecentTrad
 import { createStorageIO } from '../../lib/mdsStorage/mdsStorageIO.js';
 import type { MdsRestContext } from './context.js';
 
-export const startMdsRestService = async (context: MdsRestContext): Promise<void> => {
+export async function startMdsRestService(context: MdsRestContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
 
@@ -35,4 +35,4 @@ export const startMdsRestService = async (context: MdsRestContext): Promise<void
     platform: config.PLATFORM,
     storageBaseDir: config.STORAGE_BASE_DIR,
   });
-};
+}

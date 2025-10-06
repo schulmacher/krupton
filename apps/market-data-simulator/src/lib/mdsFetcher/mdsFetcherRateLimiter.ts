@@ -12,13 +12,13 @@ export interface MdsFetcherRateLimiter {
   resetBackoff: () => void;
 }
 
-export const createMdsFetcherRateLimiter = (config: RateLimiterConfig): MdsFetcherRateLimiter => {
+export function createMdsFetcherRateLimiter(config: RateLimiterConfig): MdsFetcherRateLimiter {
   const { maxRequests, windowMs, backoffBaseMs = 1000, backoffMaxMs = 60000 } = config;
 
   const defaultWaitMs = windowMs / maxRequests;
   let windowStartMs = Date.now();
   let requestCount = 0;
-  
+
   let consecutiveErrors = 0;
   let backoffUntilMs = 0;
 
@@ -61,7 +61,7 @@ export const createMdsFetcherRateLimiter = (config: RateLimiterConfig): MdsFetch
     }
 
     requestCount++;
-    
+
     consecutiveErrors = 0;
     backoffUntilMs = 0;
   };
@@ -85,7 +85,7 @@ export const createMdsFetcherRateLimiter = (config: RateLimiterConfig): MdsFetch
     consecutiveErrors++;
     const backoffDelayMs = calculateBackoffMs();
     backoffUntilMs = now + backoffDelayMs;
-    
+
     console.log('[RateLimiter] setLimitReached called', {
       consecutiveErrors,
       backoffDelayMs,
@@ -105,4 +105,4 @@ export const createMdsFetcherRateLimiter = (config: RateLimiterConfig): MdsFetch
     onError: setLimitReached,
     resetBackoff,
   };
-};
+}

@@ -33,7 +33,7 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain('2025-10-05_0');
     expect(fileNames).toHaveLength(1);
   });
@@ -47,8 +47,8 @@ describe('binanceOrderBookEntity - indexing', () => {
 
     const existingFilePath = join(tempDir, 'api_v3_depth', 'BTCUSDT', `${mockDate}_0.jsonl`);
     await mkdir(join(tempDir, 'api_v3_depth', 'BTCUSDT'), { recursive: true });
-    
-    const records = Array.from({ length: 100_000 }, (_, i) => 
+
+    const records = Array.from({ length: 100_000 }, (_, i) =>
       JSON.stringify({
         timestamp: mockTimestamp - i,
         request: { query: { symbol: 'BTCUSDT' } },
@@ -57,7 +57,7 @@ describe('binanceOrderBookEntity - indexing', () => {
           bids: [['50000.00', '1.0']],
           asks: [['50001.00', '1.0']],
         },
-      })
+      }),
     );
     await writeFile(existingFilePath, records.join('\n') + '\n', 'utf-8');
 
@@ -71,7 +71,7 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain(`${mockDate}_0`);
     expect(fileNames).toContain(`${mockDate}_1`);
     expect(fileNames).toHaveLength(2);
@@ -105,7 +105,7 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain('2025-10-05_0');
     expect(fileNames).toContain('2025-10-06_0');
     expect(fileNames).toHaveLength(2);
@@ -122,7 +122,7 @@ describe('binanceOrderBookEntity - indexing', () => {
 
     const createFileWithRecords = async (fileIndex: number, recordCount: number) => {
       const filePath = join(baseDir, `${mockDate}_${fileIndex}.jsonl`);
-      const records = Array.from({ length: recordCount }, (_, i) => 
+      const records = Array.from({ length: recordCount }, (_, i) =>
         JSON.stringify({
           timestamp: mockTimestamp - i,
           request: { query: { symbol: 'BTCUSDT' } },
@@ -131,7 +131,7 @@ describe('binanceOrderBookEntity - indexing', () => {
             bids: [['50000.00', '1.0']],
             asks: [['50001.00', '1.0']],
           },
-        })
+        }),
       );
       await writeFile(filePath, records.join('\n') + '\n', 'utf-8');
     };
@@ -150,7 +150,7 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const records = await entity.storage.readRecords({ relativePath: `BTCUSDT/${mockDate}_2` });
-    
+
     expect(records).toHaveLength(50_001);
   });
 
@@ -182,7 +182,7 @@ describe('binanceOrderBookEntity - indexing', () => {
     const latestRecord = await entity.readLatestRecord('ETHUSDT');
 
     expect(latestRecord).not.toBeNull();
-    
+
     if (latestRecord) {
       expect(latestRecord.response.lastUpdateId).toBe(1001);
       expect(latestRecord.response.bids[0]?.[0]).toBe('3100.00');
@@ -216,9 +216,9 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const records = await entity.storage.readRecords({ relativePath: 'BTCUSDT/2025-10-05_0' });
-    
+
     expect(records).toHaveLength(1);
-    
+
     expect(records[0]?.timestamp).toBe(secondTimestamp);
     expect(records[0]?.response).toEqual(identicalResponse);
   });
@@ -251,9 +251,9 @@ describe('binanceOrderBookEntity - indexing', () => {
     });
 
     const records = await entity.storage.readRecords({ relativePath: 'BTCUSDT/2025-10-05_0' });
-    
+
     expect(records).toHaveLength(2);
-    
+
     expect(records[0]?.timestamp).toBe(firstTimestamp);
     expect(records[1]?.timestamp).toBe(secondTimestamp);
     expect(records[0]?.response.lastUpdateId).toBe(12345);

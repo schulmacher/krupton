@@ -1,4 +1,4 @@
-export const createBinanceAuthHeaders = (apiKey?: string): Record<string, string> => {
+export function createBinanceAuthHeaders(apiKey?: string): Record<string, string> {
   if (!apiKey) {
     return {};
   }
@@ -6,4 +6,4 @@ export const createBinanceAuthHeaders = (apiKey?: string): Record<string, string
   return {
     'X-MBX-APIKEY': apiKey,
   };
-};
+}

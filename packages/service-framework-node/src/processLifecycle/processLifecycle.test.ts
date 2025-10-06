@@ -4,10 +4,12 @@ import type { DefaultEnvContext } from '../environment/types.js';
 import { createProcessLifecycle } from './processLifecycle.js';
 import type { ProcessLifecycleConfig } from './types.js';
 
-const createTestEnvContext = (): DefaultEnvContext => ({
-  config: { PROCESS_NAME: 'test-service' },
-  nodeEnv: 'test',
-});
+function createTestEnvContext(): DefaultEnvContext {
+  return {
+    config: { PROCESS_NAME: 'test-service' },
+    nodeEnv: 'test',
+  };
+}
 
 describe('createProcessLifecycle', () => {
   let processExitSpy: MockInstance<typeof process.exit>;
@@ -322,9 +324,7 @@ describe('createProcessLifecycle', () => {
       expect(processExitSpy).toHaveBeenCalledWith(0);
 
       const errorLogs = consoleErrorSpy.mock.calls.map((call) => String(call[0]));
-      const fatalLog = errorLogs.find((log) =>
-        log.includes('Uncaught exception detected'),
-      );
+      const fatalLog = errorLogs.find((log) => log.includes('Uncaught exception detected'));
       expect(fatalLog).toBeDefined();
     });
   });
@@ -337,9 +337,9 @@ describe('createProcessLifecycle', () => {
       const context = createProcessLifecycle({ diagnosticContext });
       context.start();
 
-      const warningHandler = processOnSpy.mock.calls.find(
-        (call) => call[0] === 'warning',
-      )?.[1] as (warning: Error) => void;
+      const warningHandler = processOnSpy.mock.calls.find((call) => call[0] === 'warning')?.[1] as (
+        warning: Error,
+      ) => void;
 
       expect(warningHandler).toBeDefined();
 
@@ -366,7 +366,7 @@ describe('createProcessLifecycle', () => {
       expect(context.isShuttingDown()).toBe(false);
 
       const shutdownPromise = context.shutdown();
-      
+
       expect(context.isShuttingDown()).toBe(true);
 
       await vi.runAllTimersAsync();
@@ -424,11 +424,8 @@ describe('createProcessLifecycle', () => {
       expect(processExitSpy).toHaveBeenCalledWith(1);
 
       const errorLogs = consoleErrorSpy.mock.calls.map((call) => String(call[0]));
-      const timeoutLog = errorLogs.find((log) =>
-        log.includes('Shutdown timeout exceeded'),
-      );
+      const timeoutLog = errorLogs.find((log) => log.includes('Shutdown timeout exceeded'));
       expect(timeoutLog).toBeDefined();
     });
   });
 });
-

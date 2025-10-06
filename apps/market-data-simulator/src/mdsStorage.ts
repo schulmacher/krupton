@@ -2,7 +2,7 @@
 import { createMdsStorageContext } from './process/mdsStorageProcess/context.js';
 import { startMdsStorageService } from './process/mdsStorageProcess/mdsStorageProcess.js';
 
-const bootstrap = async (): Promise<void> => {
+async function bootstrap(): Promise<void> {
   try {
     const context = createMdsStorageContext();
 
@@ -16,6 +16,6 @@ const bootstrap = async (): Promise<void> => {
     console.error('Failed to bootstrap mdsStorage service:', error);
     process.exit(1);
   }
-};
+}
 
 void bootstrap();

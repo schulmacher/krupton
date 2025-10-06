@@ -24,11 +24,17 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50000',
+        bidQty: '1',
+        askPrice: '50001',
+        askQty: '1',
+      },
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain('2025-10-05_0');
     expect(fileNames).toHaveLength(1);
   });
@@ -40,25 +46,42 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     const entity = createBinanceBookTickerEntity(tempDir);
 
-    const existingFilePath = join(tempDir, 'api_v3_ticker_bookTicker', 'BTCUSDT', `${mockDate}_0.jsonl`);
+    const existingFilePath = join(
+      tempDir,
+      'api_v3_ticker_bookTicker',
+      'BTCUSDT',
+      `${mockDate}_0.jsonl`,
+    );
     await mkdir(join(tempDir, 'api_v3_ticker_bookTicker', 'BTCUSDT'), { recursive: true });
-    
-    const records = Array.from({ length: 100_000 }, (_, i) => 
+
+    const records = Array.from({ length: 100_000 }, (_, i) =>
       JSON.stringify({
         timestamp: mockTimestamp - i,
         request: { query: { symbol: 'BTCUSDT' } },
-        response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
-      })
+        response: {
+          symbol: 'BTCUSDT',
+          bidPrice: '50000',
+          bidQty: '1',
+          askPrice: '50001',
+          askQty: '1',
+        },
+      }),
     );
     await writeFile(existingFilePath, records.join('\n') + '\n', 'utf-8');
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50000',
+        bidQty: '1',
+        askPrice: '50001',
+        askQty: '1',
+      },
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain(`${mockDate}_0`);
     expect(fileNames).toContain(`${mockDate}_1`);
     expect(fileNames).toHaveLength(2);
@@ -72,7 +95,13 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50000',
+        bidQty: '1',
+        askPrice: '50001',
+        askQty: '1',
+      },
     });
 
     const secondDate = new Date('2025-10-06T00:00:01.000Z');
@@ -80,11 +109,17 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50100', bidQty: '1', askPrice: '50101', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50100',
+        bidQty: '1',
+        askPrice: '50101',
+        askQty: '1',
+      },
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain('2025-10-05_0');
     expect(fileNames).toContain('2025-10-06_0');
     expect(fileNames).toHaveLength(2);
@@ -101,12 +136,18 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     const createFileWithRecords = async (fileIndex: number, recordCount: number) => {
       const filePath = join(baseDir, `${mockDate}_${fileIndex}.jsonl`);
-      const records = Array.from({ length: recordCount }, (_, i) => 
+      const records = Array.from({ length: recordCount }, (_, i) =>
         JSON.stringify({
           timestamp: mockTimestamp - i,
           request: { query: { symbol: 'BTCUSDT' } },
-          response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
-        })
+          response: {
+            symbol: 'BTCUSDT',
+            bidPrice: '50000',
+            bidQty: '1',
+            askPrice: '50001',
+            askQty: '1',
+          },
+        }),
       );
       await writeFile(filePath, records.join('\n') + '\n', 'utf-8');
     };
@@ -117,11 +158,17 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50200', bidQty: '1', askPrice: '50201', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50200',
+        bidQty: '1',
+        askPrice: '50201',
+        askQty: '1',
+      },
     });
 
     const records = await entity.storage.readRecords({ relativePath: `BTCUSDT/${mockDate}_2` });
-    
+
     expect(records).toHaveLength(50_001);
   });
 
@@ -145,7 +192,7 @@ describe('binanceBookTickerEntity - indexing', () => {
     const latestRecord = await entity.readLatestRecord('ETHUSDT');
 
     expect(latestRecord).not.toBeNull();
-    
+
     if (latestRecord && !Array.isArray(latestRecord.response)) {
       expect(latestRecord.response.bidPrice).toBe('3100');
       expect(latestRecord.response.askPrice).toBe('3101');
@@ -159,7 +206,13 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     const entity = createBinanceBookTickerEntity(tempDir);
 
-    const response = { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' };
+    const response = {
+      symbol: 'BTCUSDT',
+      bidPrice: '50000',
+      bidQty: '1',
+      askPrice: '50001',
+      askQty: '1',
+    };
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
@@ -175,7 +228,7 @@ describe('binanceBookTickerEntity - indexing', () => {
     });
 
     const records = await entity.storage.readRecords({ relativePath: `BTCUSDT/${mockDate}_0` });
-    
+
     expect(records).toHaveLength(1);
     expect(records[0]!.timestamp).toBe(secondTimestamp);
     expect(records[0]!.response).toEqual(response);
@@ -190,7 +243,13 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50000', bidQty: '1', askPrice: '50001', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50000',
+        bidQty: '1',
+        askPrice: '50001',
+        askQty: '1',
+      },
     });
 
     const secondTimestamp = firstTimestamp + 5000;
@@ -198,11 +257,17 @@ describe('binanceBookTickerEntity - indexing', () => {
 
     await entity.write({
       request: { query: { symbol: 'BTCUSDT' } },
-      response: { symbol: 'BTCUSDT', bidPrice: '50100', bidQty: '1', askPrice: '50101', askQty: '1' },
+      response: {
+        symbol: 'BTCUSDT',
+        bidPrice: '50100',
+        bidQty: '1',
+        askPrice: '50101',
+        askQty: '1',
+      },
     });
 
     const records = await entity.storage.readRecords({ relativePath: `BTCUSDT/${mockDate}_0` });
-    
+
     expect(records).toHaveLength(2);
     expect(records[0]!.timestamp).toBe(firstTimestamp);
     if (!Array.isArray(records[0]!.response)) {

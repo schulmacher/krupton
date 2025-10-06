@@ -108,7 +108,7 @@ describe('createStorageBackupScheduler', () => {
 
   it('should delete previous current day backups if 2+ exist', async () => {
     const today = new Date('2025-10-06T12:00:00.000Z');
-    
+
     vi.mocked(doStorageBackup).mockResolvedValue({
       backupPath: '/test/backup/storage-2025-10-06T12-00-00-000.tar.gz',
       checksumPath: '/test/backup/storage-2025-10-06T12-00-00-000.tar.gz.sha256',
@@ -180,16 +180,56 @@ describe('createStorageBackupScheduler', () => {
   it('should delete earliest day backups if 7+ remain', async () => {
     // Mock 10 backups from different days
     const backups = [
-      { fileName: 'storage-2025-10-01T12-00-00-000.tar.gz', date: new Date('2025-10-01T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-02T12-00-00-000.tar.gz', date: new Date('2025-10-02T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-03T12-00-00-000.tar.gz', date: new Date('2025-10-03T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-04T12-00-00-000.tar.gz', date: new Date('2025-10-04T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-05T12-00-00-000.tar.gz', date: new Date('2025-10-05T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-06T12-00-00-000.tar.gz', date: new Date('2025-10-06T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-07T12-00-00-000.tar.gz', date: new Date('2025-10-07T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-08T12-00-00-000.tar.gz', date: new Date('2025-10-08T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-09T12-00-00-000.tar.gz', date: new Date('2025-10-09T12:00:00.000Z'), sizeBytes: 1024 },
-      { fileName: 'storage-2025-10-10T12-00-00-000.tar.gz', date: new Date('2025-10-10T12:00:00.000Z'), sizeBytes: 1024 },
+      {
+        fileName: 'storage-2025-10-01T12-00-00-000.tar.gz',
+        date: new Date('2025-10-01T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-02T12-00-00-000.tar.gz',
+        date: new Date('2025-10-02T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-03T12-00-00-000.tar.gz',
+        date: new Date('2025-10-03T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-04T12-00-00-000.tar.gz',
+        date: new Date('2025-10-04T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-05T12-00-00-000.tar.gz',
+        date: new Date('2025-10-05T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-06T12-00-00-000.tar.gz',
+        date: new Date('2025-10-06T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-07T12-00-00-000.tar.gz',
+        date: new Date('2025-10-07T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-08T12-00-00-000.tar.gz',
+        date: new Date('2025-10-08T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-09T12-00-00-000.tar.gz',
+        date: new Date('2025-10-09T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
+      {
+        fileName: 'storage-2025-10-10T12-00-00-000.tar.gz',
+        date: new Date('2025-10-10T12:00:00.000Z'),
+        sizeBytes: 1024,
+      },
     ];
 
     vi.mocked(doStorageBackup).mockResolvedValue({
@@ -280,7 +320,7 @@ describe('createStorageBackupScheduler', () => {
     // Use a promise that we control to simulate a long-running backup
     let backupResolve: (() => void) | null = null;
     let backupCount = 0;
-    
+
     vi.mocked(doStorageBackup).mockImplementation(() => {
       backupCount++;
       if (backupCount === 1) {
@@ -295,13 +335,14 @@ describe('createStorageBackupScheduler', () => {
       } else {
         // Second backup is controlled by our promise
         return new Promise((resolve) => {
-          backupResolve = () => resolve({
-            backupPath: '/test/backup/storage-2025-10-06T12-00-00-001.tar.gz',
-            checksumPath: '/test/backup/storage-2025-10-06T12-00-00-001.tar.gz.sha256',
-            checksum: 'def456',
-            size: 1024 * 1024,
-            duration: 100,
-          });
+          backupResolve = () =>
+            resolve({
+              backupPath: '/test/backup/storage-2025-10-06T12-00-00-001.tar.gz',
+              checksumPath: '/test/backup/storage-2025-10-06T12-00-00-001.tar.gz.sha256',
+              checksum: 'def456',
+              size: 1024 * 1024,
+              duration: 100,
+            });
         });
       }
     });
@@ -317,20 +358,20 @@ describe('createStorageBackupScheduler', () => {
 
     // Trigger second backup
     await vi.advanceTimersByTimeAsync(1000);
-    
+
     // Second backup should have started
     expect(backupCount).toBe(2);
     expect(backupResolve).not.toBeNull();
 
     // Call stop while second backup is in progress (don't await yet)
     const stopPromise = scheduler.stop();
-    
+
     // Give a microtask for stop to be initiated
     await Promise.resolve();
 
     // Complete the backup
     backupResolve!();
-    
+
     // Now wait for stop to complete - it should have waited for the backup
     await stopPromise;
 
@@ -428,4 +469,3 @@ describe('createStorageBackupScheduler', () => {
     await scheduler.stop();
   });
 });
-

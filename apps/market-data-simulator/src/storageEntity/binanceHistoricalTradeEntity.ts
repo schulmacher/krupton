@@ -6,7 +6,9 @@ import type { EndpointEntity } from '../lib/endpointStorage.ts/endpointEntity.js
 import type { EndpointStorage, StorageRecord } from '../lib/endpointStorage.ts/endpointStorage.js';
 import { createEndpointStorage } from '../lib/endpointStorage.ts/endpointStorage.js';
 
-export type BinanceHistoricalTradeStorage = EndpointStorage<typeof BinanceApi.GetHistoricalTradesEndpoint>;
+export type BinanceHistoricalTradeStorage = EndpointStorage<
+  typeof BinanceApi.GetHistoricalTradesEndpoint
+>;
 export type BinanceHistoricalTradeEntity = ReturnType<typeof createBinanceHistoricalTradeEntity>;
 
 type HistoricalTradeResponse = TB.Static<
@@ -15,24 +17,24 @@ type HistoricalTradeResponse = TB.Static<
 type HistoricalTradeRequest = ExtractEndpointParams<typeof BinanceApi.GetHistoricalTradesEndpoint>;
 type HistoricalTradeRecord = StorageRecord<HistoricalTradeResponse, HistoricalTradeRequest>;
 
-const calculateFileIndex = (tradeId: number): string => {
+function calculateFileIndex(tradeId: number): string {
   const fileNumber = Math.floor(tradeId / 1e5);
   return `${fileNumber}`;
-};
+}
 
-const calculateFilePathWithIndex = (symbol: string, tradeId: number): string => {
+function calculateFilePathWithIndex(symbol: string, tradeId: number): string {
   return `${symbol}/${calculateFileIndex(tradeId)}`;
-};
+}
 
-const parseFileIndex = (fileName: string): number => {
+function parseFileIndex(fileName: string): number {
   return parseInt(fileName, 10);
-};
+}
 
-const createBinanceHistoricalTradeStorage = (baseDir: string): BinanceHistoricalTradeStorage => {
+function createBinanceHistoricalTradeStorage(baseDir: string): BinanceHistoricalTradeStorage {
   return createEndpointStorage(baseDir, BinanceApi.GetHistoricalTradesEndpoint);
-};
+}
 
-export const createBinanceHistoricalTradeEntity = (baseDir: string) => {
+export function createBinanceHistoricalTradeEntity(baseDir: string) {
   const storage = createBinanceHistoricalTradeStorage(baseDir);
 
   return {
@@ -82,7 +84,7 @@ export const createBinanceHistoricalTradeEntity = (baseDir: string) => {
 
       const latestFileName = sortedFiles[sortedFiles.length - 1]!;
       const relativePath = `${symbol}/${latestFileName}`;
-      
+
       const records = await storage.readRecords({ relativePath });
 
       if (records.length === 0) {
@@ -92,4 +94,4 @@ export const createBinanceHistoricalTradeEntity = (baseDir: string) => {
       return records[records.length - 1]!;
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetHistoricalTradesEndpoint>;
-};
+}

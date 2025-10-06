@@ -2,7 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 import type { MdsRestEnv } from './environment.js';
 import { mdsRestEnvSchema } from './environment.js';
 
-export const createMdsRestContext = () => {
+export function createMdsRestContext() {
   const envContext = SF.createEnvContext(mdsRestEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -24,7 +24,7 @@ export const createMdsRestContext = () => {
     metricsContext,
     processContext,
   };
-};
+}
 
 export type MdsRestContext = ReturnType<typeof createMdsRestContext>;
 

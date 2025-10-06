@@ -2,7 +2,7 @@ import type { MdsStorageContext } from '../../process/mdsStorageProcess/context.
 import { listBackups } from './storageBackup.js';
 import { readStorageStats } from './storageStats.js';
 
-const reportStats = async (context: MdsStorageContext, baseDir: string): Promise<void> => {
+async function reportStats(context: MdsStorageContext, baseDir: string): Promise<void> {
   const { diagnosticContext } = context;
   try {
     const stats = await readStorageStats(baseDir);
@@ -30,7 +30,7 @@ const reportStats = async (context: MdsStorageContext, baseDir: string): Promise
 
     if (backups.length > 0) {
       const mostRecentBackup = backups.reduce((latest, current) =>
-        current.date > latest.date ? current : latest
+        current.date > latest.date ? current : latest,
       );
 
       const totalBackupSize = backups.reduce((sum, backup) => sum + backup.sizeBytes, 0);
@@ -49,13 +49,13 @@ const reportStats = async (context: MdsStorageContext, baseDir: string): Promise
   } catch (error) {
     diagnosticContext.logger.error('Failed to report storage stats', { error });
   }
-};
+}
 
-export const createStorageStatsReporter = (
+export function createStorageStatsReporter(
   context: MdsStorageContext,
   baseDir: string,
   reportIntervalMs: number = 60000, // Default: 60 seconds
-) => {
+) {
   const { processContext, diagnosticContext } = context;
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -98,10 +98,12 @@ export const createStorageStatsReporter = (
         return;
       }
 
+      diagnosticContext.logger.info('Stopping storage stats reporter');
       clearTimeout(timeoutId);
       timeoutId = null;
+      diagnosticContext.logger.info('Storage stats reporter stopped');
     },
   };
-};
+}
 
 export type StorageStatsReporter = ReturnType<typeof createStorageStatsReporter>;

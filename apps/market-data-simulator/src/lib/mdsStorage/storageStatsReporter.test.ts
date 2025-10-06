@@ -192,7 +192,6 @@ describe('createStorageStatsReporter', () => {
     await reporter.stop();
   });
 
-
   it('should handle errors during stat collection', async () => {
     const testError = new Error('Failed to read storage');
     vi.mocked(readStorageStats).mockRejectedValue(testError);
@@ -289,4 +288,3 @@ describe('createStorageStatsReporter', () => {
     await reporter.stop();
   });
 });
-

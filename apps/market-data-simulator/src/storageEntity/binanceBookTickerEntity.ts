@@ -12,39 +12,36 @@ type BookTickerResponse = TB.Static<typeof BinanceApi.GetBookTickerEndpoint.resp
 type BookTickerRequest = ExtractEndpointParams<typeof BinanceApi.GetBookTickerEndpoint>;
 type BookTickerRecord = StorageRecord<BookTickerResponse, BookTickerRequest>;
 
-const formatDateForIndex = (timestamp: number): string => {
+function formatDateForIndex(timestamp: number): string {
   return new Date(timestamp).toISOString().slice(0, 10);
-};
+}
 
-const getFilePathWithIndex = (symbol: string, date: string, recordCount: number): string => {
+function getFilePathWithIndex(symbol: string, date: string, recordCount: number): string {
   return `${symbol}/${calculateFileIndex(date, recordCount)}`;
-};
+}
 
-const calculateFileIndex = (date: string, recordCount: number): string => {
+function calculateFileIndex(date: string, recordCount: number): string {
   const fileNumber = Math.floor(recordCount / 100_000);
   return `${date}_${fileNumber}`;
-};
+}
 
-const parseIndexParts = (fileName: string): { date: string; fileNumber: number } => {
+function parseIndexParts(fileName: string): { date: string; fileNumber: number } {
   const dateParts = fileName.split('_');
   if (dateParts.length !== 2) {
     throw new Error(`Invalid file name ${fileName}`);
   }
   return { date: dateParts[0]!, fileNumber: parseInt(dateParts[1]!, 10) };
-};
+}
 
-const areResponsesEqual = (
-  response1: BookTickerResponse,
-  response2: BookTickerResponse,
-): boolean => {
+function areResponsesEqual(response1: BookTickerResponse, response2: BookTickerResponse): boolean {
   return JSON.stringify(response1) === JSON.stringify(response2);
-};
+}
 
-const createBinanceBookTickerStorage = (baseDir: string): BinanceBookTickerStorage => {
+function createBinanceBookTickerStorage(baseDir: string): BinanceBookTickerStorage {
   return createEndpointStorage(baseDir, BinanceApi.GetBookTickerEndpoint);
-};
+}
 
-export const createBinanceBookTickerEntity = (baseDir: string) => {
+export function createBinanceBookTickerEntity(baseDir: string) {
   const storage = createBinanceBookTickerStorage(baseDir);
 
   return {
@@ -138,4 +135,4 @@ export const createBinanceBookTickerEntity = (baseDir: string) => {
       return records[records.length - 1]!;
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetBookTickerEndpoint>;
-};
+}

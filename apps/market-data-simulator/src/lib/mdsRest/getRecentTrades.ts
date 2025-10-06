@@ -4,21 +4,21 @@ import { join } from 'node:path';
 import type { StorageIO } from '../mdsStorage/mdsStorageIO.js';
 import type { StorageRecord } from '../mdsStorage/types.js';
 
-const normalizeEndpointPath = (endpoint: string): string => {
+function normalizeEndpointPath(endpoint: string): string {
   return endpoint.replace(/^\/+/, '').replace(/\//g, '_');
-};
+}
 
-const calculateFileIndex = (tradeId: number): string => {
+function calculateFileIndex(tradeId: number): string {
   return `${Math.floor(tradeId / 1e5)}`;
-};
+}
 
-const readStorageRecordsFromFile = async (
+async function readStorageRecordsFromFile(
   baseDir: string,
   platform: string,
   endpoint: string,
   symbol: string,
   fileIndex: string,
-): Promise<StorageRecord<BinanceApi.GetHistoricalTradesResponse>[]> => {
+): Promise<StorageRecord<BinanceApi.GetHistoricalTradesResponse>[]> {
   const normalizedEndpoint = normalizeEndpointPath(endpoint);
   const filePath = join(baseDir, platform, normalizedEndpoint, symbol, `${fileIndex}.jsonl`);
 
@@ -42,14 +42,14 @@ const readStorageRecordsFromFile = async (
     }
     throw error;
   }
-};
+}
 
-const getFirstAvailableFile = async (
+async function getFirstAvailableFile(
   baseDir: string,
   platform: string,
   endpoint: string,
   symbol: string,
-): Promise<string | null> => {
+): Promise<string | null> {
   const normalizedEndpoint = normalizeEndpointPath(endpoint);
   const directoryPath = join(baseDir, platform, normalizedEndpoint, symbol);
 
@@ -68,14 +68,14 @@ const getFirstAvailableFile = async (
     }
     throw error;
   }
-};
+}
 
-export const registerGetRecentTradesEndpoint = (
+export function registerGetRecentTradesEndpoint(
   fastify: ReturnType<typeof import('@krupton/service-framework-node').SF.createHttpServer>,
   storageIO: StorageIO,
   baseDir: string,
   platform: string,
-) => {
+) {
   fastify.get('/api/v3/historicalTrades', async (request, reply) => {
     const startTime = Date.now();
     const logger = request.logger;
@@ -154,4 +154,4 @@ export const registerGetRecentTradesEndpoint = (
       return { error: 'Internal server error' };
     }
   });
-};
+}

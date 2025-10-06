@@ -25,7 +25,8 @@ const handleHistoricalTradesResponse = async (
   }
 
   const requestFromId = query.fromId;
-  const currentLatestRecord = await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
+  const currentLatestRecord =
+    await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
 
   const latestStoredFromId = currentLatestRecord?.request.query?.fromId;
 
@@ -34,13 +35,16 @@ const handleHistoricalTradesResponse = async (
     latestStoredFromId !== undefined &&
     requestFromId <= latestStoredFromId
   ) {
-    diagnosticContext.logger.warn('Skipping duplicate request - already in storage, shotting down process', {
-      platform: config.PLATFORM,
-      symbol,
-      endpoint,
-      requestFromId,
-      latestStoredFromId,
-    });
+    diagnosticContext.logger.warn(
+      'Skipping duplicate request - already in storage, shotting down process',
+      {
+        platform: config.PLATFORM,
+        symbol,
+        endpoint,
+        requestFromId,
+        latestStoredFromId,
+      },
+    );
     // TODO implement restart logic, handled by PM2 naturally?
     await processContext.shutdown();
     return;
@@ -68,7 +72,8 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
   const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
   const config = envContext.config;
 
-  const latestStorageRecord = await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
+  const latestStorageRecord =
+    await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
   const latestStorageRecordMaxId = latestStorageRecord?.response?.reduce(
     (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
     0,

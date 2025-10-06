@@ -2,19 +2,19 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
-const getCurrentFileDir = (): string => {
+function getCurrentFileDir(): string {
   return dirname(fileURLToPath(import.meta.url));
-};
+}
 
-export const getAppRootDir = (): string => {
+export function getAppRootDir(): string {
   const currentDir = getCurrentFileDir();
   return resolve(currentDir, '..', '..');
-};
+}
 
-export const getMonorepoRootDir = (...paths: string[]): string => {
+export function getMonorepoRootDir(...paths: string[]): string {
   const appRoot = getAppRootDir();
   return resolve(appRoot, '..', '..', ...paths);
-};
+}
 export async function ensureDirectoryExistsForFile(filePath: string) {
   try {
     const dir = dirname(filePath);

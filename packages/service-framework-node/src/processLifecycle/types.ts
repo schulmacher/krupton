@@ -2,10 +2,7 @@ import type { DiagnosticContext } from '../diagnostics/types.js';
 
 export type ShutdownCallback = () => Promise<void> | void;
 
-export type RejectionHandler = (
-  reason: unknown,
-  promise: Promise<unknown>,
-) => void;
+export type RejectionHandler = (reason: unknown, promise: Promise<unknown>) => void;
 
 export type ExceptionHandler = (error: Error) => void;
 
@@ -27,4 +24,3 @@ export interface ProcessLifecycleContext {
   shutdown(): Promise<void>;
   isShuttingDown(): boolean;
 }
-

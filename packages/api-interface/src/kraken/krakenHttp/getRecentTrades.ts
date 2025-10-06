@@ -31,9 +31,5 @@ export const GetRecentTradesEndpoint = {
   }),
 } satisfies EndpointDefinition;
 
-export type GetRecentTradesQuery = TB.Static<
-  typeof GetRecentTradesEndpoint.querySchema
->;
-export type GetRecentTradesResponse = TB.Static<
-  typeof GetRecentTradesEndpoint.responseSchema
->;
+export type GetRecentTradesQuery = TB.Static<typeof GetRecentTradesEndpoint.querySchema>;
+export type GetRecentTradesResponse = TB.Static<typeof GetRecentTradesEndpoint.responseSchema>;

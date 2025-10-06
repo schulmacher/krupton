@@ -1,7 +1,4 @@
-import type {
-  MetricConfigCounter,
-  MetricConfigHistogram,
-} from '../../metrics/types.js';
+import type { MetricConfigCounter, MetricConfigHistogram } from '../../metrics/types.js';
 
 const httpRequestsTotal: MetricConfigCounter<'method' | 'route' | 'status_code'> = {
   type: 'counter',

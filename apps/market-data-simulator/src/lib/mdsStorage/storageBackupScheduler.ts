@@ -1,9 +1,7 @@
 import type { MdsStorageContext } from '../../process/mdsStorageProcess/context.js';
 import { doStorageBackup, listBackups, removeBackupByName } from './storageBackup.js';
 
-async function removeDuplicateBackupsForLatestDate(
-  context: MdsStorageContext,
-): Promise<void> {
+async function removeDuplicateBackupsForLatestDate(context: MdsStorageContext): Promise<void> {
   const { diagnosticContext } = context;
 
   try {
@@ -49,7 +47,7 @@ async function removeDuplicateBackupsForLatestDate(
   }
 }
 
-const performBackup = async (context: MdsStorageContext): Promise<void> => {
+async function performBackup(context: MdsStorageContext): Promise<void> {
   const { diagnosticContext } = context;
 
   try {
@@ -77,7 +75,7 @@ const performBackup = async (context: MdsStorageContext): Promise<void> => {
 
     context.metricsContext.metrics.backupFailures.inc();
   }
-};
+}
 
 async function removeHistoricalBackups(context: MdsStorageContext): Promise<void> {
   const { diagnosticContext } = context;
@@ -119,18 +117,68 @@ async function removeHistoricalBackups(context: MdsStorageContext): Promise<void
   }
 }
 
-export const createStorageBackupScheduler = (
+async function calculateNextBackupDelay(
+  context: MdsStorageContext,
+  backupIntervalMs: number,
+): Promise<number> {
+  const { diagnosticContext } = context;
+
+  try {
+    const allBackups = await listBackups(context);
+
+    if (allBackups.length === 0) {
+      diagnosticContext.logger.info('No existing backups found, scheduling immediate backup');
+      return 0;
+    }
+
+    const latestBackup = [...allBackups].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    const timeSinceLastBackup = Date.now() - latestBackup.date.getTime();
+
+    // Handle case where last backup date is in the future (shouldn't happen in production)
+    // or when backup was made more than the interval ago
+    if (timeSinceLastBackup <= 0 || timeSinceLastBackup >= backupIntervalMs) {
+      diagnosticContext.logger.info('Scheduling immediate backup', {
+        lastBackupDate: latestBackup.date,
+        timeSinceLastBackupMs: timeSinceLastBackup,
+        timeSinceLastBackupHours: (timeSinceLastBackup / (60 * 60 * 1000)).toFixed(2),
+        reason:
+          timeSinceLastBackup <= 0
+            ? 'last backup date is in the future'
+            : 'last backup exceeds interval',
+      });
+      return 0;
+    }
+
+    const nextBackupDelay = backupIntervalMs - timeSinceLastBackup;
+    diagnosticContext.logger.info('Calculated next backup delay based on last backup', {
+      lastBackupDate: latestBackup.date,
+      timeSinceLastBackupMs: timeSinceLastBackup,
+      timeSinceLastBackupHours: (timeSinceLastBackup / (60 * 60 * 1000)).toFixed(2),
+      nextBackupDelayMs: nextBackupDelay,
+      nextBackupDelayHours: (nextBackupDelay / (60 * 60 * 1000)).toFixed(2),
+    });
+
+    return nextBackupDelay;
+  } catch (error) {
+    diagnosticContext.logger.error(
+      'Failed to calculate next backup delay, defaulting to immediate backup',
+      {
+        error,
+      },
+    );
+    return 0;
+  }
+}
+
+export function createStorageBackupScheduler(
   context: MdsStorageContext,
   backupIntervalMs: number = 3 * 60 * 60 * 1000, // Default: 3 hours
-) => {
+) {
   const { processContext, diagnosticContext } = context;
   let timeoutId: NodeJS.Timeout | null = null;
   let backupPromise: Promise<void> | null = null;
 
-  const runLoop = async (): Promise<void> => {
-    backupPromise = performBackup(context);
-    await backupPromise;
-
+  function scheduleNextBackup(delayMs: number): void {
     if (!processContext.isShuttingDown()) {
       timeoutId = setTimeout(() => {
         runLoop().catch((error) => {
@@ -138,9 +186,17 @@ export const createStorageBackupScheduler = (
           timeoutId = null;
           processContext.shutdown();
         });
-      }, backupIntervalMs);
+      }, delayMs);
     }
-  };
+  }
+
+  async function runLoop(): Promise<void> {
+    backupPromise = performBackup(context);
+    await backupPromise;
+
+    // After performing a backup, wait the full interval before the next one
+    scheduleNextBackup(backupIntervalMs);
+  }
 
   return {
     async start(): Promise<void> {
@@ -154,11 +210,15 @@ export const createStorageBackupScheduler = (
         backupIntervalHours: backupIntervalMs / (60 * 60 * 1000),
       });
 
-      runLoop().catch((error) => {
-        diagnosticContext.logger.error('Storage backup scheduler loop failed', { error });
-        timeoutId = null;
-        processContext.shutdown();
+      // Calculate initial delay based on when the last backup was made
+      const initialDelay = await calculateNextBackupDelay(context, backupIntervalMs);
+
+      diagnosticContext.logger.info('Scheduling first backup', {
+        delayMs: initialDelay,
+        delayHours: (initialDelay / (60 * 60 * 1000)).toFixed(2),
       });
+
+      scheduleNextBackup(initialDelay);
     },
 
     async stop(): Promise<void> {
@@ -177,6 +237,6 @@ export const createStorageBackupScheduler = (
       diagnosticContext.logger.info('Storage backup scheduler stopped');
     },
   };
-};
+}
 
 export type StorageBackupScheduler = ReturnType<typeof createStorageBackupScheduler>;

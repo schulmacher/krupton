@@ -32,4 +32,3 @@ declare module 'fastify' {
     startServer(): Promise<void>;
   }
 }
-

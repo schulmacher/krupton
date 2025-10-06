@@ -1,13 +1,16 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createMetricsContext } from './metrics.js';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { DefaultEnvContext } from '../environment/types.js';
+import { createMetricsContext } from './metrics.js';
 
-const createMockEnvContext = (processName = 'test-service'): DefaultEnvContext => ({
-  config: {
-    PROCESS_NAME: processName,
-  },
-  nodeEnv: 'test',
-});
+function createMockEnvContext(processName = 'test-service'): DefaultEnvContext {
+  return {
+    config: {
+      PROCESS_NAME: processName,
+    },
+    nodeEnv: 'test',
+  };
+}
 
 describe('createMetricsContext', () => {
   describe('registry management', () => {
@@ -27,6 +30,7 @@ describe('createMetricsContext', () => {
       });
 
       metricsContext.createCounter({
+        type: 'counter',
         name: 'test_counter',
         help: 'Test counter',
       });
@@ -39,7 +43,7 @@ describe('createMetricsContext', () => {
   });
 
   describe('counter metrics', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -49,6 +53,7 @@ describe('createMetricsContext', () => {
 
     it('should create a counter metric', async () => {
       const counter = metricsContext.createCounter({
+        type: 'counter',
         name: 'test_counter_total',
         help: 'Test counter',
       });
@@ -63,6 +68,7 @@ describe('createMetricsContext', () => {
 
     it('should create a counter with labels', async () => {
       const counter = metricsContext.createCounter({
+        type: 'counter',
         name: 'requests_total',
         help: 'Total requests',
         labelNames: ['method', 'status'] as const,
@@ -80,6 +86,7 @@ describe('createMetricsContext', () => {
     it('should validate metric names', () => {
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: '',
           help: 'Empty name',
         });
@@ -87,6 +94,7 @@ describe('createMetricsContext', () => {
 
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: '123invalid',
           help: 'Invalid name',
         });
@@ -96,6 +104,7 @@ describe('createMetricsContext', () => {
     it('should validate label names', () => {
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: 'test_counter',
           help: 'Test counter',
           labelNames: ['__reserved'],
@@ -104,6 +113,7 @@ describe('createMetricsContext', () => {
 
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: 'test_counter_2',
           help: 'Test counter',
           labelNames: ['123invalid'],
@@ -113,7 +123,7 @@ describe('createMetricsContext', () => {
   });
 
   describe('gauge metrics', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -123,6 +133,7 @@ describe('createMetricsContext', () => {
 
     it('should create a gauge metric', async () => {
       const gauge = metricsContext.createGauge({
+        type: 'gauge',
         name: 'memory_usage_bytes',
         help: 'Memory usage',
       });
@@ -142,6 +153,7 @@ describe('createMetricsContext', () => {
 
     it('should create a gauge with labels', async () => {
       const gauge = metricsContext.createGauge({
+        type: 'gauge',
         name: 'queue_size',
         help: 'Queue size',
         labelNames: ['queue_name'] as const,
@@ -157,7 +169,7 @@ describe('createMetricsContext', () => {
   });
 
   describe('histogram metrics', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -167,6 +179,7 @@ describe('createMetricsContext', () => {
 
     it('should create a histogram with default buckets', async () => {
       const histogram = metricsContext.createHistogram({
+        type: 'histogram',
         name: 'request_duration_seconds',
         help: 'Request duration',
       });
@@ -183,6 +196,7 @@ describe('createMetricsContext', () => {
 
     it('should create a histogram with custom buckets', async () => {
       const histogram = metricsContext.createHistogram({
+        type: 'histogram',
         name: 'response_size_bytes',
         help: 'Response size',
         buckets: [100, 500, 1000, 5000, 10000],
@@ -201,6 +215,7 @@ describe('createMetricsContext', () => {
 
     it('should support histogram timer pattern', async () => {
       const histogram = metricsContext.createHistogram({
+        type: 'histogram',
         name: 'processing_duration_seconds',
         help: 'Processing duration',
       });
@@ -218,6 +233,7 @@ describe('createMetricsContext', () => {
 
     it('should create a histogram with labels', async () => {
       const histogram = metricsContext.createHistogram({
+        type: 'histogram',
         name: 'http_request_duration_seconds',
         help: 'HTTP request duration',
         labelNames: ['method', 'path'] as const,
@@ -228,13 +244,17 @@ describe('createMetricsContext', () => {
       histogram.observe({ method: 'POST', path: '/api/orders' }, 0.256);
 
       const metrics = await metricsContext.getMetricsAsString();
-      expect(metrics).toContain('http_request_duration_seconds_count{method="GET",path="/api/users"} 2');
-      expect(metrics).toContain('http_request_duration_seconds_count{method="POST",path="/api/orders"} 1');
+      expect(metrics).toContain(
+        'http_request_duration_seconds_count{method="GET",path="/api/users"} 2',
+      );
+      expect(metrics).toContain(
+        'http_request_duration_seconds_count{method="POST",path="/api/orders"} 1',
+      );
     });
   });
 
   describe('summary metrics', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -244,6 +264,7 @@ describe('createMetricsContext', () => {
 
     it('should create a summary with default percentiles', async () => {
       const summary = metricsContext.createSummary({
+        type: 'summary',
         name: 'request_latency_seconds',
         help: 'Request latency',
       });
@@ -262,6 +283,7 @@ describe('createMetricsContext', () => {
 
     it('should create a summary with custom percentiles', async () => {
       const summary = metricsContext.createSummary({
+        type: 'summary',
         name: 'processing_time_seconds',
         help: 'Processing time',
         percentiles: [0.5, 0.9, 0.95, 0.99],
@@ -281,6 +303,7 @@ describe('createMetricsContext', () => {
 
     it('should create a summary with custom configuration', async () => {
       const summary = metricsContext.createSummary({
+        type: 'summary',
         name: 'message_size_bytes',
         help: 'Message size',
         percentiles: [0.5, 0.95, 0.99],
@@ -300,7 +323,7 @@ describe('createMetricsContext', () => {
   });
 
   describe('metrics serialization', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -310,6 +333,7 @@ describe('createMetricsContext', () => {
 
     it('should export metrics as Prometheus text format', async () => {
       const counter = metricsContext.createCounter({
+        type: 'counter',
         name: 'test_requests_total',
         help: 'Test requests',
       });
@@ -326,6 +350,7 @@ describe('createMetricsContext', () => {
 
     it('should export metrics with labels', async () => {
       const counter = metricsContext.createCounter({
+        type: 'counter',
         name: 'http_requests_total',
         help: 'HTTP requests',
         labelNames: ['method', 'status'] as const,
@@ -342,11 +367,13 @@ describe('createMetricsContext', () => {
 
     it('should get metrics as array', () => {
       metricsContext.createCounter({
+        type: 'counter',
         name: 'counter_metric',
         help: 'Counter',
       });
 
       metricsContext.createGauge({
+        type: 'gauge',
         name: 'gauge_metric',
         help: 'Gauge',
       });
@@ -397,7 +424,7 @@ describe('createMetricsContext', () => {
   });
 
   describe('metric naming conventions', () => {
-    let metricsContext: ReturnType<typeof createMetricsContext>;
+    let metricsContext: ReturnType<typeof createMetricsContext<any>>;
 
     beforeEach(() => {
       metricsContext = createMetricsContext({
@@ -407,25 +434,38 @@ describe('createMetricsContext', () => {
 
     it('should accept valid metric names', () => {
       expect(() => {
-        metricsContext.createCounter({ name: 'valid_metric_name', help: 'Test' });
+        metricsContext.createCounter({ type: 'counter', name: 'valid_metric_name', help: 'Test' });
       }).not.toThrow();
 
       expect(() => {
-        metricsContext.createCounter({ name: 'metric_with_unit_seconds', help: 'Test' });
+        metricsContext.createCounter({
+          type: 'counter',
+          name: 'metric_with_unit_seconds',
+          help: 'Test',
+        });
       }).not.toThrow();
 
       expect(() => {
-        metricsContext.createCounter({ name: 'subsystem:metric_name', help: 'Test' });
+        metricsContext.createCounter({
+          type: 'counter',
+          name: 'subsystem:metric_name',
+          help: 'Test',
+        });
       }).not.toThrow();
 
       expect(() => {
-        metricsContext.createCounter({ name: '_leading_underscore', help: 'Test' });
+        metricsContext.createCounter({
+          type: 'counter',
+          name: '_leading_underscore',
+          help: 'Test',
+        });
       }).not.toThrow();
     });
 
     it('should accept valid label names', () => {
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: 'test_metric',
           help: 'Test',
           labelNames: ['valid_label'],
@@ -434,6 +474,7 @@ describe('createMetricsContext', () => {
 
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: 'test_metric_2',
           help: 'Test',
           labelNames: ['label_with_numbers123'],
@@ -442,6 +483,7 @@ describe('createMetricsContext', () => {
 
       expect(() => {
         metricsContext.createCounter({
+          type: 'counter',
           name: 'test_metric_3',
           help: 'Test',
           labelNames: ['_leading_underscore'],
@@ -450,4 +492,3 @@ describe('createMetricsContext', () => {
     });
   });
 });
-

@@ -1,14 +1,10 @@
 import type {
   EndpointDefinition,
   ExtractEndpointDefinitionResponseSchema,
-  ExtractEndpointParams
+  ExtractEndpointParams,
 } from '@krupton/api-client-node';
 import type { MdsFetcherContext } from '../../process/mdsFetcherProcess/context.js';
-import type {
-  FetcherConfig,
-  MdsFetcherLoop,
-  MdsFetcherLoopState
-} from './types.js';
+import type { FetcherConfig, MdsFetcherLoop, MdsFetcherLoopState } from './types.js';
 
 export const createMdsFetcherLoop = <E extends EndpointDefinition>(
   context: MdsFetcherContext,
@@ -57,12 +53,12 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
         endpoint: endpointPath,
         params: prevParams,
       });
-    
+
       await context.rateLimiter.throttle();
       startTime = Date.now();
       const response = await endpointFn(prevParams);
       context.rateLimiter.recordRequest();
-    
+
       const duration = (Date.now() - startTime) / 1000;
 
       state.fetchCount++;
@@ -74,7 +70,7 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
           endpoint: endpointPath,
           status: 'success',
         });
-  
+
         fetchDuration.observe(
           {
             platform: env.PLATFORM,
@@ -82,7 +78,7 @@ export const createMdsFetcherLoop = <E extends EndpointDefinition>(
           },
           duration,
         );
-  
+
         totalFetchesGauge.set(state.fetchCount);
         lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
       } catch (error) {

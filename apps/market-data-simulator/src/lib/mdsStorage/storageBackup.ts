@@ -4,7 +4,10 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { createMdsStorageContext, MdsStorageContext } from '../../process/mdsStorageProcess/context.js';
+import {
+  createMdsStorageContext,
+  MdsStorageContext,
+} from '../../process/mdsStorageProcess/context.js';
 import { ensureDirectoryExistsForFile } from '../fs.js';
 
 const execAsync = promisify(exec);
@@ -71,9 +74,6 @@ export async function doStorageBackup(context: MdsStorageContext) {
     const duration = Date.now() - startTime;
     diagnosticContext.logger.info(`Backup completed in ${duration}ms`);
 
-    // Now pass to saveBackup for upload
-    await syncBackupToDrive(context);
-
     return {
       backupPath,
       checksumPath,
@@ -87,7 +87,7 @@ export async function doStorageBackup(context: MdsStorageContext) {
   }
 }
 
-async function syncBackupToDrive(context: MdsStorageContext) {
+export async function syncBackupsToDrive(context: MdsStorageContext) {
   const { diagnosticContext } = context;
   diagnosticContext.logger.info('[MOCK] Starting backup upload');
   const startTime = Date.now();
@@ -109,33 +109,35 @@ export async function listBackups(context: MdsStorageContext) {
     const files = await fs.readdir(basePath);
 
     const backupFilesWithStats = await Promise.all(
-      files
-        .filter(isBackupFile)
-        .map(async (fileName) => {
-          const timestampMatch = fileName.match(/storage-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3})/);
-          
-          let date: Date | null = null;
-          if (timestampMatch) {
-            // Convert filename format back to ISO format: YYYY-MM-DDTHH-MM-SS-mmm -> YYYY-MM-DDTHH:MM:SS.mmm
-            const isoString = timestampMatch[1]
-              .replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})/, 'T$1:$2:$3.$4');
-            date = new Date(isoString + 'Z');
-          }
+      files.filter(isBackupFile).map(async (fileName) => {
+        const timestampMatch = fileName.match(
+          /storage-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3})/,
+        );
 
-          const filePath = path.join(basePath, fileName);
-          const stats = await fs.stat(filePath);
+        let date: Date | null = null;
+        if (timestampMatch) {
+          // Convert filename format back to ISO format: YYYY-MM-DDTHH-MM-SS-mmm -> YYYY-MM-DDTHH:MM:SS.mmm
+          const isoString = timestampMatch[1].replace(
+            /T(\d{2})-(\d{2})-(\d{2})-(\d{3})/,
+            'T$1:$2:$3.$4',
+          );
+          date = new Date(isoString + 'Z');
+        }
 
-          return {
-            fileName,
-            date,
-            sizeBytes: stats.size,
-          };
-        }),
+        const filePath = path.join(basePath, fileName);
+        const stats = await fs.stat(filePath);
+
+        return {
+          fileName,
+          date,
+          sizeBytes: stats.size,
+        };
+      }),
     );
 
     return backupFilesWithStats.filter(
-      (backup): backup is { fileName: string; date: Date; sizeBytes: number } => 
-        backup.date !== null
+      (backup): backup is { fileName: string; date: Date; sizeBytes: number } =>
+        backup.date !== null,
     );
   } catch {
     return [];
@@ -151,21 +153,23 @@ export async function removeBackupByName(context: MdsStorageContext, fileName: s
   try {
     diagnosticContext.logger.info('Removing backup files', { fileName });
 
-    await fs.unlink(backupPath)
-    .then(() => {
-      diagnosticContext.logger.info('Deleted backup file', { path: backupPath });
-    })
-    .catch(() => {
-      diagnosticContext.logger.warn('Backup file not found', { path: backupPath });
-    });
+    await fs
+      .unlink(backupPath)
+      .then(() => {
+        diagnosticContext.logger.info('Deleted backup file', { path: backupPath });
+      })
+      .catch(() => {
+        diagnosticContext.logger.warn('Backup file not found', { path: backupPath });
+      });
 
-    await fs.unlink(checksumPath)
-    .then(() => {
-      diagnosticContext.logger.info('Deleted checksum file', { path: checksumPath });
-    })
-    .catch(() => {
-      diagnosticContext.logger.warn('Checksum file not found', { path: checksumPath });
-    });
+    await fs
+      .unlink(checksumPath)
+      .then(() => {
+        diagnosticContext.logger.info('Deleted checksum file', { path: checksumPath });
+      })
+      .catch(() => {
+        diagnosticContext.logger.warn('Checksum file not found', { path: checksumPath });
+      });
   } catch (error) {
     diagnosticContext.logger.error('Failed to remove backup', { fileName, error });
     throw error;

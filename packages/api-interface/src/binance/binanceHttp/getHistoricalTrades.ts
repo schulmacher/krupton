@@ -22,9 +22,7 @@ export const GetHistoricalTradesEndpoint = {
   ),
 } satisfies EndpointDefinition;
 
-export type GetHistoricalTradesQuery = TB.Static<
-  typeof GetHistoricalTradesEndpoint.querySchema
->;
+export type GetHistoricalTradesQuery = TB.Static<typeof GetHistoricalTradesEndpoint.querySchema>;
 export type GetHistoricalTradesResponse = TB.Static<
   typeof GetHistoricalTradesEndpoint.responseSchema
 >;

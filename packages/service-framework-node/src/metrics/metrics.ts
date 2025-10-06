@@ -18,13 +18,13 @@ const defaultSummaryMaxAgeSeconds = 600;
 
 const defaultSummaryAgeBuckets = 5;
 
-const normalizeServiceName = (serviceName: string): string => {
+function normalizeServiceName(serviceName: string): string {
   return serviceName
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
-};
+}
 
 function validateMetricName(name: string): void {
   if (!name) {
@@ -59,9 +59,7 @@ function validateLabelNames(labelNames: readonly string[] | undefined): void {
   }
 }
 
-export function createDefaultMetricsCollection(
-  registry: Registry,
-): DefaultMetricsCollection {
+export function createDefaultMetricsCollection(registry: Registry): DefaultMetricsCollection {
   let isCollecting = false;
 
   return {

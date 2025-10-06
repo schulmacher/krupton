@@ -12,39 +12,39 @@ type OrderBookResponse = TB.Static<typeof BinanceApi.GetOrderBookEndpoint.respon
 type OrderBookRequest = ExtractEndpointParams<typeof BinanceApi.GetOrderBookEndpoint>;
 type OrderBookRecord = StorageRecord<OrderBookResponse, OrderBookRequest>;
 
-const formatDateForIndex = (timestamp: number): string => {
+function formatDateForIndex(timestamp: number): string {
   return new Date(timestamp).toISOString().slice(0, 10);
-};
+}
 
-const getFilePathWithIndex = (symbol: string, date: string, recordCount: number): string => {
+function getFilePathWithIndex(symbol: string, date: string, recordCount: number): string {
   return `${symbol}/${calculateFileIndex(date, recordCount)}`;
-};
+}
 
-const calculateFileIndex = (date: string, recordCount: number): string => {
+function calculateFileIndex(date: string, recordCount: number): string {
   const fileNumber = Math.floor(recordCount / 100_000);
   return `${date}_${fileNumber}`;
-};
+}
 
-const parseIndexParts = (fileName: string): { date: string; fileNumber: number } => {
+function parseIndexParts(fileName: string): { date: string; fileNumber: number } {
   const dateParts = fileName.split('_');
   if (dateParts.length !== 2) {
     throw new Error(`Invalid file name ${fileName}`);
   }
   return { date: dateParts[0]!, fileNumber: parseInt(dateParts[1]!, 10) };
-};
+}
 
-const areResponsesIdentical = (
+function areResponsesIdentical(
   response1: OrderBookResponse,
   response2: OrderBookResponse,
-): boolean => {
+): boolean {
   return JSON.stringify(response1) === JSON.stringify(response2);
-};
+}
 
-const createBinanceOrderBookStorage = (baseDir: string): BinanceOrderBookStorage => {
+function createBinanceOrderBookStorage(baseDir: string): BinanceOrderBookStorage {
   return createEndpointStorage(baseDir, BinanceApi.GetOrderBookEndpoint);
-};
+}
 
-export const createBinanceOrderBookEntity = (baseDir: string) => {
+export function createBinanceOrderBookEntity(baseDir: string) {
   const storage = createBinanceOrderBookStorage(baseDir);
 
   return {
@@ -136,4 +136,4 @@ export const createBinanceOrderBookEntity = (baseDir: string) => {
       return records[records.length - 1]!;
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
-};
+}

@@ -39,21 +39,24 @@ export type MetricConfig<T extends string = string> =
   | MetricConfigHistogram<T>
   | MetricConfigSummary<T>;
 
-export type MetricFromConfig<T> = T extends MetricConfigCounter<infer L>
-  ? Counter<L>
-  : T extends MetricConfigGauge<infer L>
-    ? Gauge<L>
-    : T extends MetricConfigHistogram<infer L>
-      ? Histogram<L>
-      : T extends MetricConfigSummary<infer L>
-        ? Summary<L>
-        : never;
+export type MetricFromConfig<T> =
+  T extends MetricConfigCounter<infer L>
+    ? Counter<L>
+    : T extends MetricConfigGauge<infer L>
+      ? Gauge<L>
+      : T extends MetricConfigHistogram<infer L>
+        ? Histogram<L>
+        : T extends MetricConfigSummary<infer L>
+          ? Summary<L>
+          : never;
 
 export type MetricsFromConfigs<T extends Record<string, MetricConfig>> = {
   [K in keyof T]: MetricFromConfig<T[K]>;
 };
 
-export interface MetricsConfig<TMetricsConfigs extends Record<string, MetricConfig> = Record<string, MetricConfig>> {
+export interface MetricsConfig<
+  TMetricsConfigs extends Record<string, MetricConfig> = Record<string, MetricConfig>,
+> {
   envContext: DefaultEnvContext;
   enableDefaultMetrics?: boolean;
   defaultMetricsInterval?: number;

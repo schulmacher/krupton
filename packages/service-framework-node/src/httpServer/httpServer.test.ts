@@ -4,25 +4,28 @@ import type { Logger } from '../diagnostics/types.js';
 import { createHttpServer } from './httpServer.js';
 import type { HealthCheckResult, ServiceContext } from './types.js';
 
-const createMockLogger = (): Logger => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  fatal: vi.fn(),
-  createChild: vi.fn(),
-});
+function createMockLogger(): Logger {
+  return {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    fatal: vi.fn(),
+    createChild: vi.fn(),
+  };
+}
 
-const createMockRegistry = (): Registry =>
-  ({
+function createMockRegistry(): Registry {
+  return {
     contentType: 'text/plain; version=0.0.4; charset=utf-8',
     metrics: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
-  }) as unknown as Registry;
+  } as unknown as Registry;
+}
 
-const createTestServiceContext = (): ServiceContext<{
+function createTestServiceContext(): ServiceContext<{
   PORT: number;
   NODE_ENV: string;
-}> => {
+}> {
   const shutdownCallbacks: Array<() => Promise<void>> = [];
   const mockLogger = createMockLogger();
 
@@ -67,7 +70,7 @@ const createTestServiceContext = (): ServiceContext<{
       isShuttingDown: vi.fn().mockReturnValue(false),
     },
   };
-};
+}
 
 describe('createHttpServer', () => {
   describe('server creation', () => {

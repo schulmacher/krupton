@@ -12,14 +12,14 @@ import type {
 
 const SENSITIVE_PATTERNS = [/password/i, /secret/i, /key/i, /token/i, /credential/i, /auth/i];
 
-const redactValue = (key: string, value: unknown): unknown => {
+function redactValue(key: string, value: unknown): unknown {
   if (SENSITIVE_PATTERNS.some((pattern) => pattern.test(key))) {
     return '[REDACTED]';
   }
   return value;
-};
+}
 
-const coerceEnvironmentValue = (value: string | undefined, targetType: string): unknown => {
+function coerceEnvironmentValue(value: string | undefined, targetType: string): unknown {
   if (value === undefined || value === '') {
     return undefined;
   }
@@ -50,9 +50,9 @@ const coerceEnvironmentValue = (value: string | undefined, targetType: string): 
     default:
       return value;
   }
-};
+}
 
-const formatValidationErrors = (errors: EnvValidationError[], redactSensitive: boolean): string => {
+function formatValidationErrors(errors: EnvValidationError[], redactSensitive: boolean): string {
   const lines = ['Configuration validation failed:'];
 
   for (const error of errors) {
@@ -64,9 +64,9 @@ const formatValidationErrors = (errors: EnvValidationError[], redactSensitive: b
   }
 
   return lines.join('\n');
-};
+}
 
-const extractSchemaType = (schema: TB.TSchema): string => {
+function extractSchemaType(schema: TB.TSchema): string {
   if ('type' in schema && typeof schema.type === 'string') {
     return schema.type;
   }
@@ -74,9 +74,9 @@ const extractSchemaType = (schema: TB.TSchema): string => {
     return 'union';
   }
   return 'unknown';
-};
+}
 
-const coerceEnvValues = (source: EnvSource, schema: TB.TSchema): Record<string, unknown> => {
+function coerceEnvValues(source: EnvSource, schema: TB.TSchema): Record<string, unknown> {
   const coerced: Record<string, unknown> = {};
 
   if (!('properties' in schema) || typeof schema.properties !== 'object') {
@@ -102,12 +102,12 @@ const coerceEnvValues = (source: EnvSource, schema: TB.TSchema): Record<string, 
   }
 
   return coerced;
-};
+}
 
-const convertTypeBoxErrors = (
+function convertTypeBoxErrors(
   errors: ReturnType<typeof Value.Errors>,
   redactSensitive: boolean,
-): EnvValidationError[] => {
+): EnvValidationError[] {
   const validationErrors: EnvValidationError[] = [];
 
   for (const error of errors) {
@@ -122,9 +122,9 @@ const convertTypeBoxErrors = (
   }
 
   return validationErrors;
-};
+}
 
-export const createEnvParser = (): EnvParser => {
+export function createEnvParser(): EnvParser {
   const validate = <T extends TB.TSchema>(
     schema: T,
     source: Record<string, unknown>,
@@ -170,12 +170,12 @@ export const createEnvParser = (): EnvParser => {
     parse,
     validate,
   };
-};
+}
 
-export const createEnvContext = <T extends TB.TSchema & DefaultEnvSchema>(
+export function createEnvContext<T extends TB.TSchema & DefaultEnvSchema>(
   schema: T,
   config?: EnvParserConfig,
-): EnvContext<TB.Static<T>> => {
+): EnvContext<TB.Static<T>> {
   const parser = createEnvParser();
   const parsedConfig = parser.parse(schema, config);
 
@@ -191,4 +191,4 @@ export const createEnvContext = <T extends TB.TSchema & DefaultEnvSchema>(
     config: parsedConfig,
     nodeEnv,
   };
-};
+}

@@ -105,10 +105,7 @@ describe('arrayToMultiMap', () => {
       { tradeId: 134567, symbol: 'BTCUSDT' },
     ];
 
-    const result = arrayToMultiMap(
-      trades,
-      (trade) => `${Math.floor(trade.tradeId / 1e5)}`,
-    );
+    const result = arrayToMultiMap(trades, (trade) => `${Math.floor(trade.tradeId / 1e5)}`);
 
     expect(result.size).toBe(2);
     expect(result.get('0')).toEqual([{ tradeId: 12345, symbol: 'BTCUSDT' }]);

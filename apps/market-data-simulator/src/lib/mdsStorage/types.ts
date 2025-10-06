@@ -1,4 +1,3 @@
-
 export interface DirectoryStats {
   directory: string;
   fileCount: number;
@@ -10,4 +9,3 @@ export interface FileInfo {
   size: number;
   mtime: number;
 }
-

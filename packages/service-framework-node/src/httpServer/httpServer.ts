@@ -97,9 +97,7 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
 
     if (config.healthChecks && config.healthChecks.length > 0) {
       try {
-        const checkResults = await Promise.all(
-          config.healthChecks.map((check) => check()),
-        );
+        const checkResults = await Promise.all(config.healthChecks.map((check) => check()));
         health.components = checkResults;
 
         const allHealthy = checkResults.every((result) => result.isHealthy);
@@ -146,4 +144,3 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
 
   return fastify;
 }
-

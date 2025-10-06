@@ -51,7 +51,10 @@ describe('readStorageStats', () => {
 
   it('should count files in binance directories by endpoint', async () => {
     await createTestFile('binance/api_v3_depth/BTCUSDT/data.jsonl', 'test data 1');
-    const lastUpdated = await createTestFile('binance/api_v3_depth/ETHUSDT/data.jsonl', 'test data 2');
+    const lastUpdated = await createTestFile(
+      'binance/api_v3_depth/ETHUSDT/data.jsonl',
+      'test data 2',
+    );
     const tradesUpdated = await createTestFile(
       'binance/api_v3_historicalTrades/BTCUSDT/0.jsonl',
       'test data 3',
@@ -126,7 +129,10 @@ describe('readStorageStats', () => {
       'binance/api_v3_ticker_bookTicker/ETHUSDT/data.jsonl',
       '67890',
     );
-    const krakenUpdated = await createTestFile('kraken/api_0_public_Depth/BTCUSD/data.jsonl', 'abc');
+    const krakenUpdated = await createTestFile(
+      'kraken/api_0_public_Depth/BTCUSD/data.jsonl',
+      'abc',
+    );
     const vmUpdated = await createTestFile('victoria_metrics/data/file.bin', 'xyz');
 
     const stats = await readStorageStats(tempDir);
@@ -218,7 +224,10 @@ describe('readStorageStats', () => {
 
     await createTestFile('binance/api_v3_depth/BTCUSDT/large.jsonl', largeContent);
     await createTestFile('binance/api_v3_depth/ETHUSDT/medium.jsonl', mediumContent);
-    const lastUpdated = await createTestFile('binance/api_v3_depth/BNBUSDT/small.jsonl', smallContent);
+    const lastUpdated = await createTestFile(
+      'binance/api_v3_depth/BNBUSDT/small.jsonl',
+      smallContent,
+    );
 
     const stats = await readStorageStats(tempDir);
 
@@ -260,7 +269,10 @@ describe('readStorageStats', () => {
 
   it('should handle mixed file types', async () => {
     await createTestFile('binance/api_v3_depth/BTCUSDT/data.jsonl', 'jsonl');
-    const binanceLastUpdated = await createTestFile('binance/api_v3_depth/ETHUSDT/data.json', 'json');
+    const binanceLastUpdated = await createTestFile(
+      'binance/api_v3_depth/ETHUSDT/data.json',
+      'json',
+    );
     await createTestFile('victoria_metrics/data/file.bin', 'binary');
     const vmLastUpdated = await createTestFile('victoria_metrics/cache/file.txt', 'text');
 
@@ -289,7 +301,10 @@ describe('readStorageStats', () => {
       'binance/api_v3_exchangeInfo/BTC/file3.jsonl',
       'data3',
     );
-    const depthLastUpdated = await createTestFile('binance/api_v3_depth/BTCUSDT/file4.jsonl', 'data4');
+    const depthLastUpdated = await createTestFile(
+      'binance/api_v3_depth/BTCUSDT/file4.jsonl',
+      'data4',
+    );
 
     const stats = await readStorageStats(tempDir);
 
@@ -334,7 +349,10 @@ describe('readStorageStats', () => {
     await createTestFile('victoria_metrics/data/small/2025_10/part1/index.bin', 'x'.repeat(4096));
     await createTestFile('victoria_metrics/data/small/2025_10/part1/values.bin', 'x'.repeat(8192));
     await createTestFile('victoria_metrics/cache/curr_hour_metric_ids', 'x'.repeat(128));
-    const vmLastUpdated = await createTestFile('victoria_metrics/indexdb/parts.json', 'x'.repeat(64));
+    const vmLastUpdated = await createTestFile(
+      'victoria_metrics/indexdb/parts.json',
+      'x'.repeat(64),
+    );
 
     const stats = await readStorageStats(tempDir);
 
@@ -378,7 +396,10 @@ describe('readStorageStats', () => {
   });
 
   it('should handle symbolic links gracefully', async () => {
-    const lastUpdated = await createTestFile('binance/api_v3_depth/BTCUSDT/data.jsonl', 'regular file');
+    const lastUpdated = await createTestFile(
+      'binance/api_v3_depth/BTCUSDT/data.jsonl',
+      'regular file',
+    );
 
     const stats = await readStorageStats(tempDir);
 
@@ -445,4 +466,3 @@ describe('STORAGE_DIRECTORY_PATTERNS', () => {
     expect(STORAGE_DIRECTORY_PATTERNS).toContain('victoria_metrics');
   });
 });
-

@@ -20,9 +20,5 @@ export const GetOrderBookEndpoint = {
   }),
 } satisfies EndpointDefinition;
 
-export type GetOrderBookQuery = TB.Static<
-  typeof GetOrderBookEndpoint.querySchema
->;
-export type GetOrderBookResponse = TB.Static<
-  typeof GetOrderBookEndpoint.responseSchema
->;
+export type GetOrderBookQuery = TB.Static<typeof GetOrderBookEndpoint.querySchema>;
+export type GetOrderBookResponse = TB.Static<typeof GetOrderBookEndpoint.responseSchema>;

@@ -15,24 +15,24 @@ type ExchangeInfoRecord = StorageRecord<ExchangeInfoResponse, ExchangeInfoReques
 
 const SYMBOL_ALL = 'ALL';
 
-const hashSymbols = (symbols: string[]): string => {
+function hashSymbols(symbols: string[]): string {
   const sortedSymbols = [...symbols].sort();
   const symbolsString = sortedSymbols.join(',');
   return createHash('sha256').update(symbolsString).digest('hex').slice(0, 12);
-};
+}
 
-const extractSymbolsFromResponse = (response: ExchangeInfoResponse): string[] => {
+function extractSymbolsFromResponse(response: ExchangeInfoResponse): string[] {
   return response.symbols
     .filter((s) => s.status === 'TRADING')
     .map((s) => s.symbol)
     .sort();
-};
+}
 
-const formatIndex = (index: number): string => {
+function formatIndex(index: number): string {
   return index.toString().padStart(5, '0');
-};
+}
 
-const parseIndexParts = (fileName: string): { hash: string; fileNumber: number } | null => {
+function parseIndexParts(fileName: string): { hash: string; fileNumber: number } | null {
   const parts = fileName.split('_');
   if (parts.length !== 2) {
     return null;
@@ -42,19 +42,22 @@ const parseIndexParts = (fileName: string): { hash: string; fileNumber: number }
     return null;
   }
   return { hash: parts[1]!, fileNumber };
-};
+}
 
-const createBinanceExchangeInfoStorage = (baseDir: string): BinanceExchangeInfoStorage => {
+function createBinanceExchangeInfoStorage(baseDir: string): BinanceExchangeInfoStorage {
   return createEndpointStorage(baseDir, BinanceApi.GetExchangeInfoEndpoint);
-};
+}
 
-export const createBinanceExchangeInfoEntity = (baseDir: string) => {
+export function createBinanceExchangeInfoEntity(baseDir: string) {
   const storage = createBinanceExchangeInfoStorage(baseDir);
 
   return {
     storage,
 
-    async write(params: { request: ExchangeInfoRequest; response: ExchangeInfoResponse }): Promise<void> {
+    async write(params: {
+      request: ExchangeInfoRequest;
+      response: ExchangeInfoResponse;
+    }): Promise<void> {
       const timestamp = Date.now();
       const symbols = extractSymbolsFromResponse(params.response);
       const currentHash = hashSymbols(symbols);
@@ -65,8 +68,10 @@ export const createBinanceExchangeInfoEntity = (baseDir: string) => {
       let targetIndex: string;
 
       if (latestFileName) {
-        const latestRecords = await storage.readRecords({ relativePath: `${SYMBOL_ALL}/${latestFileName}` });
-        
+        const latestRecords = await storage.readRecords({
+          relativePath: `${SYMBOL_ALL}/${latestFileName}`,
+        });
+
         if (latestRecords.length > 0) {
           const latestRecord = latestRecords[latestRecords.length - 1]!;
           const latestSymbols = extractSymbolsFromResponse(latestRecord.response);
@@ -113,7 +118,7 @@ export const createBinanceExchangeInfoEntity = (baseDir: string) => {
         const parsedA = parseIndexParts(a);
         const parsedB = parseIndexParts(b);
         if (!parsedA || !parsedB) return 0;
-        
+
         if (parsedA.fileNumber !== parsedB.fileNumber) {
           return parsedA.fileNumber - parsedB.fileNumber;
         }
@@ -130,4 +135,4 @@ export const createBinanceExchangeInfoEntity = (baseDir: string) => {
       return records[records.length - 1]!;
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetExchangeInfoEndpoint>;
-};
+}

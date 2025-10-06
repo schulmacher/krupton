@@ -660,13 +660,13 @@ describe('createApiClient', () => {
           endpoints,
         );
 
-        await expect(
-          client.getUser({ path: { userId: '123' } }),
-        ).rejects.toThrow(ApiClientValidationError);
+        await expect(client.getUser({ path: { userId: '123' } })).rejects.toThrow(
+          ApiClientValidationError,
+        );
 
-        await expect(
-          client.getUser({ path: { userId: '123' } }),
-        ).rejects.toThrow('Invalid response body');
+        await expect(client.getUser({ path: { userId: '123' } })).rejects.toThrow(
+          'Invalid response body',
+        );
       });
 
       it('should include validation errors in ApiClientValidationError', async () => {
@@ -803,10 +803,7 @@ describe('createApiClient', () => {
           } satisfies EndpointDefinition,
         };
 
-        const client = createApiClient(
-          { baseUrl: 'https://api.example.com' },
-          endpoints,
-        );
+        const client = createApiClient({ baseUrl: 'https://api.example.com' }, endpoints);
 
         // These are compile-time type checks - TypeScript should error on these lines
         // @ts-expect-error - body parameter is required but not provided
@@ -832,10 +829,7 @@ describe('createApiClient', () => {
           } satisfies EndpointDefinition,
         };
 
-        const client = createApiClient(
-          { baseUrl: 'https://api.example.com' },
-          endpoints,
-        );
+        const client = createApiClient({ baseUrl: 'https://api.example.com' }, endpoints);
 
         // These are compile-time type checks
         // @ts-expect-error - path parameter is required but not provided
@@ -861,10 +855,7 @@ describe('createApiClient', () => {
           } satisfies EndpointDefinition,
         };
 
-        const client = createApiClient(
-          { baseUrl: 'https://api.example.com' },
-          endpoints,
-        );
+        const client = createApiClient({ baseUrl: 'https://api.example.com' }, endpoints);
 
         // These are compile-time type checks
         // @ts-expect-error - query parameter is required but not provided
@@ -893,10 +884,7 @@ describe('createApiClient', () => {
           } satisfies EndpointDefinition,
         };
 
-        const client = createApiClient(
-          { baseUrl: 'https://api.example.com' },
-          endpoints,
-        );
+        const client = createApiClient({ baseUrl: 'https://api.example.com' }, endpoints);
 
         // These are compile-time type checks
         // @ts-expect-error - both path and body required but not provided
@@ -923,10 +911,7 @@ describe('createApiClient', () => {
           } satisfies EndpointDefinition,
         };
 
-        const client = createApiClient(
-          { baseUrl: 'https://api.example.com' },
-          endpoints,
-        );
+        const client = createApiClient({ baseUrl: 'https://api.example.com' }, endpoints);
 
         // These should be valid TypeScript
         expect(() => client.listUsers()).toBeDefined();

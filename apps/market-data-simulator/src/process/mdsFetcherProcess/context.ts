@@ -6,7 +6,7 @@ import { createEndpointStorageRepository } from '../../repository.js';
 import type { MdsFetcherEnv } from './environment.js';
 import { mdsFetcherEnvSchema } from './environment.js';
 
-export const createMdsFetcherContext = () => {
+export function createMdsFetcherContext() {
   const envContext = SF.createEnvContext(mdsFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -60,7 +60,7 @@ export const createMdsFetcherContext = () => {
     binanceClient,
     endpointStorageRepository,
   };
-};
+}
 
 export type MdsFetcherContext = ReturnType<typeof createMdsFetcherContext>;
 

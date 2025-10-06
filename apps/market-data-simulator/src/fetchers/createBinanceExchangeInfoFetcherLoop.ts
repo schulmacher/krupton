@@ -62,7 +62,6 @@ export const createBinanceExchangeInfoFetcherLoop = async (
         query: {},
       };
     },
-    onSuccess: async ({ query, response }) =>
-      handleExchangeInfoResponse(context, query, response),
+    onSuccess: async ({ query, response }) => handleExchangeInfoResponse(context, query, response),
   });
 };

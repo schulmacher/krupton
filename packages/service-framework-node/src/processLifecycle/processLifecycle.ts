@@ -11,11 +11,9 @@ const defaultShutdownConfiguration: ShutdownConfiguration = {
   totalTimeout: 30000,
 };
 
-export function createProcessLifecycle(
-  config: ProcessLifecycleConfig,
-): ProcessLifecycleContext {
+export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessLifecycleContext {
   const shutdownConfig = config.shutdownConfiguration ?? defaultShutdownConfiguration;
-  
+
   const callbacks: ShutdownCallback[] = [];
   let shuttingDown = false;
   let started = false;
@@ -29,10 +27,7 @@ export function createProcessLifecycle(
       await Promise.race([
         callback(),
         new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Callback timeout')),
-            timeout,
-          ),
+          setTimeout(() => reject(new Error('Callback timeout')), timeout),
         ),
       ]);
     } catch (error) {
@@ -45,11 +40,7 @@ export function createProcessLifecycle(
 
   const executeAllCallbacks = async (logger: Logger): Promise<void> => {
     for (const callback of callbacks) {
-      await executeCallbackWithTimeout(
-        callback,
-        shutdownConfig.callbackTimeout,
-        logger,
-      );
+      await executeCallbackWithTimeout(callback, shutdownConfig.callbackTimeout, logger);
     }
   };
 
@@ -81,10 +72,7 @@ export function createProcessLifecycle(
     void initiateShutdown(signal);
   };
 
-  const handleUnhandledRejection = (
-    reason: unknown,
-    promise: Promise<unknown>,
-  ): void => {
+  const handleUnhandledRejection = (reason: unknown, promise: Promise<unknown>): void => {
     config.diagnosticContext.logger.fatal('Unhandled promise rejection detected', {
       reason: String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,
@@ -149,4 +137,3 @@ export function createProcessLifecycle(
     isShuttingDown,
   };
 }
-

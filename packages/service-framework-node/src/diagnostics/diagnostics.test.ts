@@ -6,10 +6,12 @@ import {
   createDiagnosticContext,
 } from './diagnostics.js';
 
-const createTestEnvContext = (): DefaultEnvContext => ({
-  config: { PROCESS_NAME: 'test-service' },
-  nodeEnv: 'test',
-});
+function createTestEnvContext(): DefaultEnvContext {
+  return {
+    config: { PROCESS_NAME: 'test-service' },
+    nodeEnv: 'test',
+  };
+}
 import type { LogEntry } from './types.js';
 
 describe('createCorrelationIdGenerator', () => {

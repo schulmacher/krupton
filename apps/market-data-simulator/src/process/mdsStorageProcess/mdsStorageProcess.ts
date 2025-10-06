@@ -3,7 +3,7 @@ import type { MdsStorageContext } from './context.js';
 import { createStorageStatsReporter } from '../../lib/mdsStorage/storageStatsReporter.js';
 import { createStorageBackupScheduler } from '../../lib/mdsStorage/storageBackupScheduler.js';
 
-export const startMdsStorageService = async (context: MdsStorageContext): Promise<void> => {
+export async function startMdsStorageService(context: MdsStorageContext): Promise<void> {
   const { diagnosticContext, processContext } = context;
 
   const createHttpServerWithHealthChecks = () =>
@@ -17,8 +17,14 @@ export const startMdsStorageService = async (context: MdsStorageContext): Promis
     });
 
   const httpServer = createHttpServerWithHealthChecks();
-  const storageStatsReporter = createStorageStatsReporter(context, context.envContext.config.STORAGE_BASE_DIR);
-  const storageBackupScheduler = createStorageBackupScheduler(context, context.envContext.config.BACKUP_INTERVAL_MS);
+  const storageStatsReporter = createStorageStatsReporter(
+    context,
+    context.envContext.config.STORAGE_BASE_DIR,
+  );
+  const storageBackupScheduler = createStorageBackupScheduler(
+    context,
+    context.envContext.config.BACKUP_INTERVAL_MS,
+  );
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
@@ -34,4 +40,4 @@ export const startMdsStorageService = async (context: MdsStorageContext): Promis
   await httpServer.startServer();
   await storageStatsReporter.start();
   await storageBackupScheduler.start();
-};
+}

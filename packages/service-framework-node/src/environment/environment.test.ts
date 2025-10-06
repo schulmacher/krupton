@@ -302,10 +302,12 @@ describe('createEnvContext', () => {
     });
 
     // @ts-expect-error PROCESS_NAME is required
-    expect(createEnvContext(schema, {
-      source: {
-        PORT: '3000',
-      },
-    })).toBeDefined()
+    expect(
+      createEnvContext(schema, {
+        source: {
+          PORT: '3000',
+        },
+      }),
+    ).toBeDefined();
   });
 });

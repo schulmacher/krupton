@@ -54,7 +54,7 @@ describe('binanceExchangeInfoEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('ALL');
-    
+
     expect(fileNames).toHaveLength(1);
     expect(fileNames[0]).toMatch(/^00000_[a-f0-9]{12}$/);
   });
@@ -79,9 +79,9 @@ describe('binanceExchangeInfoEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('ALL');
-    
+
     expect(fileNames).toHaveLength(1);
-    
+
     const records = await entity.storage.readRecords({ relativePath: `ALL/${fileNames[0]}` });
     expect(records).toHaveLength(1);
     expect(records[0]?.timestamp).toBe(mockTimestamp + 60000);
@@ -109,7 +109,7 @@ describe('binanceExchangeInfoEntity - indexing', () => {
     });
 
     const secondFileNames = await entity.storage.listFileNames('ALL');
-    
+
     expect(secondFileNames).toHaveLength(2);
     expect(secondFileNames[0]).not.toBe(secondFileNames[1]);
   });
@@ -135,10 +135,10 @@ describe('binanceExchangeInfoEntity - indexing', () => {
     });
 
     const secondFileNames = await entity.storage.listFileNames('ALL');
-    
+
     expect(secondFileNames).toHaveLength(1);
     expect(firstFileNames[0]).toBe(secondFileNames[0]);
-    
+
     const records = await entity.storage.readRecords({ relativePath: `ALL/${secondFileNames[0]}` });
     expect(records).toHaveLength(1);
     expect(records[0]?.timestamp).toBe(mockTimestamp + 60000);

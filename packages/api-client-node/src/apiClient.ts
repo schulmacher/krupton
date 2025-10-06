@@ -17,16 +17,16 @@ import type {
   EndpointFunction,
 } from './types.js';
 
-const extractPathParams = (path: string): string[] => {
+function extractPathParams(path: string): string[] {
   const matches = path.match(/:(\w+)/g);
   return matches ? matches.map((param) => param.slice(1)) : [];
-};
+}
 
-const validatePathSchema = (
+function validatePathSchema(
   endpointName: string,
   path: string,
   pathSchema?: ReturnType<typeof TB.Object>,
-): void => {
+): void {
   const pathParams = extractPathParams(path);
   const pathParamsSet = new Set(pathParams);
 
@@ -52,12 +52,12 @@ const validatePathSchema = (
       `Endpoint '${endpointName}': path contains parameters (${pathParams.join(', ')}) but pathSchema is not defined`,
     );
   }
-};
+}
 
-const createApiImplementation = <T extends EndpointDefinition>(
+function createApiImplementation<T extends EndpointDefinition>(
   config: ApiClientConfig,
   definition: T,
-): EndpointClientImplementation<T> => {
+): EndpointClientImplementation<T> {
   return (async (params?: ExtractEndpointParams<T>) => {
     let url = config.baseUrl + definition.path;
 
@@ -111,12 +111,12 @@ const createApiImplementation = <T extends EndpointDefinition>(
 
     return response.body.json();
   }) as EndpointClientImplementation<T>;
-};
+}
 
-const createApiImplementationWithValidation = <T extends EndpointDefinition>(
+function createApiImplementationWithValidation<T extends EndpointDefinition>(
   config: ApiClientConfig,
   definition: T,
-): EndpointClientImplementation<T> => {
+): EndpointClientImplementation<T> {
   return (async (params?: ExtractEndpointParams<T>) => {
     // Validate query params
     if (params?.query && definition.querySchema) {
@@ -218,12 +218,12 @@ const createApiImplementationWithValidation = <T extends EndpointDefinition>(
 
     return responseBody;
   }) as EndpointClientImplementation<T>;
-};
+}
 
-export const createApiClient = <T extends Record<string, EndpointDefinition>>(
+export function createApiClient<T extends Record<string, EndpointDefinition>>(
   config: ApiClientConfig,
   endpoints: T,
-): ApiClient<T> => {
+): ApiClient<T> {
   for (const [endpointName, definition] of Object.entries(endpoints)) {
     validatePathSchema(endpointName, definition.path, definition.pathSchema);
   }
@@ -235,13 +235,13 @@ export const createApiClient = <T extends Record<string, EndpointDefinition>>(
     const baseImplementation = enableValidation
       ? createApiImplementationWithValidation(config, definition)
       : createApiImplementation(config, definition);
-    
+
     const implementationWithDefinition = Object.assign(baseImplementation, {
       definition,
     });
-    
+
     client[endpointName as keyof T] = implementationWithDefinition as EndpointFunction<T[keyof T]>;
   }
 
   return client;
-};
+}

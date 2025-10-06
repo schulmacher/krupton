@@ -40,7 +40,7 @@ describe('binanceHistoricalTradeEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toContain('0');
     expect(fileNames).toHaveLength(1);
 
@@ -68,7 +68,7 @@ describe('binanceHistoricalTradeEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toHaveLength(3);
     expect(fileNames).toContain('0');
     expect(fileNames).toContain('1');
@@ -109,12 +109,12 @@ describe('binanceHistoricalTradeEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('ETHUSDT');
-    
+
     expect(fileNames).toHaveLength(1);
     expect(fileNames).toContain('0');
 
     const records = await entity.storage.readRecords({ relativePath: 'ETHUSDT/0' });
-    
+
     expect(records).toHaveLength(2);
     expect(records[0]?.timestamp).toBe(mockTimestamp);
     expect(records[1]?.timestamp).toBe(mockTimestamp + 60000);
@@ -132,7 +132,7 @@ describe('binanceHistoricalTradeEntity - indexing', () => {
     });
 
     const fileNames = await entity.storage.listFileNames('BTCUSDT');
-    
+
     expect(fileNames).toHaveLength(2);
     expect(fileNames).toContain('0');
     expect(fileNames).toContain('1');
@@ -176,7 +176,7 @@ describe('binanceHistoricalTradeEntity - indexing', () => {
 
     expect(latestRecord).not.toBeNull();
     expect(latestRecord?.timestamp).toBe(mockTimestamp + 120000);
-    
+
     if (latestRecord && Array.isArray(latestRecord.response)) {
       expect(latestRecord.response).toHaveLength(1);
       expect(latestRecord.response[0]?.id).toBe(500000);

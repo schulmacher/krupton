@@ -28,9 +28,5 @@ export const GetBookTickerEndpoint = {
   ]),
 } satisfies EndpointDefinition;
 
-export type GetBookTickerQuery = TB.Static<
-  typeof GetBookTickerEndpoint.querySchema
->;
-export type GetBookTickerResponse = TB.Static<
-  typeof GetBookTickerEndpoint.responseSchema
->;
+export type GetBookTickerQuery = TB.Static<typeof GetBookTickerEndpoint.querySchema>;
+export type GetBookTickerResponse = TB.Static<typeof GetBookTickerEndpoint.responseSchema>;

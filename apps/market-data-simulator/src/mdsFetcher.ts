@@ -2,7 +2,7 @@
 import { createMdsFetcherContext } from './process/mdsFetcherProcess/context.js';
 import { startMdsFetcherService } from './process/mdsFetcherProcess/mdsFetcherProcess.js';
 
-const bootstrap = async (): Promise<void> => {
+async function bootstrap(): Promise<void> {
   try {
     const context = createMdsFetcherContext();
 
@@ -17,6 +17,6 @@ const bootstrap = async (): Promise<void> => {
     console.error('Failed to bootstrap mdsFetcher service:', error);
     process.exit(1);
   }
-};
+}
 
 void bootstrap();

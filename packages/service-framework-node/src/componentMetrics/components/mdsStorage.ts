@@ -1,7 +1,4 @@
-import type {
-  MetricConfigCounter,
-  MetricConfigGauge,
-} from '../../metrics/types.js';
+import type { MetricConfigCounter, MetricConfigGauge } from '../../metrics/types.js';
 
 const writeOperations: MetricConfigCounter<'platform' | 'endpoint' | 'status'> = {
   type: 'counter',
@@ -62,7 +59,6 @@ const backupSize: MetricConfigGauge = {
   help: 'Total size of backup ZIP archives in remote storage',
 };
 
-
 export const mdsStorageMetrics = {
   writeOperations,
   readOperations,
@@ -74,4 +70,3 @@ export const mdsStorageMetrics = {
   backupLastTimestamp,
   backupSize,
 };
-

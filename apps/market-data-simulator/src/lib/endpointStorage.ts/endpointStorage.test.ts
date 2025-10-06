@@ -591,11 +591,7 @@ describe('createEndpointStorage', () => {
       ];
 
       await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(
-        filePath,
-        records.map((r) => JSON.stringify(r)).join('\n') + '\n',
-        'utf-8',
-      );
+      await writeFile(filePath, records.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf-8');
 
       const newLastRecord = {
         timestamp: 3000,

@@ -4,7 +4,7 @@ import { DirectoryStats, FileInfo } from './types';
 
 export const STORAGE_DIRECTORY_PATTERNS = ['binance/**', 'kraken/**', 'victoria_metrics'];
 
-const collectFilesRecursively = async (dirPath: string): Promise<FileInfo[]> => {
+async function collectFilesRecursively(dirPath: string): Promise<FileInfo[]> {
   const files: FileInfo[] = [];
 
   try {
@@ -27,9 +27,9 @@ const collectFilesRecursively = async (dirPath: string): Promise<FileInfo[]> => 
   }
 
   return files;
-};
+}
 
-const matchesPattern = (relativePath: string, pattern: string): string | null => {
+function matchesPattern(relativePath: string, pattern: string): string | null {
   if (pattern.endsWith('/**')) {
     const prefix = pattern.slice(0, -3);
     if (relativePath.startsWith(prefix + '/')) {
@@ -46,9 +46,9 @@ const matchesPattern = (relativePath: string, pattern: string): string | null =>
     }
   }
   return null;
-};
+}
 
-export const readStorageStats = async (baseDir: string): Promise<DirectoryStats[]> => {
+export async function readStorageStats(baseDir: string): Promise<DirectoryStats[]> {
   const allFiles = await collectFilesRecursively(baseDir);
 
   const directoryMap = new Map<
@@ -107,4 +107,4 @@ export const readStorageStats = async (baseDir: string): Promise<DirectoryStats[
   }
 
   return result;
-};
+}

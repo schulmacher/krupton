@@ -5,7 +5,7 @@ import { createBinanceHistoricalTradesFetcherLoops } from '../../fetchers/create
 import { createBinanceOrderBookFetcherLoops } from '../../fetchers/createBinanceOrderBookFetcherLoops.js';
 import type { MdsFetcherContext } from './context.js';
 
-export const startMdsFetcherService = async (context: MdsFetcherContext): Promise<void> => {
+export async function startMdsFetcherService(context: MdsFetcherContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
 
@@ -24,7 +24,6 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
   const symbols = config.SYMBOLS.split(',')
     .map((s) => s.trim())
     .filter((s) => !!s);
-
 
   context.metricsContext.metrics.totalFetchesGauge.set(0);
   context.metricsContext.metrics.lastFetchTimestampGauge.set(0);
@@ -50,4 +49,4 @@ export const startMdsFetcherService = async (context: MdsFetcherContext): Promis
   processContext.start();
   await httpServer.startServer();
   await Promise.all(fetcherLoops.map((service) => service.start()));
-};
+}

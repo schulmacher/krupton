@@ -21,14 +21,14 @@ export async function tryHard<T>(
   }
 }
 
-export const createTryhardExponentialBackoff = (
+export function createTryhardExponentialBackoff(
   onRetryAttempt: (error: unknown) => void | Promise<void>,
   options?: {
     initialDelayMs?: number;
     maxDelayMs?: number;
     multiplier?: number;
   },
-): ((error: unknown) => Promise<number>) => {
+): (error: unknown) => Promise<number> {
   const initialDelayMs = options?.initialDelayMs ?? 1000;
   const maxDelayMs = options?.maxDelayMs ?? 60000;
   const multiplier = options?.multiplier ?? 2;
@@ -44,12 +44,9 @@ export const createTryhardExponentialBackoff = (
 
     return delay;
   };
-};
+}
 
-export function arrayToMultiMap<T>(
-  array: T[],
-  keyFn: (item: T) => string,
-): Map<string, T[]>;
+export function arrayToMultiMap<T>(array: T[], keyFn: (item: T) => string): Map<string, T[]>;
 export function arrayToMultiMap<T, V>(
   array: T[],
   keyFn: (item: T) => string,

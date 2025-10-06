@@ -28,14 +28,11 @@ type GetFileInfoParams = {
   relativePath: string;
 };
 
-const normalizeEndpointPath = (endpoint: string): string => {
+function normalizeEndpointPath(endpoint: string): string {
   return endpoint.replace(/^\/+/, '').replace(/\//g, '_');
-};
+}
 
-export const createEndpointStorage = <T extends EndpointDefinition>(
-  baseDir: string,
-  endpoint: T,
-) => {
+export function createEndpointStorage<T extends EndpointDefinition>(baseDir: string, endpoint: T) {
   type ResponseType = TB.Static<T['responseSchema']>;
   type RequestType = ExtractEndpointParams<T>;
 
@@ -228,7 +225,7 @@ export const createEndpointStorage = <T extends EndpointDefinition>(
       }
     },
   };
-};
+}
 
 export type EndpointStorage<T extends EndpointDefinition> = ReturnType<
   typeof createEndpointStorage<T>

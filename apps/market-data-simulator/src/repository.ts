@@ -4,7 +4,7 @@ import { createBinanceExchangeInfoEntity } from './storageEntity/binanceExchange
 import { createBinanceHistoricalTradeEntity } from './storageEntity/binanceHistoricalTradeEntity.js';
 import { createBinanceOrderBookEntity } from './storageEntity/binanceOrderBookEntity.js';
 
-export const createEndpointStorageRepository = (storageBaseDir: string, platform: string) => {
+export function createEndpointStorageRepository(storageBaseDir: string, platform: string) {
   const baseDir = join(storageBaseDir, platform);
 
   return {
@@ -13,6 +13,6 @@ export const createEndpointStorageRepository = (storageBaseDir: string, platform
     binanceHistoricalTrade: createBinanceHistoricalTradeEntity(baseDir),
     binanceExchangeInfo: createBinanceExchangeInfoEntity(baseDir),
   };
-};
+}
 
 export type EndpointStorageRepository = ReturnType<typeof createEndpointStorageRepository>;
