@@ -13,17 +13,13 @@ export const createMdsStorageContext = () => {
     envContext,
     enableDefaultMetrics: true,
     metrics: {
-      writeOperations: SF.mdsStorageMetrics.writeOperations,
-      readOperations: SF.mdsStorageMetrics.readOperations,
+      directoryStorageSize: SF.mdsStorageMetrics.directoryStorageSize,
+      directoryFileCount: SF.mdsStorageMetrics.directoryFileCount,
+      directoryLastUpdated: SF.mdsStorageMetrics.directoryLastUpdated,
       backupOperations: SF.mdsStorageMetrics.backupOperations,
       backupFailures: SF.mdsStorageMetrics.backupFailures,
-      storageSize: SF.mdsStorageMetrics.storageSize,
-      fileCount: SF.mdsStorageMetrics.fileCount,
       backupLastTimestamp: SF.mdsStorageMetrics.backupLastTimestamp,
       backupSize: SF.mdsStorageMetrics.backupSize,
-      writeDuration: SF.mdsStorageMetrics.writeDuration,
-      backupDuration: SF.mdsStorageMetrics.backupDuration,
-      fileSize: SF.mdsStorageMetrics.fileSize,
     },
   });
 

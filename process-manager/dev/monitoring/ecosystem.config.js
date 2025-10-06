@@ -1,4 +1,5 @@
 const path = require('path');
+const PORTS = require('../../ports.js');
 
 const persesBinPath = path.resolve(__dirname, '../../../apps/monitoring-perses/bin/perses');
 
@@ -30,6 +31,7 @@ module.exports = {
       restart_delay: 5000,
       env: {
         NODE_ENV: 'development',
+        PORT: PORTS.PERSES,
       },
     },
     {
@@ -38,7 +40,7 @@ module.exports = {
       args: [
         `-storageDataPath=${victoriaMetricsDataPath}`,
         '-retentionPeriod=12',
-        '-httpListenAddr=:8428',
+        `-httpListenAddr=:${PORTS.VICTORIA_METRICS}`,
         `-promscrape.config=${victoriaMetricsConfigPath}`,
       ],
       cwd: path.resolve(__dirname, '../../../apps/monitoring-victoria-metrics'),
@@ -50,6 +52,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         GOMAXPROCS: '2',
+        PORT: PORTS.VICTORIA_METRICS,
       },
     },
   ],
