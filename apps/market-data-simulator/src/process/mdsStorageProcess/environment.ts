@@ -19,6 +19,24 @@ export const mdsStorageEnvSchema = TB.Object({
     default: getMonorepoRootDir('tmp', 'backup'),
   }),
   BACKUP_INTERVAL_MS: TB.Integer({ default: 3 * 60 * 60 * 1000 }), // Default: 3 hours
+  
+  // Cloud backup configuration
+  CLOUD_BACKUP_TEMP_DIR: TB.String({
+    description: 'Temporary directory for cloud backup operations',
+    default: '/tmp/cloud-backup-operation/local',
+  }),
+  RCLONE_REMOTE_NAME: TB.String({
+    description: 'Rclone remote name (e.g., "gdrive" for Google Drive)',
+    default: 'gdrive',
+  }),
+  RCLONE_REMOTE_PATH: TB.String({
+    description: 'Remote path in rclone (e.g., "backups" folder in Google Drive)',
+    default: 'backups',
+  }),
+  CLOUD_SYNC_ENABLED: TB.Boolean({
+    description: 'Enable cloud backup synchronization',
+    default: false,
+  }),
 }) satisfies SF.DefaultEnvSchema;
 
 export type MdsStorageEnv = TB.Static<typeof mdsStorageEnvSchema>;

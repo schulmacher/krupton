@@ -1,51 +1,10 @@
 import type { MdsStorageContext } from '../../process/mdsStorageProcess/context.js';
-import { doStorageBackup, listBackups, removeBackupByName } from './storageBackup.js';
-
-async function removeDuplicateBackupsForLatestDate(context: MdsStorageContext): Promise<void> {
-  const { diagnosticContext } = context;
-
-  try {
-    const allBackups = await listBackups(context);
-    const latestBackup = [...allBackups].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
-
-    if (!latestBackup) {
-      diagnosticContext.logger.warn('Could not extract latest backup', {
-        latestBackup,
-      });
-      return;
-    }
-
-    const latestDate = latestBackup.date;
-
-    const duplicatesForDate = allBackups.filter(
-      (backup) =>
-        backup.date.toISOString().slice(0, 10) === latestDate.toISOString().slice(0, 10) &&
-        backup.fileName !== latestBackup.fileName,
-    );
-
-    if (duplicatesForDate.length === 0) {
-      diagnosticContext.logger.info('No duplicate backups found for date', { date: latestDate });
-      return;
-    }
-
-    diagnosticContext.logger.info('Removing duplicate backups for date', {
-      date: latestDate,
-      duplicateCount: duplicatesForDate.length,
-      duplicateFileNames: duplicatesForDate.map((b) => b.fileName),
-    });
-
-    for (const duplicate of duplicatesForDate) {
-      await removeBackupByName(context, duplicate.fileName);
-    }
-
-    diagnosticContext.logger.info('Duplicate backups removal completed', {
-      date: latestDate,
-      removedCount: duplicatesForDate.length,
-    });
-  } catch (error) {
-    diagnosticContext.logger.error('Failed to remove duplicate backups', { error });
-  }
-}
+import {
+  doStorageBackup,
+  listBackups,
+  removeDuplicateBackupsForLatestDate,
+  removeHistoricalBackups,
+} from './storageBackup.js';
 
 async function performBackup(context: MdsStorageContext): Promise<void> {
   const { diagnosticContext } = context;
@@ -74,46 +33,6 @@ async function performBackup(context: MdsStorageContext): Promise<void> {
     diagnosticContext.logger.error('Scheduled backup failed', { error });
 
     context.metricsContext.metrics.backupFailures.inc();
-  }
-}
-
-async function removeHistoricalBackups(context: MdsStorageContext): Promise<void> {
-  const { diagnosticContext } = context;
-
-  try {
-    const allBackups = await listBackups(context);
-
-    const maxBackupsToKeep = 7;
-    const backupsToRemove = allBackups.length - maxBackupsToKeep;
-
-    if (backupsToRemove <= 0) {
-      diagnosticContext.logger.info('No historical backups to remove', {
-        currentBackupCount: allBackups.length,
-        maxBackupsToKeep,
-      });
-      return;
-    }
-
-    const sortedBackups = allBackups.sort((a, b) => a.date.getTime() - b.date.getTime());
-    const backupsToDelete = sortedBackups.slice(0, backupsToRemove);
-
-    diagnosticContext.logger.info('Removing historical backups', {
-      currentBackupCount: allBackups.length,
-      maxBackupsToKeep,
-      backupsToRemoveCount: backupsToRemove,
-      fileNamesToRemove: backupsToDelete.map((b) => b.fileName),
-    });
-
-    for (const backup of backupsToDelete) {
-      await removeBackupByName(context, backup.fileName);
-    }
-
-    diagnosticContext.logger.info('Historical backups removal completed', {
-      removedCount: backupsToRemove,
-      remainingBackupCount: allBackups.length - backupsToRemove,
-    });
-  } catch (error) {
-    diagnosticContext.logger.error('Failed to remove historical backups', { error });
   }
 }
 

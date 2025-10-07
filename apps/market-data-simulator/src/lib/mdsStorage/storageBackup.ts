@@ -8,7 +8,7 @@ import {
   createMdsStorageContext,
   MdsStorageContext,
 } from '../../process/mdsStorageProcess/context.js';
-import { ensureDirectoryExistsForFile } from '../fs.js';
+import { ensureDir, ensureDirForFile } from '../fs.js';
 
 const execAsync = promisify(exec);
 
@@ -19,6 +19,14 @@ function createBackupFilename() {
 
 function isBackupFile(fileName: string) {
   return fileName.startsWith('storage-') && fileName.endsWith('.tar.gz');
+}
+
+function isBackupChecksumFile(fileName: string) {
+  return fileName.startsWith('storage-') && fileName.endsWith('.tar.gz.sha256');
+}
+
+export function isBackupRelatedFile(fileName: string) {
+  return isBackupFile(fileName) || isBackupChecksumFile(fileName);
 }
 
 async function createTarGzArchive(sourceDir: string, outputPath: string) {
@@ -50,7 +58,7 @@ export async function doStorageBackup(context: MdsStorageContext) {
 
   try {
     // Ensure backup directory exists
-    await ensureDirectoryExistsForFile(backupPath);
+    await ensureDirForFile(backupPath);
 
     diagnosticContext.logger.info(`Compressing storage directory: ${storageBaseDir}`);
     diagnosticContext.logger.info(`Creating tar.gz archive: ${backupPath}`);
@@ -87,25 +95,12 @@ export async function doStorageBackup(context: MdsStorageContext) {
   }
 }
 
-export async function syncBackupsToDrive(context: MdsStorageContext) {
-  const { diagnosticContext } = context;
-  diagnosticContext.logger.info('[MOCK] Starting backup upload');
-  const startTime = Date.now();
-
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  diagnosticContext.logger.info('[MOCK] Uploading to Google Drive via rclone');
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const duration = Date.now() - startTime;
-  diagnosticContext.logger.info(`[MOCK] Upload completed in ${duration}ms`);
-}
-
-export async function listBackups(context: MdsStorageContext) {
-  const basePath = context.envContext.config.BACKUP_BASE_DIR;
-
+export async function listBackups(
+  context: MdsStorageContext,
+  basePath = context.envContext.config.BACKUP_BASE_DIR,
+) {
   try {
-    await ensureDirectoryExistsForFile(basePath);
+    await ensureDir(basePath);
     const files = await fs.readdir(basePath);
 
     const backupFilesWithStats = await Promise.all(
@@ -144,23 +139,21 @@ export async function listBackups(context: MdsStorageContext) {
   }
 }
 
-export async function removeBackupByName(context: MdsStorageContext, fileName: string) {
+export async function removeBackupByName(
+  context: MdsStorageContext,
+  fileName: string,
+  basePath = context.envContext.config.BACKUP_BASE_DIR,
+) {
   const { diagnosticContext } = context;
-  const basePath = context.envContext.config.BACKUP_BASE_DIR;
   const backupPath = path.join(basePath, fileName);
   const checksumPath = path.join(basePath, `${fileName}.sha256`);
 
   try {
     diagnosticContext.logger.info('Removing backup files', { fileName });
 
-    await fs
-      .unlink(backupPath)
-      .then(() => {
-        diagnosticContext.logger.info('Deleted backup file', { path: backupPath });
-      })
-      .catch(() => {
-        diagnosticContext.logger.warn('Backup file not found', { path: backupPath });
-      });
+    await fs.unlink(backupPath).then(() => {
+      diagnosticContext.logger.info('Deleted backup file', { path: backupPath });
+    });
 
     await fs
       .unlink(checksumPath)
@@ -173,6 +166,97 @@ export async function removeBackupByName(context: MdsStorageContext, fileName: s
   } catch (error) {
     diagnosticContext.logger.error('Failed to remove backup', { fileName, error });
     throw error;
+  }
+}
+
+export async function removeHistoricalBackups(
+  context: MdsStorageContext,
+  basePath = context.envContext.config.BACKUP_BASE_DIR,
+): Promise<void> {
+  const { diagnosticContext } = context;
+
+  try {
+    const allBackups = await listBackups(context, basePath);
+
+    const maxBackupsToKeep = 7;
+    const backupsToRemove = allBackups.length - maxBackupsToKeep;
+
+    if (backupsToRemove <= 0) {
+      diagnosticContext.logger.info('No historical backups to remove', {
+        currentBackupCount: allBackups.length,
+        maxBackupsToKeep,
+      });
+      return;
+    }
+
+    const sortedBackups = allBackups.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const backupsToDelete = sortedBackups.slice(0, backupsToRemove);
+
+    diagnosticContext.logger.info('Removing historical backups', {
+      currentBackupCount: allBackups.length,
+      maxBackupsToKeep,
+      backupsToRemoveCount: backupsToRemove,
+      fileNamesToRemove: backupsToDelete.map((b) => b.fileName),
+    });
+
+    for (const backup of backupsToDelete) {
+      await removeBackupByName(context, backup.fileName, basePath);
+    }
+
+    diagnosticContext.logger.info('Historical backups removal completed', {
+      removedCount: backupsToRemove,
+      remainingBackupCount: allBackups.length - backupsToRemove,
+    });
+  } catch (error) {
+    diagnosticContext.logger.error('Failed to remove historical backups', { error });
+  }
+}
+
+export async function removeDuplicateBackupsForLatestDate(
+  context: MdsStorageContext,
+): Promise<void> {
+  const { diagnosticContext } = context;
+
+  try {
+    const allBackups = await listBackups(context);
+    const latestBackup = [...allBackups].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+
+    if (!latestBackup) {
+      diagnosticContext.logger.warn('Could not extract latest backup', {
+        latestBackup,
+      });
+      return;
+    }
+
+    const latestDate = latestBackup.date;
+
+    const duplicatesForDate = allBackups.filter(
+      (backup) =>
+        backup.date.toISOString().slice(0, 10) === latestDate.toISOString().slice(0, 10) &&
+        backup.fileName !== latestBackup.fileName,
+    );
+
+    if (duplicatesForDate.length === 0) {
+      diagnosticContext.logger.info('No duplicate backups found for date', { date: latestDate });
+      return;
+    }
+
+    diagnosticContext.logger.info('Removing duplicate backups for date', {
+      date: latestDate,
+      duplicateCount: duplicatesForDate.length,
+      duplicateFileNames: duplicatesForDate.map((b) => b.fileName),
+    });
+
+    for (const duplicate of duplicatesForDate) {
+      await removeBackupByName(context, duplicate.fileName);
+    }
+
+    diagnosticContext.logger.info('Duplicate backups removal completed', {
+      date: latestDate,
+      removedCount: duplicatesForDate.length,
+    });
+  } catch (error) {
+    diagnosticContext.logger.error('Failed to remove duplicate backups', { error });
   }
 }
 

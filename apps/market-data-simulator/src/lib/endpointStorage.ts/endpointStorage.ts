@@ -2,7 +2,7 @@ import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-cli
 import type { TB } from '@krupton/service-framework-node/typebox';
 import { appendFile, open, readdir, readFile, truncate, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ensureDirectoryExistsForFile } from '../fs';
+import { ensureDirForFile } from '../fs';
 
 export type StorageRecord<TResponse, TRequest> = {
   timestamp: number;
@@ -108,7 +108,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(baseDir: str
       const { record, relativePath } = params;
       const filePath = getFilePath(relativePath);
 
-      await ensureDirectoryExistsForFile(filePath);
+      await ensureDirForFile(filePath);
 
       const jsonLine = JSON.stringify(record) + '\n';
       await writeFile(filePath, jsonLine, 'utf-8');
@@ -118,7 +118,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(baseDir: str
       const { record, relativePath } = params;
       const filePath = getFilePath(relativePath);
 
-      await ensureDirectoryExistsForFile(filePath);
+      await ensureDirForFile(filePath);
 
       const jsonLine = JSON.stringify(record) + '\n';
       await appendFile(filePath, jsonLine, 'utf-8');
