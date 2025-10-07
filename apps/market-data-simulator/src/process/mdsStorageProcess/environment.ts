@@ -23,11 +23,11 @@ export const mdsStorageEnvSchema = TB.Object({
   // Cloud backup configuration
   CLOUD_BACKUP_TEMP_DIR: TB.String({
     description: 'Temporary directory for cloud backup operations',
-    default: '/tmp/cloud-backup-operation/local',
+    default: getMonorepoRootDir('tmp', 'cloud-backup-operation'),
   }),
   RCLONE_REMOTE_NAME: TB.String({
     description: 'Rclone remote name (e.g., "gdrive" for Google Drive)',
-    default: 'gdrive',
+    default: 'gdrive-krupton',
   }),
   RCLONE_REMOTE_PATH: TB.String({
     description: 'Remote path in rclone (e.g., "backups" folder in Google Drive)',

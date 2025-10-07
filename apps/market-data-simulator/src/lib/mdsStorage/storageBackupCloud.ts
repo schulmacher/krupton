@@ -305,6 +305,8 @@ export async function syncLocalAndCloudBackups(context: MdsStorageContext): Prom
       result.errors.push({ operation: 'copy temp files', file: 'multiple', error: errorMsg });
     }
 
+    // TODO remove tmp dir
+
     const duration = Date.now() - startTime;
     diagnosticContext.logger.info('Cloud backup synchronization completed', {
       duration,

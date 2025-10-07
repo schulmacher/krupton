@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { Type } from '@sinclair/typebox';
-import { createEnvParser, createEnvContext } from './environment.js';
+import { describe, expect, it } from 'vitest';
+import { createEnvContext, createEnvParser } from './environment.js';
 
 describe('createEnvParser', () => {
   describe('parse', () => {
@@ -301,8 +301,8 @@ describe('createEnvContext', () => {
       PORT: Type.Number(),
     });
 
-    // @ts-expect-error PROCESS_NAME is required
     expect(
+      // @ts-expect-error PROCESS_NAME is required
       createEnvContext(schema, {
         source: {
           PORT: '3000',

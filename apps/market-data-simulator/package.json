@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
+    "test:rclone": "tsx src/lib/mdsStorage/rcloneTest.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
