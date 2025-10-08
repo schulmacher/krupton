@@ -5,10 +5,18 @@ vi.mock('./storageBackup.js', () => ({
   doStorageBackup: vi.fn(),
   listBackups: vi.fn(),
   removeBackupByName: vi.fn(),
+  removeDuplicateBackupsForLatestDate: vi.fn(),
+  removeHistoricalBackups: vi.fn(),
 }));
 
 const { createStorageBackupScheduler } = await import('./storageBackupScheduler.js');
-const { doStorageBackup, listBackups, removeBackupByName } = await import('./storageBackup.js');
+const {
+  doStorageBackup,
+  listBackups,
+  removeBackupByName,
+  removeDuplicateBackupsForLatestDate,
+  removeHistoricalBackups,
+} = await import('./storageBackup.js');
 
 describe('createStorageBackupScheduler', () => {
   let mockContext: MdsStorageContext;
@@ -69,6 +77,8 @@ describe('createStorageBackupScheduler', () => {
 
     vi.mocked(listBackups).mockResolvedValue([]);
     vi.mocked(removeBackupByName).mockResolvedValue();
+    vi.mocked(removeDuplicateBackupsForLatestDate).mockResolvedValue();
+    vi.mocked(removeHistoricalBackups).mockResolvedValue();
   });
 
   afterEach(() => {
@@ -107,8 +117,6 @@ describe('createStorageBackupScheduler', () => {
   });
 
   it('should delete previous current day backups if 2+ exist', async () => {
-    const today = new Date('2025-10-06T12:00:00.000Z');
-
     vi.mocked(doStorageBackup).mockResolvedValue({
       backupPath: '/test/backup/storage-2025-10-06T12-00-00-000.tar.gz',
       checksumPath: '/test/backup/storage-2025-10-06T12-00-00-000.tar.gz.sha256',
@@ -117,121 +125,18 @@ describe('createStorageBackupScheduler', () => {
       duration: 1000,
     });
 
-    // Mock 3 backups from today + 2 from previous days
-    vi.mocked(listBackups).mockResolvedValue([
-      {
-        fileName: 'storage-2025-10-06T08-00-00-000.tar.gz',
-        date: new Date('2025-10-06T08:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-06T10-00-00-000.tar.gz',
-        date: new Date('2025-10-06T10:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-06T12-00-00-000.tar.gz',
-        date: today,
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-05T12-00-00-000.tar.gz',
-        date: new Date('2025-10-05T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-04T12-00-00-000.tar.gz',
-        date: new Date('2025-10-04T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-    ]);
-
     const scheduler = createStorageBackupScheduler(mockContext, 1000);
     await scheduler.start();
 
     await vi.advanceTimersByTimeAsync(100);
 
-    // Should remove the 2 older backups from the same day
-    expect(removeBackupByName).toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-06T08-00-00-000.tar.gz',
-    );
-    expect(removeBackupByName).toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-06T10-00-00-000.tar.gz',
-    );
-    expect(removeBackupByName).not.toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-06T12-00-00-000.tar.gz',
-    );
-
-    expect(mockLogger.info).toHaveBeenCalledWith('Removing duplicate backups for date', {
-      date: today,
-      duplicateCount: 2,
-      duplicateFileNames: [
-        'storage-2025-10-06T08-00-00-000.tar.gz',
-        'storage-2025-10-06T10-00-00-000.tar.gz',
-      ],
-    });
+    // Should call the cleanup function for duplicate backups
+    expect(removeDuplicateBackupsForLatestDate).toHaveBeenCalledWith(mockContext);
 
     await scheduler.stop();
   });
 
   it('should delete earliest day backups if 7+ remain', async () => {
-    // Mock 10 backups from different days
-    const backups = [
-      {
-        fileName: 'storage-2025-10-01T12-00-00-000.tar.gz',
-        date: new Date('2025-10-01T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-02T12-00-00-000.tar.gz',
-        date: new Date('2025-10-02T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-03T12-00-00-000.tar.gz',
-        date: new Date('2025-10-03T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-04T12-00-00-000.tar.gz',
-        date: new Date('2025-10-04T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-05T12-00-00-000.tar.gz',
-        date: new Date('2025-10-05T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-06T12-00-00-000.tar.gz',
-        date: new Date('2025-10-06T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-07T12-00-00-000.tar.gz',
-        date: new Date('2025-10-07T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-08T12-00-00-000.tar.gz',
-        date: new Date('2025-10-08T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-09T12-00-00-000.tar.gz',
-        date: new Date('2025-10-09T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-10T12-00-00-000.tar.gz',
-        date: new Date('2025-10-10T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-    ];
-
     vi.mocked(doStorageBackup).mockResolvedValue({
       backupPath: '/test/backup/storage-2025-10-10T12-00-00-000.tar.gz',
       checksumPath: '/test/backup/storage-2025-10-10T12-00-00-000.tar.gz.sha256',
@@ -240,42 +145,13 @@ describe('createStorageBackupScheduler', () => {
       duration: 1000,
     });
 
-    vi.mocked(listBackups).mockResolvedValue(backups);
-
     const scheduler = createStorageBackupScheduler(mockContext, 1000);
     await scheduler.start();
 
     await vi.advanceTimersByTimeAsync(100);
 
-    // Should remove the 3 oldest backups (keeping only 7)
-    expect(removeBackupByName).toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-01T12-00-00-000.tar.gz',
-    );
-    expect(removeBackupByName).toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-02T12-00-00-000.tar.gz',
-    );
-    expect(removeBackupByName).toHaveBeenCalledWith(
-      mockContext,
-      'storage-2025-10-03T12-00-00-000.tar.gz',
-    );
-
-    expect(mockLogger.info).toHaveBeenCalledWith('Removing historical backups', {
-      currentBackupCount: 10,
-      maxBackupsToKeep: 7,
-      backupsToRemoveCount: 3,
-      fileNamesToRemove: [
-        'storage-2025-10-01T12-00-00-000.tar.gz',
-        'storage-2025-10-02T12-00-00-000.tar.gz',
-        'storage-2025-10-03T12-00-00-000.tar.gz',
-      ],
-    });
-
-    expect(mockLogger.info).toHaveBeenCalledWith('Historical backups removal completed', {
-      removedCount: 3,
-      remainingBackupCount: 7,
-    });
+    // Should call the cleanup function for historical backups
+    expect(removeHistoricalBackups).toHaveBeenCalledWith(mockContext);
 
     await scheduler.stop();
   });
@@ -434,37 +310,14 @@ describe('createStorageBackupScheduler', () => {
       duration: 1000,
     });
 
-    // Mock only 3 backups
-    vi.mocked(listBackups).mockResolvedValue([
-      {
-        fileName: 'storage-2025-10-04T12-00-00-000.tar.gz',
-        date: new Date('2025-10-04T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-05T12-00-00-000.tar.gz',
-        date: new Date('2025-10-05T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-      {
-        fileName: 'storage-2025-10-06T12-00-00-000.tar.gz',
-        date: new Date('2025-10-06T12:00:00.000Z'),
-        sizeBytes: 1024,
-      },
-    ]);
-
     const scheduler = createStorageBackupScheduler(mockContext, 1000);
     await scheduler.start();
 
     await vi.advanceTimersByTimeAsync(100);
 
-    expect(mockLogger.info).toHaveBeenCalledWith('No historical backups to remove', {
-      currentBackupCount: 3,
-      maxBackupsToKeep: 7,
-    });
-
-    // Should not call removeBackupByName at all
-    expect(removeBackupByName).not.toHaveBeenCalled();
+    // Should still call the cleanup functions (they handle the logic internally)
+    expect(removeDuplicateBackupsForLatestDate).toHaveBeenCalledWith(mockContext);
+    expect(removeHistoricalBackups).toHaveBeenCalledWith(mockContext);
 
     await scheduler.stop();
   });

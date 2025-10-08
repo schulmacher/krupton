@@ -1,41 +1,19 @@
-import type { ExtractEndpointParams } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
-import type { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointEntity } from '../lib/endpointStorage.ts/endpointEntity.js';
-import type { EndpointStorage, StorageRecord } from '../lib/endpointStorage.ts/endpointStorage.js';
-import { createEndpointStorage } from '../lib/endpointStorage.ts/endpointStorage.js';
+import type { EndpointEntity } from '../lib/endpointStorage/endpointEntity.js';
+import type { EndpointStorage, StorageRecord } from '../lib/endpointStorage/endpointStorage.js';
+import { createEndpointStorage } from '../lib/endpointStorage/endpointStorage.js';
 
 export type BinanceOrderBookStorage = EndpointStorage<typeof BinanceApi.GetOrderBookEndpoint>;
 export type BinanceOrderBookEntity = ReturnType<typeof createBinanceOrderBookEntity>;
 
-type OrderBookResponse = TB.Static<typeof BinanceApi.GetOrderBookEndpoint.responseSchema>;
-type OrderBookRequest = ExtractEndpointParams<typeof BinanceApi.GetOrderBookEndpoint>;
-type OrderBookRecord = StorageRecord<OrderBookResponse, OrderBookRequest>;
-
-function formatDateForIndex(timestamp: number): string {
-  return new Date(timestamp).toISOString().slice(0, 10);
-}
-
-function getFilePathWithIndex(symbol: string, date: string, recordCount: number): string {
-  return `${symbol}/${calculateFileIndex(date, recordCount)}`;
-}
-
-function calculateFileIndex(date: string, recordCount: number): string {
-  const fileNumber = Math.floor(recordCount / 100_000);
-  return `${date}_${fileNumber}`;
-}
-
-function parseIndexParts(fileName: string): { date: string; fileNumber: number } {
-  const dateParts = fileName.split('_');
-  if (dateParts.length !== 2) {
-    throw new Error(`Invalid file name ${fileName}`);
-  }
-  return { date: dateParts[0]!, fileNumber: parseInt(dateParts[1]!, 10) };
-}
+type OrderBookRecord = StorageRecord<
+  BinanceApi.GetOrderBookResponse,
+  BinanceApi.GetOrderBookRequest
+>;
 
 function areResponsesIdentical(
-  response1: OrderBookResponse,
-  response2: OrderBookResponse,
+  response1: BinanceApi.GetOrderBookResponse,
+  response2: BinanceApi.GetOrderBookResponse,
 ): boolean {
   return JSON.stringify(response1) === JSON.stringify(response2);
 }
@@ -50,52 +28,28 @@ export function createBinanceOrderBookEntity(baseDir: string) {
   return {
     storage,
 
-    async write(params: { request: OrderBookRequest; response: OrderBookResponse }): Promise<void> {
+    async write(params: {
+      request: BinanceApi.GetOrderBookRequest;
+      response: BinanceApi.GetOrderBookResponse;
+    }): Promise<void> {
       const timestamp = Date.now();
-      const currentDate = formatDateForIndex(timestamp);
       const symbol = params.request.query?.symbol;
 
       if (!symbol) {
         throw new Error('Symbol is required in request params');
       }
 
-      const fileNames = await storage.listFileNames(symbol);
-      const filesForCurrentDate = fileNames.filter((fileName) => {
-        const parsed = parseIndexParts(fileName);
-        return parsed?.date === currentDate;
-      });
+      const existingLastRecord = await storage.readLastRecord(symbol);
 
-      let recordCount = 0;
-      if (filesForCurrentDate.length > 0) {
-        const latestFileForDate = filesForCurrentDate[filesForCurrentDate.length - 1]!;
-        const fileInfo = await storage.getFileInfo({
-          relativePath: `${symbol}/${latestFileForDate}`,
-        });
-        if (fileInfo) {
-          const parsed = parseIndexParts(latestFileForDate);
-          if (parsed) {
-            recordCount = parsed.fileNumber * 100_000 + fileInfo.recordCount;
-          }
-        }
-      }
-
-      const relativePath = getFilePathWithIndex(symbol, currentDate, recordCount);
-
-      const existingLastRecord = await storage.readLastRecord({ relativePath });
-
-      // TODO rename the file if days has passed
-      // The purpose is just to update the latest fetch timestamp
-      // A new row means that the data has not changed since the previous row's timestamp
       if (existingLastRecord) {
         if (areResponsesIdentical(existingLastRecord.response, params.response)) {
-          const updatedLastRecord: OrderBookRecord = {
-            ...existingLastRecord,
-            timestamp,
-          };
-
           await storage.replaceLastRecord({
-            relativePath,
-            record: updatedLastRecord,
+            subIndexDir: symbol,
+            record: {
+              timestamp,
+              request: params.request,
+              response: params.response,
+            },
           });
 
           return;
@@ -103,37 +57,17 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
           response: params.response,
         },
-        relativePath,
       });
     },
 
     async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
-      const fileNames = await storage.listFileNames(symbol);
-
-      const sortedFiles = fileNames.sort((a, b) => {
-        const parsedA = parseIndexParts(a);
-        const parsedB = parseIndexParts(b);
-        if (!parsedA || !parsedB) return 0;
-
-        if (parsedA.date !== parsedB.date) {
-          return parsedA.date.localeCompare(parsedB.date);
-        }
-        return parsedA.fileNumber - parsedB.fileNumber;
-      });
-
-      const latestFileName = sortedFiles[sortedFiles.length - 1]!;
-      const records = await storage.readRecords({ relativePath: `${symbol}/${latestFileName}` });
-
-      if (records.length === 0) {
-        return null;
-      }
-
-      return records[records.length - 1]!;
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
 }

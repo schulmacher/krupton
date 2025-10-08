@@ -4,9 +4,9 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMdsStorageContext } from '../../process/mdsStorageProcess/context.js';
 import {
-    listMockCloudFiles,
-    resetMockCloudStorage,
-    setMockCloudFile,
+  listMockCloudFiles,
+  resetMockCloudStorage,
+  setMockCloudFile,
 } from '../__mocks__/rclone.js';
 import { syncLocalAndCloudBackups } from './storageBackupCloud.js';
 
@@ -15,7 +15,6 @@ vi.mock('../rclone.js');
 describe('storageBackupCloud', () => {
   let testBackupDir: string;
   let testCloudTempDir: string;
-  let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(async () => {
     // Create temporary directories
@@ -25,25 +24,11 @@ describe('storageBackupCloud', () => {
     await fs.mkdir(testBackupDir, { recursive: true });
     await fs.mkdir(testCloudTempDir, { recursive: true });
 
-    // Store original environment
-    originalEnv = { ...process.env };
-
-    // Set test environment variables
-    process.env.BACKUP_BASE_DIR = testBackupDir;
-    process.env.CLOUD_BACKUP_TEMP_DIR = testCloudTempDir;
-    process.env.CLOUD_SYNC_ENABLED = 'true';
-    process.env.RCLONE_REMOTE_NAME = 'gdrive';
-    process.env.RCLONE_REMOTE_PATH = 'backups';
-    process.env.BACKUP_RETENTION_DAYS = '7';
-
     // Reset mock cloud storage
     resetMockCloudStorage();
   });
 
   afterEach(async () => {
-    // Restore original environment
-    process.env = originalEnv;
-
     // Clean up temporary directories
     try {
       await fs.rm(testBackupDir, { recursive: true, force: true });
@@ -122,7 +107,14 @@ describe('storageBackupCloud', () => {
     expect(initialCloudFiles.length).toBeGreaterThan(0);
 
     // Run sync
-    const context = createMdsStorageContext();
+    const context = createMdsStorageContext({
+      LOG_LEVEL: 'fatal',
+      CLOUD_SYNC_ENABLED: 'true',
+      BACKUP_BASE_DIR: testBackupDir,
+      CLOUD_BACKUP_TEMP_DIR: testCloudTempDir,
+      RCLONE_REMOTE_NAME: 'gdrive',
+      RCLONE_REMOTE_PATH: 'backups',
+    });
     const result = await syncLocalAndCloudBackups(context);
 
     // Verify sync result

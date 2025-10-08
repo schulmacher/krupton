@@ -1,5 +1,5 @@
 import { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointDefinition } from '@krupton/api-client-node';
+import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 
 export const GetOrderBookEndpoint = {
   path: '/api/v3/depth',
@@ -17,3 +17,4 @@ export const GetOrderBookEndpoint = {
 
 export type GetOrderBookQuery = TB.Static<typeof GetOrderBookEndpoint.querySchema>;
 export type GetOrderBookResponse = TB.Static<typeof GetOrderBookEndpoint.responseSchema>;
+export type GetOrderBookRequest = ExtractEndpointParams<typeof GetOrderBookEndpoint>;

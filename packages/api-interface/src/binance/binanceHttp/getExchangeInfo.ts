@@ -1,5 +1,5 @@
 import { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointDefinition } from '@krupton/api-client-node';
+import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 
 export const GetExchangeInfoEndpoint = {
   path: '/api/v3/exchangeInfo',
@@ -42,3 +42,4 @@ export const GetExchangeInfoEndpoint = {
 
 export type GetExchangeInfoQuery = TB.Static<typeof GetExchangeInfoEndpoint.querySchema>;
 export type GetExchangeInfoResponse = TB.Static<typeof GetExchangeInfoEndpoint.responseSchema>;
+export type GetExchangeInfoRequest = ExtractEndpointParams<typeof GetExchangeInfoEndpoint>;

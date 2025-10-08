@@ -30,7 +30,7 @@ export function createMdsFetcherContext() {
     diagnosticContext,
   });
 
-  const rateLimiter = createMdsFetcherRateLimiter({
+  const rateLimiter = createMdsFetcherRateLimiter(diagnosticContext, {
     maxRequests: envContext.config.RATE_LIMIT_MAX_REQUESTS,
     windowMs: envContext.config.RATE_LIMIT_WINDOW_MS,
   });

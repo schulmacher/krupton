@@ -2,8 +2,8 @@ import { SF } from '@krupton/service-framework-node';
 import type { MdsStorageEnv } from './environment.js';
 import { mdsStorageEnvSchema } from './environment.js';
 
-export function createMdsStorageContext() {
-  const envContext = SF.createEnvContext(mdsStorageEnvSchema);
+export function createMdsStorageContext(customEnv?: Record<string, string | undefined>) {
+  const envContext = SF.createEnvContext(mdsStorageEnvSchema, { source: customEnv });
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',

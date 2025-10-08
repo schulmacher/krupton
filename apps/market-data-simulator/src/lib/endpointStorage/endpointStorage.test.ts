@@ -74,10 +74,10 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const parsed = JSON.parse(content.trim());
 
@@ -101,15 +101,15 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record: firstRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       await storage.writeRecord({
         record: secondRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const lines = content.trim().split('\n');
 
@@ -128,10 +128,10 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record,
-        relativePath: 'nested/deep/path/data',
+        subIndexDir: 'nested/deep/path',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'nested/deep/path/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'nested/deep/path', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const parsed = JSON.parse(content.trim());
 
@@ -157,15 +157,15 @@ describe('createEndpointStorage', () => {
 
       await storage.appendRecord({
         record: firstRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       await storage.appendRecord({
         record: secondRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const lines = content.trim().split('\n');
 
@@ -185,10 +185,10 @@ describe('createEndpointStorage', () => {
 
       await storage.appendRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const parsed = JSON.parse(content.trim());
 
@@ -206,10 +206,10 @@ describe('createEndpointStorage', () => {
 
       await storage.appendRecord({
         record,
-        relativePath: 'nested/deep/path/data',
+        subIndexDir: 'nested/deep/path',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'nested/deep/path/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'nested/deep/path', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
       const parsed = JSON.parse(content.trim());
 
@@ -237,12 +237,13 @@ describe('createEndpointStorage', () => {
       for (const record of records) {
         await storage.appendRecord({
           record,
-          relativePath: 'test/data',
+          subIndexDir: 'BTCUSDT',
         });
       }
 
       const result = await storage.readRecords({
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(result).toEqual(records);
@@ -252,7 +253,8 @@ describe('createEndpointStorage', () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
 
       const result = await storage.readRecords({
-        relativePath: 'nonexistent/data',
+        subIndexDir: 'nonexistent',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(result).toEqual([]);
@@ -260,13 +262,14 @@ describe('createEndpointStorage', () => {
 
     it('should handle empty files', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/empty.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
+      await mkdir(join(tempDir, 'api_v3_test', 'BTCUSDT'), { recursive: true });
       await writeFile(filePath, '', 'utf-8');
 
       const result = await storage.readRecords({
-        relativePath: 'test/empty',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(result).toEqual([]);
@@ -274,7 +277,7 @@ describe('createEndpointStorage', () => {
 
     it('should filter out empty lines', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
 
       const records = [
         {
@@ -289,7 +292,7 @@ describe('createEndpointStorage', () => {
         },
       ];
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
+      await mkdir(join(tempDir, 'api_v3_test', 'BTCUSDT'), { recursive: true });
       await writeFile(
         filePath,
         records.map((r) => JSON.stringify(r)).join('\n') + '\n\n\n',
@@ -297,7 +300,8 @@ describe('createEndpointStorage', () => {
       );
 
       const result = await storage.readRecords({
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(result).toEqual(records);
@@ -305,14 +309,15 @@ describe('createEndpointStorage', () => {
 
     it('should throw error for non-ENOENT errors', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
+      await mkdir(join(tempDir, 'api_v3_test', 'BTCUSDT'), { recursive: true });
       await writeFile(filePath, 'invalid json', 'utf-8');
 
       await expect(
         storage.readRecords({
-          relativePath: 'test/data',
+          subIndexDir: 'BTCUSDT',
+          fileName: '00000000000000000000000000000000',
         }),
       ).rejects.toThrow();
     });
@@ -343,13 +348,11 @@ describe('createEndpointStorage', () => {
       for (const record of records) {
         await storage.appendRecord({
           record,
-          relativePath: 'test/data',
+          subIndexDir: 'BTCUSDT',
         });
       }
 
-      const result = await storage.readLastRecord({
-        relativePath: 'test/data',
-      });
+      const result = await storage.readLastRecord('BTCUSDT');
 
       expect(result).toEqual(records[2]);
     });
@@ -357,23 +360,19 @@ describe('createEndpointStorage', () => {
     it('should return null if file does not exist', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
 
-      const result = await storage.readLastRecord({
-        relativePath: 'nonexistent/data',
-      });
+      const result = await storage.readLastRecord('nonexistent');
 
       expect(result).toBeNull();
     });
 
     it('should return null for empty files', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/empty.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
+      await mkdir(join(tempDir, 'api_v3_test', 'BTCUSDT'), { recursive: true });
       await writeFile(filePath, '', 'utf-8');
 
-      const result = await storage.readLastRecord({
-        relativePath: 'test/empty',
-      });
+      const result = await storage.readLastRecord('BTCUSDT');
 
       expect(result).toBeNull();
     });
@@ -389,12 +388,10 @@ describe('createEndpointStorage', () => {
 
       await storage.appendRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const result = await storage.readLastRecord({
-        relativePath: 'test/data',
-      });
+      const result = await storage.readLastRecord('BTCUSDT');
 
       expect(result).toEqual(record);
     });
@@ -409,13 +406,11 @@ describe('createEndpointStorage', () => {
             request: { query: { symbol: 'BTCUSDT' } },
             response: { id: `${i}`, value: i },
           },
-          relativePath: 'test/large',
+          subIndexDir: 'BTCUSDT',
         });
       }
 
-      const result = await storage.readLastRecord({
-        relativePath: 'test/large',
-      });
+      const result = await storage.readLastRecord('BTCUSDT');
 
       expect(result).toEqual({
         timestamp: 999,
@@ -426,7 +421,6 @@ describe('createEndpointStorage', () => {
 
     it('should handle files with trailing newlines', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
 
       const records = [
         {
@@ -441,16 +435,15 @@ describe('createEndpointStorage', () => {
         },
       ];
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(
-        filePath,
-        records.map((r) => JSON.stringify(r)).join('\n') + '\n\n\n',
-        'utf-8',
-      );
+      // Use the storage API to write records, which creates indexes
+      for (const record of records) {
+        await storage.appendRecord({
+          record,
+          subIndexDir: 'BTCUSDT',
+        });
+      }
 
-      const result = await storage.readLastRecord({
-        relativePath: 'test/data',
-      });
+      const result = await storage.readLastRecord('BTCUSDT');
 
       expect(result).toEqual(records[1]);
     });
@@ -481,7 +474,7 @@ describe('createEndpointStorage', () => {
       for (const record of records) {
         await storage.appendRecord({
           record,
-          relativePath: 'test/data',
+          subIndexDir: 'BTCUSDT',
         });
       }
 
@@ -493,11 +486,12 @@ describe('createEndpointStorage', () => {
 
       await storage.replaceLastRecord({
         record: newLastRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       const allRecords = await storage.readRecords({
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(allRecords).toHaveLength(3);
@@ -517,7 +511,7 @@ describe('createEndpointStorage', () => {
 
       await storage.appendRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       const newRecord = {
@@ -528,11 +522,12 @@ describe('createEndpointStorage', () => {
 
       await storage.replaceLastRecord({
         record: newRecord,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       const allRecords = await storage.readRecords({
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(allRecords).toHaveLength(1);
@@ -541,9 +536,9 @@ describe('createEndpointStorage', () => {
 
     it('should throw error when replacing in empty file', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/empty.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
 
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
+      await mkdir(join(tempDir, 'api_v3_test', 'BTCUSDT'), { recursive: true });
       await writeFile(filePath, '\n', 'utf-8');
 
       await expect(
@@ -553,7 +548,7 @@ describe('createEndpointStorage', () => {
             request: { query: { symbol: 'BTCUSDT' } },
             response: { id: '1', value: 100 },
           },
-          relativePath: 'test/empty',
+          subIndexDir: 'BTCUSDT',
         }),
       ).rejects.toThrow('Cannot replace last record in empty file');
     });
@@ -568,234 +563,9 @@ describe('createEndpointStorage', () => {
             request: { query: { symbol: 'BTCUSDT' } },
             response: { id: '1', value: 100 },
           },
-          relativePath: 'nonexistent/data',
+          subIndexDir: 'nonexistent',
         }),
-      ).rejects.toThrow('Cannot replace last record in non-existent file');
-    });
-
-    it('should handle replacing in files with trailing newlines', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
-
-      const records = [
-        {
-          timestamp: 1000,
-          request: { query: { symbol: 'BTCUSDT' } },
-          response: { id: '1', value: 100 },
-        },
-        {
-          timestamp: 2000,
-          request: { query: { symbol: 'ETHUSDT' } },
-          response: { id: '2', value: 200 },
-        },
-      ];
-
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(filePath, records.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf-8');
-
-      const newLastRecord = {
-        timestamp: 3000,
-        request: { query: { symbol: 'BNBUSDT' } },
-        response: { id: '3', value: 300 },
-      };
-
-      await storage.replaceLastRecord({
-        record: newLastRecord,
-        relativePath: 'test/data',
-      });
-
-      const allRecords = await storage.readRecords({
-        relativePath: 'test/data',
-      });
-
-      expect(allRecords).toHaveLength(2);
-      expect(allRecords[0]).toEqual(records[0]);
-      expect(allRecords[1]).toEqual(newLastRecord);
-    });
-  });
-
-  describe('getFileInfo', () => {
-    it('should return file info with record count', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-
-      const records = [
-        {
-          timestamp: 1000,
-          request: { query: { symbol: 'BTCUSDT' } },
-          response: { id: '1', value: 100 },
-        },
-        {
-          timestamp: 2000,
-          request: { query: { symbol: 'ETHUSDT' } },
-          response: { id: '2', value: 200 },
-        },
-        {
-          timestamp: 3000,
-          request: { query: { symbol: 'BNBUSDT' } },
-          response: { id: '3', value: 300 },
-        },
-      ];
-
-      for (const record of records) {
-        await storage.appendRecord({
-          record,
-          relativePath: 'test/data',
-        });
-      }
-
-      const fileInfo = await storage.getFileInfo({
-        relativePath: 'test/data',
-      });
-
-      expect(fileInfo).toEqual({
-        idx: 'test/data',
-        recordCount: 3,
-      });
-    });
-
-    it('should return null if file does not exist', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-
-      const fileInfo = await storage.getFileInfo({
-        relativePath: 'nonexistent/data',
-      });
-
-      expect(fileInfo).toBeNull();
-    });
-
-    it('should return 0 count for empty file', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/empty.jsonl');
-
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(filePath, '', 'utf-8');
-
-      const fileInfo = await storage.getFileInfo({
-        relativePath: 'test/empty',
-      });
-
-      expect(fileInfo).toEqual({
-        idx: 'test/empty',
-        recordCount: 0,
-      });
-    });
-
-    it('should filter out empty lines when counting', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
-
-      const records = [
-        {
-          timestamp: 1000,
-          request: { query: { symbol: 'BTCUSDT' } },
-          response: { id: '1', value: 100 },
-        },
-        {
-          timestamp: 2000,
-          request: { query: { symbol: 'ETHUSDT' } },
-          response: { id: '2', value: 200 },
-        },
-      ];
-
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(
-        filePath,
-        records.map((r) => JSON.stringify(r)).join('\n') + '\n\n\n',
-        'utf-8',
-      );
-
-      const fileInfo = await storage.getFileInfo({
-        relativePath: 'test/data',
-      });
-
-      expect(fileInfo).toEqual({
-        idx: 'test/data',
-        recordCount: 2,
-      });
-    });
-
-    it('should count lines even with invalid JSON content', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
-
-      await mkdir(join(tempDir, 'api_v3_test', 'test'), { recursive: true });
-      await writeFile(filePath, 'line1\nline2\nline3', 'utf-8');
-
-      const fileInfo = await storage.getFileInfo({
-        relativePath: 'test/data',
-      });
-
-      expect(fileInfo).toEqual({
-        idx: 'test/data',
-        recordCount: 3,
-      });
-    });
-  });
-
-  describe('listFileNames', () => {
-    it('should list jsonl files in a directory', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const indexPath = 'test/symbols';
-
-      await mkdir(join(tempDir, 'api_v3_test', indexPath), { recursive: true });
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'BTCUSDT.jsonl'), '', 'utf-8');
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'ETHUSDT.jsonl'), '', 'utf-8');
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'BNBUSDT.jsonl'), '', 'utf-8');
-
-      const fileNames = await storage.listFileNames(indexPath);
-
-      expect(fileNames).toContain('BTCUSDT');
-      expect(fileNames).toContain('ETHUSDT');
-      expect(fileNames).toContain('BNBUSDT');
-      expect(fileNames).toHaveLength(3);
-    });
-
-    it('should only list jsonl files and ignore other files', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const indexPath = 'test/symbols';
-
-      await mkdir(join(tempDir, 'api_v3_test', indexPath), { recursive: true });
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'BTCUSDT.jsonl'), '', 'utf-8');
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'ETHUSDT.json'), '', 'utf-8');
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'README.txt'), '', 'utf-8');
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'data.csv'), '', 'utf-8');
-
-      const fileNames = await storage.listFileNames(indexPath);
-
-      expect(fileNames).toEqual(['BTCUSDT']);
-      expect(fileNames).toHaveLength(1);
-    });
-
-    it('should return empty array if directory does not exist', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-
-      const fileNames = await storage.listFileNames('nonexistent/directory');
-
-      expect(fileNames).toEqual([]);
-    });
-
-    it('should return empty array for empty directory', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const indexPath = 'test/empty';
-
-      await mkdir(join(tempDir, 'api_v3_test', indexPath), { recursive: true });
-
-      const fileNames = await storage.listFileNames(indexPath);
-
-      expect(fileNames).toEqual([]);
-    });
-
-    it('should strip .jsonl extension from file names', async () => {
-      const storage = createEndpointStorage(tempDir, testEndpoint);
-      const indexPath = 'test/symbols';
-
-      await mkdir(join(tempDir, 'api_v3_test', indexPath), { recursive: true });
-      await writeFile(join(tempDir, 'api_v3_test', indexPath, 'BTCUSDT.jsonl'), '', 'utf-8');
-
-      const fileNames = await storage.listFileNames(indexPath);
-
-      expect(fileNames[0]).toBe('BTCUSDT');
-      expect(fileNames[0]).not.toContain('.jsonl');
+      ).rejects.toThrow('Cannot replace last record in empty file');
     });
   });
 
@@ -824,11 +594,12 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
       const records = await storage.readRecords({
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
+        fileName: '00000000000000000000000000000000',
       });
 
       expect(records[0]).toEqual(record);
@@ -847,16 +618,16 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record,
-        relativePath: 'test/data',
+        subIndexDir: 'BTCUSDT',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'test/data.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'BTCUSDT', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
 
       expect(content).toBeTruthy();
     });
 
-    it('should handle relative paths correctly', async () => {
+    it('should handle subdirectory paths correctly', async () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
 
       const record = {
@@ -867,10 +638,10 @@ describe('createEndpointStorage', () => {
 
       await storage.writeRecord({
         record,
-        relativePath: 'a/b/c/d/e',
+        subIndexDir: 'a/b/c/d/e',
       });
 
-      const filePath = join(tempDir, 'api_v3_test', 'a/b/c/d/e.jsonl');
+      const filePath = join(tempDir, 'api_v3_test', 'a/b/c/d/e', '00000000000000000000000000000000.jsonl');
       const content = await readFile(filePath, 'utf-8');
 
       expect(content).toBeTruthy();

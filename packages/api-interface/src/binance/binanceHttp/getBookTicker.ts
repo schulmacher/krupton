@@ -1,5 +1,5 @@
 import { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointDefinition } from '@krupton/api-client-node';
+import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 
 export const GetBookTickerEndpoint = {
   path: '/api/v3/ticker/bookTicker',
@@ -30,3 +30,4 @@ export const GetBookTickerEndpoint = {
 
 export type GetBookTickerQuery = TB.Static<typeof GetBookTickerEndpoint.querySchema>;
 export type GetBookTickerResponse = TB.Static<typeof GetBookTickerEndpoint.responseSchema>;
+export type GetBookTickerRequest = ExtractEndpointParams<typeof GetBookTickerEndpoint>;

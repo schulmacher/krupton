@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { mkdir } from 'node:fs/promises';
+import { access, constants, mkdir, writeFile } from 'node:fs/promises';
 
 function getCurrentFileDir(): string {
   return dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,14 @@ export async function ensureDirForFile(filePath: string) {
     await mkdir(dir, { recursive: true });
   } catch {
     // Directory might already exist
+  }
+}
+export async function ensureFile(filePath: string) {
+  await ensureDirForFile(filePath);
+  try {
+    await access(filePath, constants.F_OK);
+  } catch {
+    await writeFile(filePath, '');
   }
 }
 export async function ensureDir(dirPath: string) {

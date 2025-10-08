@@ -1,3 +1,5 @@
+import type { SF } from '@krupton/service-framework-node';
+
 export interface RateLimiterConfig {
   maxRequests: number;
   windowMs: number;
@@ -12,7 +14,10 @@ export interface MdsFetcherRateLimiter {
   resetBackoff: () => void;
 }
 
-export function createMdsFetcherRateLimiter(config: RateLimiterConfig): MdsFetcherRateLimiter {
+export function createMdsFetcherRateLimiter(
+  diagnosticContext: SF.DiagnosticContext,
+  config: RateLimiterConfig,
+): MdsFetcherRateLimiter {
   const { maxRequests, windowMs, backoffBaseMs = 1000, backoffMaxMs = 60000 } = config;
 
   const defaultWaitMs = windowMs / maxRequests;
@@ -75,7 +80,7 @@ export function createMdsFetcherRateLimiter(config: RateLimiterConfig): MdsFetch
     }
 
     if (waitTime > 0) {
-      console.log(`[RateLimiter] Waiting ${waitTime}ms before next request`);
+      diagnosticContext.logger.debug(`Waiting ${waitTime}ms before next request`);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   };
@@ -86,7 +91,7 @@ export function createMdsFetcherRateLimiter(config: RateLimiterConfig): MdsFetch
     const backoffDelayMs = calculateBackoffMs();
     backoffUntilMs = now + backoffDelayMs;
 
-    console.log('[RateLimiter] setLimitReached called', {
+    diagnosticContext.logger.warn('Rate limit reached, backing off', {
       consecutiveErrors,
       backoffDelayMs,
       backoffUntilMs,
