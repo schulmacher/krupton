@@ -19,13 +19,13 @@ graph TD
     A[process-manager/] --> B[dev/]
     A --> C[production/]
     
-    B --> D1[market-data-simulator/]
+    B --> D1[external-bridge/]
     B --> E1[public-api/]
     B --> F1[monitoring/]
     B --> G1[prediction-model/]
     B --> H1[ecosystem.config.js]
     
-    C --> D2[market-data-simulator/]
+    C --> D2[external-bridge/]
     C --> E2[public-api/]
     C --> F2[monitoring/]
     C --> G2[prediction-model/]
@@ -43,7 +43,7 @@ graph TD
     style H2 fill:#d4edda
 ```
 
-The root `process-manager/` directory contains environment-specific subdirectories (`dev/` and `production/`), each housing application-specific folders. Each application folder contains its own PM2 ecosystem configuration file that may define multiple related services. For instance, the market-data-simulator folder includes configurations for webhook handlers, REST API services, and data fetchers as separate processes. The environment-level `ecosystem.config.js` serves as a composition layer, aggregating individual application configurations to enable collective process management operations.
+The root `process-manager/` directory contains environment-specific subdirectories (`dev/` and `production/`), each housing application-specific folders. Each application folder contains its own PM2 ecosystem configuration file that may define multiple related services. For instance, the external-bridge folder includes configurations for webhook handlers, REST API services, and data fetchers as separate processes. The environment-level `ecosystem.config.js` serves as a composition layer, aggregating individual application configurations to enable collective process management operations.
 
 This architectural pattern supports several key requirements:
 - **Environment isolation**: Development and production configurations remain separate, preventing cross-environment contamination
@@ -59,14 +59,14 @@ PM2 configurations differ based on the runtime environment of the target applica
 
 In development environments, Node.js applications utilize `tsx` (TypeScript Execute) to run TypeScript source files directly without compilation. This approach eliminates the build step and accelerates the development iteration cycle.
 
-Applications may expose multiple services, each configured as a separate PM2 process. For example, the market-data-simulator application encompasses distinct services for different data sources and functions:
+Applications may expose multiple services, each configured as a separate PM2 process. For example, the external-bridge application encompasses distinct services for different data sources and functions:
 
 ```javascript
 module.exports = {
   apps: [
     {
       name: 'mds-webhooks-kraken',
-      script: '../../apps/market-data-simulator/src/services/webhooks/webhooks_kraken.ts',
+      script: '../../apps/external-bridge/src/services/webhooks/webhooks_kraken.ts',
       interpreter: 'tsx',
       instances: 1,
       exec_mode: 'fork',
@@ -78,7 +78,7 @@ module.exports = {
     },
     {
       name: 'mds-rest-binance',
-      script: '../../apps/market-data-simulator/src/services/rest/rest_binance.ts',
+      script: '../../apps/external-bridge/src/services/rest/rest_binance.ts',
       interpreter: 'tsx',
       instances: 1,
       exec_mode: 'fork',
@@ -90,7 +90,7 @@ module.exports = {
     },
     {
       name: 'mds-fetcher',
-      script: '../../apps/market-data-simulator/src/services/fetcher/fetcher.ts',
+      script: '../../apps/external-bridge/src/services/fetcher/fetcher.ts',
       interpreter: 'tsx',
       instances: 1,
       exec_mode: 'fork',
@@ -135,7 +135,7 @@ The `interpreter` field directs PM2 to execute the script through the Python int
 The environment-level ecosystem file aggregates individual application configurations:
 
 ```javascript
-const marketDataSimulator = require('./market-data-simulator/ecosystem.config');
+const marketDataSimulator = require('./external-bridge/ecosystem.config');
 const publicApi = require('./public-api/ecosystem.config');
 const monitoring = require('./monitoring/ecosystem.config');
 const predictionModel = require('./prediction-model/ecosystem.config');
@@ -172,11 +172,11 @@ This command launches all applications specified in the composed configuration f
 For isolated service development, individual application configurations can be started directly:
 
 ```bash
-cd process-manager/dev/market-data-simulator
+cd process-manager/dev/external-bridge
 pm2 start ecosystem.config.js
 ```
 
-This command launches all services defined within the market-data-simulator configuration (webhooks, REST API, fetcher). To start a specific service within an application:
+This command launches all services defined within the external-bridge configuration (webhooks, REST API, fetcher). To start a specific service within an application:
 
 ```bash
 pm2 start ecosystem.config.js --only mds-fetcher
@@ -184,7 +184,7 @@ pm2 start ecosystem.config.js --only mds-fetcher
 
 The `--only` flag restricts execution to the named process, enabling developers to run only the services required for their current development context, reducing resource consumption.
 
-Alternatively, PM2 supports namespace-based operations using pattern matching. To manage all services within the market-data-simulator namespace:
+Alternatively, PM2 supports namespace-based operations using pattern matching. To manage all services within the external-bridge namespace:
 
 ```bash
 pm2 start "mds-*"

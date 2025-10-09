@@ -394,8 +394,8 @@ describe('createMetricsContext', () => {
 
       const metricsOutput = await metricsContext.getMetricsAsString();
 
-      expect(metricsOutput).toContain('test_service_process_');
-      expect(metricsOutput).toContain('test_service_nodejs_');
+      expect(metricsOutput).toContain('process_cpu_');
+      expect(metricsOutput).toContain('nodejs_');
     });
 
     it('should not collect default metrics when disabled', async () => {
@@ -409,7 +409,7 @@ describe('createMetricsContext', () => {
       expect(metricsOutput.trim()).toBe('');
     });
 
-    it('should apply prefix to default metrics', async () => {
+    it('should not apply prefix to default metrics', async () => {
       const metricsContext = createMetricsContext({
         envContext: createMockEnvContext('my-app'),
         enableDefaultMetrics: true,
@@ -418,8 +418,10 @@ describe('createMetricsContext', () => {
 
       const metricsOutput = await metricsContext.getMetricsAsString();
 
-      expect(metricsOutput).toContain('my_app_custom_process_');
-      expect(metricsOutput).toContain('my_app_custom_nodejs_');
+      expect(metricsOutput).toContain('process_cpu_');
+      expect(metricsOutput).toContain('nodejs_');
+      expect(metricsOutput).not.toContain('my_app_custom_process_');
+      expect(metricsOutput).not.toContain('my_app_custom_nodejs_');
     });
   });
 

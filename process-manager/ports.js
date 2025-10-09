@@ -4,9 +4,9 @@
 
 module.exports = {
   // Market Data Simulator Services
-  MDS_FETCHER: 3000,
-  MDS_STORAGE: 3001,
-  MDS_REST_API: 3002,
+  EXTERNAL_BRIDGE_FETCHER: 3000,
+  EXTERNAL_BRIDGE_STORAGE: 3001,
+  EXTERNAL_BRIDGE_WEBSOCKET: 3002,
 
   // Public API Service
   PUBLIC_API: 3100,

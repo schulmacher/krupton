@@ -1,0 +1,26 @@
+{
+  "name": "@krupton/external-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev:fetcher": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:websocket": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:storage": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/storage.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "test:rclone": "tsx src/lib/mdsStorage/rcloneTest.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@krupton/api-client-node": "workspace:*",
+    "@krupton/api-client-ws-node": "workspace:*",
+    "@krupton/config": "workspace:*",
+    "@krupton/api-interface": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
+    "@krupton/utils": "workspace:*",
+    "ws": "^8.18.0"
+  }
+}

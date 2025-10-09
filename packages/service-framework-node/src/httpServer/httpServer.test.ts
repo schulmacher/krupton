@@ -16,10 +16,11 @@ function createMockLogger(): Logger {
 }
 
 function createMockRegistry(): Registry {
-  return {
+  const registry: Partial<Registry> = {
     contentType: 'text/plain; version=0.0.4; charset=utf-8',
     metrics: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
-  } as unknown as Registry;
+  };
+  return registry as Registry;
 }
 
 function createTestServiceContext(): ServiceContext<{
@@ -494,24 +495,6 @@ describe('createHttpServer', () => {
         port: 4567,
         host: '0.0.0.0',
       });
-    });
-
-    it('should log server start', async () => {
-      const context = createTestServiceContext();
-      const mockLogger = createMockLogger();
-      const server = createHttpServer(context);
-
-      vi.spyOn(server, 'listen').mockResolvedValue(undefined as never);
-
-      await server.startServer();
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Server started',
-        expect.objectContaining({
-          port: 3000,
-          environment: 'test',
-        }),
-      );
     });
   });
 

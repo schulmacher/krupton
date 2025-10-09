@@ -11,7 +11,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:3000']
         labels:
-          service: 'market-data-simulator'
+          service: 'external-bridge'
           component: 'fetcher'
           environment: 'development'
 
@@ -20,7 +20,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:3002']
         labels:
-          service: 'market-data-simulator'
+          service: 'external-bridge'
           component: 'rest-api'
           environment: 'development'
 
@@ -29,7 +29,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:3001']
         labels:
-          service: 'market-data-simulator'
+          service: 'external-bridge'
           component: 'storage'
           environment: 'development'
 

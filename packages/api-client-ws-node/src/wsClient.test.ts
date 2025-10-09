@@ -1,0 +1,537 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { WebSocketServer } from 'ws';
+import { TB } from '@krupton/service-framework-node/typebox';
+import { createWSConsumer, createWSHandlers, WebSocketValidationError } from './wsClient.js';
+import type { WebSocketStreamDefinition } from './types.js';
+
+// Mock WebSocket stream definitions
+const MockTradeStream = {
+  streamNamePattern: 'trade',
+  messageSchema: TB.Object({
+    type: TB.Literal('trade'),
+    symbol: TB.String(),
+    price: TB.String(),
+    quantity: TB.String(),
+  }),
+  messageIdentifier: (message: unknown): boolean => {
+    return (
+      typeof message === 'object' &&
+      message !== null &&
+      'type' in message &&
+      message.type === 'trade'
+    );
+  },
+} satisfies WebSocketStreamDefinition;
+
+const MockDepthStream = {
+  streamNamePattern: 'depth',
+  messageSchema: TB.Object({
+    type: TB.Literal('depth'),
+    symbol: TB.String(),
+    bids: TB.Array(TB.Tuple([TB.String(), TB.String()])),
+    asks: TB.Array(TB.Tuple([TB.String(), TB.String()])),
+  }),
+  messageIdentifier: (message: unknown): boolean => {
+    return (
+      typeof message === 'object' &&
+      message !== null &&
+      'type' in message &&
+      message.type === 'depth'
+    );
+  },
+} satisfies WebSocketStreamDefinition;
+
+const MockDefinitions = {
+  trade: MockTradeStream,
+  depth: MockDepthStream,
+};
+
+describe('createWSHandlers', () => {
+  it('should create handlers with definitions', () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    expect(handlers.trade.definition).toBe(MockTradeStream);
+    expect(handlers.trade.handler).toBe(tradeHandler);
+    expect(handlers.depth.definition).toBe(MockDepthStream);
+    expect(handlers.depth.handler).toBe(depthHandler);
+  });
+});
+
+describe('createWSConsumer', () => {
+  let server: WebSocketServer;
+  let port: number;
+
+  beforeEach(async () => {
+    // Create a WebSocket server for testing
+    server = new WebSocketServer({ port: 0 });
+    await new Promise<void>((resolve) => {
+      server.on('listening', () => {
+        const address = server.address();
+        if (address && typeof address === 'object') {
+          port = address.port;
+        }
+        resolve();
+      });
+    });
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  });
+
+  it('should connect to WebSocket server', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onOpen = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+      { onOpen },
+    );
+
+    const connectionPromise = new Promise<void>((resolve) => {
+      server.once('connection', () => {
+        // Give the client time to finish the handshake
+        setTimeout(resolve, 50);
+      });
+    });
+
+    consumer.connect();
+
+    await connectionPromise;
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(consumer.isConnected()).toBe(true);
+
+    consumer.disconnect();
+  });
+
+  it('should route trade messages to correct handler', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+    );
+
+    consumer.connect();
+
+    const tradeMessage = {
+      type: 'trade',
+      symbol: 'BTCUSDT',
+      price: '50000.00',
+      quantity: '1.5',
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(tradeMessage));
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(tradeHandler).toHaveBeenCalledTimes(1);
+    expect(tradeHandler).toHaveBeenCalledWith(tradeMessage, JSON.stringify(tradeMessage));
+    expect(depthHandler).not.toHaveBeenCalled();
+
+    consumer.disconnect();
+  });
+
+  it('should route depth messages to correct handler', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+    );
+
+    consumer.connect();
+
+    const depthMessage = {
+      type: 'depth',
+      symbol: 'ETHUSDT',
+      bids: [['3000.00', '10.5']],
+      asks: [['3001.00', '5.2']],
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(depthMessage));
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(depthHandler).toHaveBeenCalledTimes(1);
+    expect(depthHandler).toHaveBeenCalledWith(depthMessage, JSON.stringify(depthMessage));
+    expect(tradeHandler).not.toHaveBeenCalled();
+
+    consumer.disconnect();
+  });
+
+  it('should route multiple messages correctly', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+    );
+
+    consumer.connect();
+
+    const tradeMessage1 = {
+      type: 'trade',
+      symbol: 'BTCUSDT',
+      price: '50000.00',
+      quantity: '1.5',
+    };
+
+    const depthMessage = {
+      type: 'depth',
+      symbol: 'ETHUSDT',
+      bids: [['3000.00', '10.5']],
+      asks: [['3001.00', '5.2']],
+    };
+
+    const tradeMessage2 = {
+      type: 'trade',
+      symbol: 'ETHUSDT',
+      price: '3000.00',
+      quantity: '2.0',
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(tradeMessage1));
+        setTimeout(() => ws.send(JSON.stringify(depthMessage)), 50);
+        setTimeout(() => ws.send(JSON.stringify(tradeMessage2)), 100);
+        setTimeout(resolve, 150);
+      });
+    });
+
+    expect(tradeHandler).toHaveBeenCalledTimes(2);
+    expect(tradeHandler).toHaveBeenNthCalledWith(1, tradeMessage1, JSON.stringify(tradeMessage1));
+    expect(tradeHandler).toHaveBeenNthCalledWith(2, tradeMessage2, JSON.stringify(tradeMessage2));
+    expect(depthHandler).toHaveBeenCalledTimes(1);
+    expect(depthHandler).toHaveBeenCalledWith(depthMessage, JSON.stringify(depthMessage));
+
+    consumer.disconnect();
+  });
+
+  it('should handle validation errors', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onError = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true, // Validation enabled
+        reconnect: false,
+      },
+      { onError },
+    );
+
+    consumer.connect();
+
+    const invalidMessage = {
+      type: 'trade',
+      symbol: 'BTCUSDT',
+      // Missing required fields: price, quantity
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(invalidMessage));
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(WebSocketValidationError);
+    expect((onError.mock.calls[0][0] as WebSocketValidationError).streamType).toBe('trade');
+    expect(tradeHandler).not.toHaveBeenCalled();
+
+    consumer.disconnect();
+  });
+
+  it('should skip validation when disabled', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onError = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: false, // Validation disabled
+        reconnect: false,
+      },
+      { onError },
+    );
+
+    consumer.connect();
+
+    const invalidMessage = {
+      type: 'trade',
+      symbol: 'BTCUSDT',
+      // Missing required fields: price, quantity
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(invalidMessage));
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(tradeHandler).toHaveBeenCalledTimes(1);
+    expect(tradeHandler).toHaveBeenCalledWith(invalidMessage, JSON.stringify(invalidMessage));
+
+    consumer.disconnect();
+  });
+
+  it('should handle unknown message types', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onError = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+      { onError },
+    );
+
+    consumer.connect();
+
+    const unknownMessage = {
+      type: 'unknown',
+      data: 'something',
+    };
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send(JSON.stringify(unknownMessage));
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((onError.mock.calls[0][0] as Error).message).toContain('Unable to identify message type');
+    expect(tradeHandler).not.toHaveBeenCalled();
+    expect(depthHandler).not.toHaveBeenCalled();
+
+    consumer.disconnect();
+  });
+
+  it('should handle invalid JSON', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onError = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+      { onError },
+    );
+
+    consumer.connect();
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        ws.send('invalid json{');
+        setTimeout(resolve, 100);
+      });
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((onError.mock.calls[0][0] as Error).message).toContain('Failed to parse WebSocket message');
+    expect(tradeHandler).not.toHaveBeenCalled();
+
+    consumer.disconnect();
+  });
+
+  it('should handle close events', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onClose = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+      { onClose },
+    );
+
+    consumer.connect();
+
+    await new Promise<void>((resolve) => {
+      server.on('connection', (ws) => {
+        setTimeout(() => {
+          ws.close(1000, 'Normal closure');
+        }, 50);
+      });
+
+      setTimeout(resolve, 200);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith(1000, 'Normal closure');
+    expect(consumer.isConnected()).toBe(false);
+  });
+
+  it('should send messages when connected', async () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+    );
+
+    const receivedMessages: string[] = [];
+
+    const connectionPromise = new Promise<void>((resolve) => {
+      server.once('connection', (ws) => {
+        ws.on('message', (data) => {
+          receivedMessages.push(data.toString());
+        });
+        // Wait for connection to be fully established
+        setTimeout(resolve, 50);
+      });
+    });
+
+    consumer.connect();
+
+    await connectionPromise;
+
+    const testMessage = JSON.stringify({ action: 'subscribe', channel: 'trades' });
+    consumer.send(testMessage);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(receivedMessages).toContain(testMessage);
+
+    consumer.disconnect();
+  });
+
+  it('should throw error when sending while disconnected', () => {
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: false,
+      },
+    );
+
+    expect(() => {
+      consumer.send('test message');
+    }).toThrow('WebSocket is not connected');
+  });
+});
+

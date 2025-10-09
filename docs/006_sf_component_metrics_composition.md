@@ -31,7 +31,7 @@ export const mdsFetcherMetrics = {
 Processes instantiate only the metrics they need:
 
 ```typescript
-// apps/market-data-simulator/src/process/mdsFetcherProcess/context.ts
+// apps/external-bridge/src/process/mdsFetcherProcess/context.ts
 const metricsContextBase = SF.createMetricsContext({
   envContext,
   enableDefaultMetrics: true,

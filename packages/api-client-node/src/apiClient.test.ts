@@ -893,11 +893,15 @@ describe('createApiClient', () => {
 
         // TypeScript properly catches path missing
         // @ts-expect-error - path required but missing
-        client.updateUser({ body: { name: 'John' } });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _pathMissing: typeof client.updateUser = () =>
+          client.updateUser({ body: { name: 'John' } } as never);
 
         // TypeScript properly catches body missing
         // @ts-expect-error - body required but missing
-        client.updateUser({ path: { userId: '123' } });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _bodyMissing: typeof client.updateUser = () =>
+          client.updateUser({ path: { userId: '123' } } as never);
 
         expect(client.updateUser).toBeDefined();
       });

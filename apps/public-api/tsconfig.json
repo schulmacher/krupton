@@ -1,9 +1,0 @@
-{
-  "extends": "@krupton/config/tsconfig.base.json",
-  "include": ["src", "*.cjs"],
-  "compilerOptions": {
-    "outDir": "dist"
-  }
-}
-
-
