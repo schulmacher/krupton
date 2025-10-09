@@ -1,5 +1,5 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
-import { BinanceApiDefinition } from '@krupton/api-interface';
+import { BinanceApi } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
 import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
@@ -43,7 +43,12 @@ export function createExternalBridgeFetcherContext() {
         : undefined,
       validation: true,
     },
-    BinanceApiDefinition,
+    {
+      getOrderBook: BinanceApi.GetOrderBookEndpoint,
+      getBookTicker: BinanceApi.GetBookTickerEndpoint,
+      getHistoricalTrades: BinanceApi.GetHistoricalTradesEndpoint,
+      getExchangeInfo: BinanceApi.GetExchangeInfoEndpoint,
+    },
   );
 
   const endpointStorageRepository = createEndpointStorageRepository(
