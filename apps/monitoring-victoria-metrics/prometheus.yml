@@ -6,8 +6,7 @@ global:
   scrape_timeout: 10s
 
 scrape_configs:
-  # Market Data Simulator - Fetcher Service
-  - job_name: 'mds-fetcher'
+  - job_name: 'external-bridge-fetcher'
     static_configs:
       - targets: ['localhost:3000']
         labels:
@@ -15,17 +14,7 @@ scrape_configs:
           component: 'fetcher'
           environment: 'development'
 
-  # Market Data Simulator - REST API Service
-  - job_name: 'mds-rest-api'
-    static_configs:
-      - targets: ['localhost:3002']
-        labels:
-          service: 'external-bridge'
-          component: 'rest-api'
-          environment: 'development'
-
-  # Market Data Simulator - Storage Service
-  - job_name: 'mds-storage'
+  - job_name: 'external-bridge-storage'
     static_configs:
       - targets: ['localhost:3001']
         labels:
@@ -33,15 +22,14 @@ scrape_configs:
           component: 'storage'
           environment: 'development'
 
-  # Public API Service (when available)
-  - job_name: 'public-api'
+  - job_name: 'external-bridge-websockets'
     static_configs:
-      - targets: ['localhost:3100']
+      - targets: ['localhost:3002']
         labels:
-          service: 'public-api'
+          service: 'external-bridge'
+          component: 'websockets'
           environment: 'development'
 
-  # VictoriaMetrics self-monitoring
   - job_name: 'victoriametrics'
     static_configs:
       - targets: ['localhost:8428']

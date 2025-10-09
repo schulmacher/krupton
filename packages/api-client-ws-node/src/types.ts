@@ -1,7 +1,8 @@
 import { TB } from '@krupton/service-framework-node/typebox';
 
 export interface WebSocketStreamDefinition {
-  streamNamePattern: string;
+  streamName: string;
+  params: ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>;
   messageSchema: ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>;
   messageIdentifier?: (message: unknown) => boolean;
 }
@@ -9,6 +10,11 @@ export interface WebSocketStreamDefinition {
 export type ExtractWebSocketStreamMessage<T extends WebSocketStreamDefinition> =
   T['messageSchema'] extends ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>
     ? TB.Static<T['messageSchema']>
+    : never;
+
+export type ExtractWebSocketStreamParams<T extends WebSocketStreamDefinition> =
+  T['params'] extends ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>
+    ? TB.Static<T['params']>
     : never;
 
 export interface WebSocketConsumerConfig {

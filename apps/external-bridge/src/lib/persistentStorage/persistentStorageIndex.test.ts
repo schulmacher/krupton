@@ -11,9 +11,9 @@ import {
   readIndexEntries,
   readIndexHeader,
   type IndexEntry,
-} from './endpointStorageIndex.js';
+} from './persistentStorageIndex.js';
 
-describe('endpointStorageIndex - Basic Operations', () => {
+describe('persistentStorageIndex - Basic Operations', () => {
   let tempDir: string;
   let testIndexPath: string;
 
@@ -566,7 +566,7 @@ describe('endpointStorageIndex - Basic Operations', () => {
   });
 });
 
-describe('endpointStorageIndex - Advanced Scenarios', () => {
+describe('persistentStorageIndex - Advanced Scenarios', () => {
   let tempDir: string;
   let testIndexPath: string;
 

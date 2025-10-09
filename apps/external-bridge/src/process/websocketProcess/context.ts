@@ -1,5 +1,5 @@
 import { SF } from '@krupton/service-framework-node';
-import { createEndpointStorageRepository } from '../../repository.js';
+import { createWebsocketStorageRepository } from '../../entities/websocketStorageRepository.js';
 import type { WebsocketEnv } from './environment.js';
 import { websocketEnvSchema } from './environment.js';
 
@@ -13,14 +13,23 @@ export function createWebsocketContext() {
   const metricsContext = SF.createMetricsContext({
     envContext,
     enableDefaultMetrics: true,
-    metrics: {},
+    metrics: {
+      messagesReceived: SF.externalBridgeWebsocketsMetrics.messagesReceived,
+      messageProcessingDuration: SF.externalBridgeWebsocketsMetrics.messageProcessingDuration,
+      connectionStatus: SF.externalBridgeWebsocketsMetrics.connectionStatus,
+      reconnectionAttempts: SF.externalBridgeWebsocketsMetrics.reconnectionAttempts,
+      activeSubscriptions: SF.externalBridgeWebsocketsMetrics.activeSubscriptions,
+      validationErrors: SF.externalBridgeWebsocketsMetrics.validationErrors,
+      connectionUptime: SF.externalBridgeWebsocketsMetrics.connectionUptime,
+      lastMessageTimestamp: SF.externalBridgeWebsocketsMetrics.lastMessageTimestamp,
+    },
   });
 
   const processContext = SF.createProcessLifecycle({
     diagnosticContext,
   });
 
-  const endpointStorageRepository = createEndpointStorageRepository(
+  const websocketStorageRepository = createWebsocketStorageRepository(
     envContext.config.STORAGE_BASE_DIR,
     envContext.config.PLATFORM,
   );
@@ -30,7 +39,7 @@ export function createWebsocketContext() {
     diagnosticContext,
     metricsContext,
     processContext,
-    endpointStorageRepository,
+    websocketStorageRepository,
   };
 }
 

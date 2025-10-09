@@ -1,6 +1,6 @@
 import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 import type { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointStorage, StorageRecord } from './endpointStorage.js';
+import type { EndpointStorage, EndpointStorageRecord } from './endpointStorage.js';
 
 type WriteParams<TResponse, TRequest> = {
   request: TRequest;
@@ -12,7 +12,5 @@ export type EndpointEntity<T extends EndpointDefinition> = {
   write: (
     params: WriteParams<TB.Static<T['responseSchema']>, ExtractEndpointParams<T>>,
   ) => Promise<void>;
-  readLatestRecord: (
-    symbol: string,
-  ) => Promise<StorageRecord<TB.Static<T['responseSchema']>, ExtractEndpointParams<T>> | null>;
+  readLatestRecord: (symbol: string) => Promise<EndpointStorageRecord<T> | null>;
 };

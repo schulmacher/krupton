@@ -5,8 +5,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import {
-  createMdsStorageContext,
-  MdsStorageContext,
+  createStorageContext,
+  StorageContext,
 } from '../../process/storageProcess/context.js';
 import { ensureDir, ensureDirForFile } from '../fs.js';
 
@@ -44,7 +44,7 @@ async function generateChecksumFile(filePath: string, checksumPath: string) {
   return checksum;
 }
 
-export async function doStorageBackup(context: MdsStorageContext) {
+export async function doStorageBackup(context: StorageContext) {
   const { diagnosticContext } = context;
   const storageBaseDir = context.envContext.config.STORAGE_BASE_DIR;
   const backupBaseDir = context.envContext.config.BACKUP_BASE_DIR;
@@ -96,7 +96,7 @@ export async function doStorageBackup(context: MdsStorageContext) {
 }
 
 export async function listBackups(
-  context: MdsStorageContext,
+  context: StorageContext,
   basePath = context.envContext.config.BACKUP_BASE_DIR,
 ) {
   try {
@@ -140,7 +140,7 @@ export async function listBackups(
 }
 
 export async function removeBackupByName(
-  context: MdsStorageContext,
+  context: StorageContext,
   fileName: string,
   basePath = context.envContext.config.BACKUP_BASE_DIR,
 ) {
@@ -170,7 +170,7 @@ export async function removeBackupByName(
 }
 
 export async function removeHistoricalBackups(
-  context: MdsStorageContext,
+  context: StorageContext,
   basePath = context.envContext.config.BACKUP_BASE_DIR,
 ): Promise<void> {
   const { diagnosticContext } = context;
@@ -213,7 +213,7 @@ export async function removeHistoricalBackups(
 }
 
 export async function removeDuplicateBackupsForLatestDate(
-  context: MdsStorageContext,
+  context: StorageContext,
 ): Promise<void> {
   const { diagnosticContext } = context;
 
@@ -261,7 +261,7 @@ export async function removeDuplicateBackupsForLatestDate(
 }
 
 async function main() {
-  const context = createMdsStorageContext();
+  const context = createStorageContext();
   const { diagnosticContext, envContext, processContext } = context;
 
   try {

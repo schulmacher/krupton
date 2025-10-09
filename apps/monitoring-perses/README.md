@@ -33,11 +33,6 @@ This automatically:
 - Builds all dashboards from CUE definitions
 - Deploys datasource, project, and dashboards
 
-## Available Dashboards
-
-- **MDS Fetcher**: Market data simulator fetcher metrics
-- **Node.js Process**: System metrics (CPU, memory, event loop) with job filtering
-
 ## Manual Steps (Optional)
 
 If you prefer to run steps individually:

@@ -2,11 +2,11 @@ import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-n
 import { BinanceApiDefinition } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
 import { createMdsFetcherRateLimiter } from '../../lib/mdsFetcher/mdsFetcherRateLimiter.js';
-import { createEndpointStorageRepository } from '../../repository.js';
 import type { MdsFetcherEnv } from './environment.js';
 import { mdsFetcherEnvSchema } from './environment.js';
+import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 
-export function createMdsFetcherContext() {
+export function createExternalBridgeFetcherContext() {
   const envContext = SF.createEnvContext(mdsFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -17,12 +17,12 @@ export function createMdsFetcherContext() {
     envContext,
     enableDefaultMetrics: true,
     metrics: {
-      fetchCounter: SF.mdsFetcherMetrics.fetchCounter,
-      fetchDuration: SF.mdsFetcherMetrics.fetchDuration,
-      activeSymbolsGauge: SF.mdsFetcherMetrics.activeSymbolsGauge,
-      lastFetchTimestampGauge: SF.mdsFetcherMetrics.lastFetchTimestampGauge,
-      totalFetchesGauge: SF.mdsFetcherMetrics.totalFetchesGauge,
-      totalErrorsGauge: SF.mdsFetcherMetrics.totalErrorsGauge,
+      fetchCounter: SF.externalBridgeFetcherMetrics.fetchCounter,
+      fetchDuration: SF.externalBridgeFetcherMetrics.fetchDuration,
+      activeSymbolsGauge: SF.externalBridgeFetcherMetrics.activeSymbolsGauge,
+      lastFetchTimestampGauge: SF.externalBridgeFetcherMetrics.lastFetchTimestampGauge,
+      totalFetchesGauge: SF.externalBridgeFetcherMetrics.totalFetchesGauge,
+      totalErrorsGauge: SF.externalBridgeFetcherMetrics.totalErrorsGauge,
     },
   });
 
@@ -62,7 +62,7 @@ export function createMdsFetcherContext() {
   };
 }
 
-export type MdsFetcherContext = ReturnType<typeof createMdsFetcherContext>;
+export type MdsFetcherContext = ReturnType<typeof createExternalBridgeFetcherContext>;
 
 export type MdsFetcherMetrics = SF.RegisteredMetrics<MdsFetcherContext>;
 

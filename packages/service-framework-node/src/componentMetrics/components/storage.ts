@@ -59,7 +59,7 @@ const backupSize: MetricConfigGauge = {
   help: 'Total size of backup ZIP archives in remote storage',
 };
 
-export const mdsStorageMetrics = {
+export const storageMetrics = {
   writeOperations,
   readOperations,
   directoryStorageSize,

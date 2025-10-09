@@ -1,8 +1,8 @@
-import type { MdsStorageContext } from '../../process/storageProcess/context.js';
+import type { StorageContext } from '../../process/storageProcess/context.js';
 import { listBackups } from './storageBackup.js';
 import { readStorageStats } from './storageStats.js';
 
-async function reportStats(context: MdsStorageContext, baseDir: string): Promise<void> {
+async function reportStats(context: StorageContext, baseDir: string): Promise<void> {
   const { diagnosticContext } = context;
   try {
     const stats = await readStorageStats(baseDir);
@@ -52,7 +52,7 @@ async function reportStats(context: MdsStorageContext, baseDir: string): Promise
 }
 
 export function createStorageStatsReporter(
-  context: MdsStorageContext,
+  context: StorageContext,
   baseDir: string,
   reportIntervalMs: number = 60000, // Default: 60 seconds
 ) {

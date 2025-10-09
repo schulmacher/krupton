@@ -6,31 +6,31 @@ import {
   EndpointStorageRecord,
 } from '../lib/persistentStorage/endpointStorage.js';
 
-export type BinanceOrderBookStorage = EndpointStorage<typeof BinanceApi.GetOrderBookEndpoint>;
-export type BinanceOrderBookEntity = ReturnType<typeof createBinanceOrderBookEntity>;
+export type BinanceBookTickerStorage = EndpointStorage<typeof BinanceApi.GetBookTickerEndpoint>;
+export type BinanceBookTickerEntity = ReturnType<typeof createBinanceBookTickerEntity>;
 
-type OrderBookRecord = EndpointStorageRecord<typeof BinanceApi.GetOrderBookEndpoint>;
+type BookTickerRecord = EndpointStorageRecord<typeof BinanceApi.GetBookTickerEndpoint>;
 
-function areResponsesIdentical(
-  response1: BinanceApi.GetOrderBookResponse,
-  response2: BinanceApi.GetOrderBookResponse,
+function areResponsesEqual(
+  response1: BinanceApi.GetBookTickerResponse,
+  response2: BinanceApi.GetBookTickerResponse,
 ): boolean {
   return JSON.stringify(response1) === JSON.stringify(response2);
 }
 
-function createBinanceOrderBookStorage(baseDir: string): BinanceOrderBookStorage {
-  return createEndpointStorage(baseDir, BinanceApi.GetOrderBookEndpoint);
+function createBinanceBookTickerStorage(baseDir: string): BinanceBookTickerStorage {
+  return createEndpointStorage(baseDir, BinanceApi.GetBookTickerEndpoint);
 }
 
-export function createBinanceOrderBookEntity(baseDir: string) {
-  const storage = createBinanceOrderBookStorage(baseDir);
+export function createBinanceBookTickerEntity(baseDir: string) {
+  const storage = createBinanceBookTickerStorage(baseDir);
 
   return {
     storage,
 
     async write(params: {
-      request: BinanceApi.GetOrderBookRequest;
-      response: BinanceApi.GetOrderBookResponse;
+      request: BinanceApi.GetBookTickerRequest;
+      response: BinanceApi.GetBookTickerResponse;
     }): Promise<void> {
       const timestamp = Date.now();
       const symbol = params.request.query?.symbol;
@@ -42,7 +42,7 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       const existingLastRecord = await storage.readLastRecord(symbol);
 
       if (existingLastRecord) {
-        if (areResponsesIdentical(existingLastRecord.response, params.response)) {
+        if (areResponsesEqual(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
             subIndexDir: symbol,
             record: {
@@ -66,8 +66,8 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
+    async readLatestRecord(symbol: string): Promise<BookTickerRecord | null> {
       return await storage.readLastRecord(symbol);
     },
-  } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
+  } satisfies EndpointEntity<typeof BinanceApi.GetBookTickerEndpoint>;
 }

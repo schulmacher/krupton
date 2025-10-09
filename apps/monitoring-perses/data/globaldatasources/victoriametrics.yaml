@@ -1,9 +1,9 @@
 kind: GlobalDatasource
 metadata:
     name: victoriametrics
-    createdAt: 2025-10-06T13:08:16.310719Z
-    updatedAt: 2025-10-06T22:06:01.152993Z
-    version: 23
+    createdAt: 2025-10-09T09:05:49.036651Z
+    updatedAt: 2025-10-09T09:11:28.061141Z
+    version: 1
 spec:
     default: true
     plugin:

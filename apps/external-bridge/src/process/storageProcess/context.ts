@@ -2,7 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 import type { StorageEnv } from './environment.js';
 import { storageEnvSchema } from './environment.js';
 
-export function createMdsStorageContext(customEnv?: Record<string, string | undefined>) {
+export function createStorageContext(customEnv?: Record<string, string | undefined>) {
   const envContext = SF.createEnvContext(storageEnvSchema, { source: customEnv });
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -13,13 +13,13 @@ export function createMdsStorageContext(customEnv?: Record<string, string | unde
     envContext,
     enableDefaultMetrics: true,
     metrics: {
-      directoryStorageSize: SF.mdsStorageMetrics.directoryStorageSize,
-      directoryFileCount: SF.mdsStorageMetrics.directoryFileCount,
-      directoryLastUpdated: SF.mdsStorageMetrics.directoryLastUpdated,
-      backupSuccesses: SF.mdsStorageMetrics.backupSuccesses,
-      backupFailures: SF.mdsStorageMetrics.backupFailures,
-      backupLastTimestamp: SF.mdsStorageMetrics.backupLastTimestamp,
-      backupSize: SF.mdsStorageMetrics.backupSize,
+      directoryStorageSize: SF.storageMetrics.directoryStorageSize,
+      directoryFileCount: SF.storageMetrics.directoryFileCount,
+      directoryLastUpdated: SF.storageMetrics.directoryLastUpdated,
+      backupSuccesses: SF.storageMetrics.backupSuccesses,
+      backupFailures: SF.storageMetrics.backupFailures,
+      backupLastTimestamp: SF.storageMetrics.backupLastTimestamp,
+      backupSize: SF.storageMetrics.backupSize,
     },
   });
 
@@ -35,8 +35,8 @@ export function createMdsStorageContext(customEnv?: Record<string, string | unde
   };
 }
 
-export type MdsStorageContext = ReturnType<typeof createMdsStorageContext>;
+export type StorageContext = ReturnType<typeof createStorageContext>;
 
-export type MdsStorageMetrics = SF.RegisteredMetrics<MdsStorageContext>;
+export type StorageMetrics = SF.RegisteredMetrics<StorageContext>;
 
-export type MdsStorageServiceContext = SF.ServiceContext<StorageEnv, MdsStorageMetrics>;
+export type StorageServiceContext = SF.ServiceContext<StorageEnv, StorageMetrics>;

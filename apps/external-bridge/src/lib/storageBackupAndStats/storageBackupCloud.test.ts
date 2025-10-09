@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMdsStorageContext } from '../../process/storageProcess/context.js';
+import { createStorageContext } from '../../process/storageProcess/context.js';
 import {
   listMockCloudFiles,
   resetMockCloudStorage,
@@ -107,7 +107,7 @@ describe('storageBackupCloud', () => {
     expect(initialCloudFiles.length).toBeGreaterThan(0);
 
     // Run sync
-    const context = createMdsStorageContext({
+    const context = createStorageContext({
       LOG_LEVEL: 'fatal',
       CLOUD_SYNC_ENABLED: 'true',
       BACKUP_BASE_DIR: testBackupDir,

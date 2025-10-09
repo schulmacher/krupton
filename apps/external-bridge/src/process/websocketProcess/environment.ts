@@ -17,7 +17,7 @@ export const websocketEnvSchema = TB.Object({
 
   API_BASE_URL: TB.String({
     description: 'Base URL for the websocket streams API',
-    default: 'wss://stream.testnet.binance.vision/ws',
+    default: 'wss://stream.testnet.binance.vision/stream?streams',
   }),
 
   // Symbol configuration

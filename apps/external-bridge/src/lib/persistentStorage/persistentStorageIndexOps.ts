@@ -8,7 +8,7 @@ import {
   replaceLastIndexEntry,
   TimeSource,
   type IndexEntry
-} from './endpointStorageIndex.js';
+} from './persistentStorageIndex.js';
 
 export type StorageRecordForReindex = {
   timestamp: number;

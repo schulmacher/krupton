@@ -1,8 +1,8 @@
 import { join } from 'node:path';
-import { createBinanceBookTickerEntity } from './storageEntity/binanceBookTickerEntity.js';
-import { createBinanceExchangeInfoEntity } from './storageEntity/binanceExchangeInfoEntity.js';
-import { createBinanceHistoricalTradeEntity } from './storageEntity/binanceHistoricalTradeEntity.js';
-import { createBinanceOrderBookEntity } from './storageEntity/binanceOrderBookEntity.js';
+import { createBinanceBookTickerEntity } from './endpointStorageEntity/binanceBookTickerEntity.js';
+import { createBinanceExchangeInfoEntity } from './endpointStorageEntity/binanceExchangeInfoEntity.js';
+import { createBinanceHistoricalTradeEntity } from './endpointStorageEntity/binanceHistoricalTradeEntity.js';
+import { createBinanceOrderBookEntity } from './endpointStorageEntity/binanceOrderBookEntity.js';
 
 export function createEndpointStorageRepository(storageBaseDir: string, platform: string) {
   const baseDir = join(storageBaseDir, platform);

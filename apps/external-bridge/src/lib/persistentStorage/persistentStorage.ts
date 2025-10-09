@@ -1,30 +1,26 @@
-import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
-import type { TB } from '@krupton/service-framework-node/typebox';
 import { constants } from 'node:fs';
 import { access, appendFile, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ensureFile } from '../fs.js';
 import { createPromiseLock } from '../promise.js';
-import { getLastIndexEntry } from './endpointStorageIndex.js';
+import { getLastIndexEntry } from './persistentStorageIndex.js';
 import {
   addRowIndexes,
   readFromLastIndex,
   reindexAllFiles,
   replaceLastRowBasedOnIndex,
   serializeRecords,
-} from './endpointStorageIndexOps.js';
+} from './persistentStorageIndexOps.js';
 
 const FS_PAGE_SIZE = 4096;
 const MAX_FILE_SIZE_BYTES = FS_PAGE_SIZE * 25600; // ~100MB (4096 * 25600 = 104,857,600 bytes)
 
-export type StorageRecord<TResponse, TRequest> = {
+export type StorageRecord<T extends Record<string, unknown>> = {
   timestamp: number;
-  request: TRequest;
-  response: TResponse;
-};
+} & T;
 
-type WriteRecordParams<TResponse, TRequest> = {
-  record: StorageRecord<TResponse, TRequest>;
+type WriteRecordParams<T extends Record<string, unknown>> = {
+  record: StorageRecord<T>;
   subIndexDir: string;
 };
 
@@ -32,11 +28,6 @@ type ReadRecordsParams = {
   subIndexDir: string;
   fileName: string;
 };
-
-
-function normalizeEndpointPath(endpoint: string): string {
-  return endpoint.replace(/^\/+/, '').replace(/\//g, '_');
-}
 
 function formatFileName(globalLineIndex: bigint): string {
   return globalLineIndex.toString().padStart(32, '0');
@@ -46,23 +37,13 @@ function getInitialFileName(): string {
   return '00000000000000000000000000000000';
 }
 
-export function createEndpointStorage<T extends EndpointDefinition>(
-  baseDir: string,
-  endpoint: T,
-) {
-  type ResponseType = TB.Static<T['responseSchema']>;
-  type RequestType = ExtractEndpointParams<T>;
-
-  const endpointPath = endpoint.path;
-  const normalizedEndpoint = normalizeEndpointPath(endpointPath);
-  const baseDirWithEndpoint = join(baseDir, normalizedEndpoint);
-
+export function createPersistentStorage<T extends Record<string, unknown>>(baseDir: string) {
   const promiseLock = createPromiseLock();
 
   const currentFileNameCache = new Map<string, string>();
 
   const getFilePath = (subIndexDir: string, fileName: string): string => {
-    return join(baseDirWithEndpoint, subIndexDir, `${fileName}.jsonl`);
+    return join(baseDir, subIndexDir, `${fileName}.jsonl`);
   };
 
   const listJsonlFilesInDirectory = async (directory: string): Promise<string[]> => {
@@ -72,8 +53,14 @@ export function createEndpointStorage<T extends EndpointDefinition>(
         .filter((file) => file.endsWith('.jsonl'))
         .map((file) => join(directory, file))
         .sort((a, b) => {
-          const aName = a.split('/').pop()!.replace(/\.jsonl$/, '');
-          const bName = b.split('/').pop()!.replace(/\.jsonl$/, '');
+          const aName = a
+            .split('/')
+            .pop()!
+            .replace(/\.jsonl$/, '');
+          const bName = b
+            .split('/')
+            .pop()!
+            .replace(/\.jsonl$/, '');
           return aName.localeCompare(bName);
         });
     } catch (error) {
@@ -90,17 +77,20 @@ export function createEndpointStorage<T extends EndpointDefinition>(
       return cached;
     }
 
-    const subDir = join(baseDirWithEndpoint, subIndexDir);
+    const subDir = join(baseDir, subIndexDir);
     const files = await listJsonlFilesInDirectory(subDir);
-    
+
     let fileName: string;
     if (files.length === 0) {
       fileName = getInitialFileName();
     } else {
       const lastFile = files[files.length - 1]!;
-      fileName = lastFile.split('/').pop()!.replace(/\.jsonl$/, '');
+      fileName = lastFile
+        .split('/')
+        .pop()!
+        .replace(/\.jsonl$/, '');
     }
-    
+
     currentFileNameCache.set(subIndexDir, fileName);
     return fileName;
   };
@@ -121,7 +111,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(
   const createNextFileName = async (subIndexDir: string, currentFile: string): Promise<string> => {
     const currentFilePath = getFilePath(subIndexDir, currentFile);
     const lastEntry = await getLastIndexEntry({ indexPath: currentFilePath });
-    
+
     if (!lastEntry) {
       throw new Error('Cannot create next file: current file has no entries');
     }
@@ -132,7 +122,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(
 
   async function writeRecords(
     filePath: string,
-    records: StorageRecord<ResponseType, RequestType>[],
+    records: StorageRecord<T>[],
     writeMethod: typeof writeFile | typeof appendFile,
   ): Promise<void> {
     await ensureFile(filePath);
@@ -144,10 +134,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(
   }
 
   return {
-    endpointPath,
-    normalizedEndpoint,
-
-    async writeRecord(params: WriteRecordParams<ResponseType, RequestType>): Promise<void> {
+    async writeRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
       const { record, subIndexDir } = params;
       const fileName = await getCurrentOrInitialFileName(subIndexDir);
@@ -156,17 +143,17 @@ export function createEndpointStorage<T extends EndpointDefinition>(
       await writeRecords(filePath, [record], writeFile);
     },
 
-    async appendRecord(params: WriteRecordParams<ResponseType, RequestType>): Promise<void> {
+    async appendRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
       const { record, subIndexDir } = params;
-      
+
       let fileName = await getCurrentOrInitialFileName(subIndexDir);
-      
+
       if (await shouldRotateFile(subIndexDir, fileName)) {
         fileName = await createNextFileName(subIndexDir, fileName);
         currentFileNameCache.set(subIndexDir, fileName);
       }
-      
+
       const filePath = getFilePath(subIndexDir, fileName);
 
       try {
@@ -181,9 +168,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(
       }
     },
 
-    async readRecords(
-      params: ReadRecordsParams,
-    ): Promise<StorageRecord<ResponseType, RequestType>[]> {
+    async readRecords(params: ReadRecordsParams): Promise<StorageRecord<T>[]> {
       await promiseLock.waitForRelease();
       const { subIndexDir, fileName } = params;
       const filePath = getFilePath(subIndexDir, fileName);
@@ -195,7 +180,7 @@ export function createEndpointStorage<T extends EndpointDefinition>(
           .split('\n')
           .filter((line) => line.length > 0);
 
-        return lines.map((line) => JSON.parse(line) as StorageRecord<ResponseType, RequestType>);
+        return lines.map((line) => JSON.parse(line) as StorageRecord<T>);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
           return [];
@@ -204,23 +189,22 @@ export function createEndpointStorage<T extends EndpointDefinition>(
       }
     },
 
-    async readLastRecord(subIndexDir: string): Promise<StorageRecord<ResponseType, RequestType> | null> {
+    async readLastRecord(subIndexDir: string): Promise<StorageRecord<T> | null> {
       await promiseLock.waitForRelease();
       const fileName = await getCurrentOrInitialFileName(subIndexDir);
       const filePath = getFilePath(subIndexDir, fileName);
 
-      return readFromLastIndex<StorageRecord<ResponseType, RequestType>>(filePath);
+      return readFromLastIndex<StorageRecord<T>>(filePath);
     },
 
-    async replaceLastRecord(params: WriteRecordParams<ResponseType, RequestType>): Promise<void> {
+    async replaceLastRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
       const { record, subIndexDir } = params;
       const fileName = await getCurrentOrInitialFileName(subIndexDir);
       const filePath = getFilePath(subIndexDir, fileName);
 
-      await replaceLastRowBasedOnIndex<StorageRecord<ResponseType, RequestType>>(filePath, record);
+      await replaceLastRowBasedOnIndex<StorageRecord<T>>(filePath, record);
     },
-
 
     async reindexAll(): Promise<void> {
       promiseLock.lock();
@@ -229,10 +213,8 @@ export function createEndpointStorage<T extends EndpointDefinition>(
         // List all subdirectories (subIndexDirs)
         let subIndexDirs: string[];
         try {
-          const entries = await readdir(baseDirWithEndpoint, { withFileTypes: true });
-          subIndexDirs = entries
-            .filter((entry) => entry.isDirectory())
-            .map((entry) => entry.name);
+          const entries = await readdir(baseDir, { withFileTypes: true });
+          subIndexDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
             return; // No directory exists yet, nothing to reindex
@@ -242,12 +224,12 @@ export function createEndpointStorage<T extends EndpointDefinition>(
 
         // Reindex files in each subIndexDir separately
         for (const subIndexDir of subIndexDirs) {
-          const subDir = join(baseDirWithEndpoint, subIndexDir);
+          const subDir = join(baseDir, subIndexDir);
           const listAllFiles = async (): Promise<string[]> => {
             return await listJsonlFilesInDirectory(subDir);
           };
 
-          await reindexAllFiles<StorageRecord<ResponseType, RequestType>>(listAllFiles);
+          await reindexAllFiles<StorageRecord<T>>(listAllFiles);
         }
       } finally {
         void promiseLock.release(void 0);
@@ -256,6 +238,6 @@ export function createEndpointStorage<T extends EndpointDefinition>(
   };
 }
 
-export type EndpointStorage<T extends EndpointDefinition> = ReturnType<
-  typeof createEndpointStorage<T>
+export type PersistentStorage<T extends Record<string, unknown>> = ReturnType<
+  typeof createPersistentStorage<T>
 >;

@@ -15,32 +15,99 @@ const CommonDefinition = {
   commonResponseStream: BinanceWS.CommonResponseStream,
 };
 
+function wrapHandlersWithMetrics<TDefinitions extends Record<string, WebSocketStreamDefinition>>(
+  serviceContext: WebsocketServiceContext,
+  handlers: StreamHandlersWithDefinitions<TDefinitions>,
+  platform: string,
+): StreamHandlersWithDefinitions<TDefinitions> {
+  const { metricsContext } = serviceContext;
+  const wrappedHandlers = {} as StreamHandlersWithDefinitions<TDefinitions>;
+
+  for (const [streamKey, handlerWithDef] of Object.entries(handlers)) {
+    const key = streamKey as keyof TDefinitions;
+    wrappedHandlers[key] = {
+      definition: handlerWithDef.definition,
+      handler: async (data, raw) => {
+        const startTime = Date.now();
+        try {
+          await handlerWithDef.handler(data, raw);
+          metricsContext.metrics.messagesReceived.inc({
+            platform,
+            stream_type: streamKey,
+            status: 'success',
+          });
+          metricsContext.metrics.lastMessageTimestamp.set(
+            { platform, stream_type: streamKey },
+            Date.now() / 1000,
+          );
+        } catch (error) {
+          metricsContext.metrics.messagesReceived.inc({
+            platform,
+            stream_type: streamKey,
+            status: 'error',
+          });
+          throw error;
+        } finally {
+          const duration = (performance.now() - startTime) / 1000;
+          metricsContext.metrics.messageProcessingDuration.observe(
+            { platform, stream_type: streamKey },
+            duration,
+          );
+        }
+      },
+    } as StreamHandlersWithDefinitions<TDefinitions>[keyof TDefinitions];
+  }
+
+  return wrappedHandlers;
+}
+
 export class BinanceWebsocketManager<
   TDefinitions extends Record<string, WebSocketStreamDefinition>,
-  THandlers extends StreamHandlersWithDefinitions<TDefinitions>,
-  TSubscriptions extends StreamSubscriptions<TDefinitions>,
 > {
   #serviceContext: WebsocketServiceContext;
   #consumer: WebSocketConsumer;
-  #subscriptions: TSubscriptions;
+  #subscriptions: StreamSubscriptions<TDefinitions>;
   #pendingRequests: Map<number, PromiseLock<BinanceWS.CommonResponseStream>> = new Map();
   #requestIdCounter: number = 0;
 
+  // Binance requires a new connection every 24 hours
+  #reconnectionTimer: NodeJS.Timeout | null = null;
+  #isReconnecting: boolean = false;
+  #connectionStartTime: number | null = null;
+  #uptimeUpdateInterval: NodeJS.Timeout | null = null;
+
   constructor(
     serviceContext: WebsocketServiceContext,
-    handlers: THandlers,
-    subscriptions: TSubscriptions,
+    handlers: StreamHandlersWithDefinitions<TDefinitions>,
+    subscriptions: StreamSubscriptions<TDefinitions>,
   ) {
-    const { envContext } = serviceContext;
+    const { envContext, metricsContext } = serviceContext;
+    const platform = envContext.config.PLATFORM;
 
     this.#serviceContext = serviceContext;
     this.#subscriptions = subscriptions;
+
+    const wrappedHandlers = wrapHandlersWithMetrics(serviceContext, handlers, platform);
+
     this.#consumer = createWSConsumer(
       {
-        ...handlers,
+        ...wrappedHandlers,
         ...createWSHandlers(CommonDefinition, {
-          commonResponseStream: (data) => {
-            this.handleCommonResponse(data);
+          commonResponseStream: async (data) => {
+            const pending = this.#pendingRequests.get(data.id);
+
+            if (!pending) {
+              this.#serviceContext.diagnosticContext.logger.warn(
+                'Received response for unknown request',
+                {
+                  response: data,
+                },
+              );
+
+              return;
+            }
+
+            await pending.release(data);
           },
         }),
       },
@@ -50,10 +117,16 @@ export class BinanceWebsocketManager<
       },
       {
         onClose: (code, reason) => {
-          console.log(`WebSocket closed: ${code} ${reason}`);
+          metricsContext.metrics.connectionStatus.set({ platform }, 0);
+          this.#stopUptimeTracking();
+          serviceContext.diagnosticContext.logger.info(`WebSocket closed: ${code} ${reason}`);
         },
         onError: (error) => {
           if (error instanceof WebSocketValidationError) {
+            metricsContext.metrics.validationErrors.inc({
+              platform,
+              stream_type: error.streamType || 'unknown',
+            });
             serviceContext.diagnosticContext.logger.error(
               `WebSocket validation error for stream "${error.streamType}"`,
               error.getLogData(),
@@ -68,10 +141,14 @@ export class BinanceWebsocketManager<
           }
         },
         onOpen: () => {
-          console.log('WebSocket opened');
+          metricsContext.metrics.connectionStatus.set({ platform }, 1);
+          this.#connectionStartTime = Date.now();
+          this.#startUptimeTracking();
+          serviceContext.diagnosticContext.logger.info('WebSocket opened');
         },
         onReconnect: (attempt) => {
-          console.log(`WebSocket reconnected: ${attempt}`);
+          metricsContext.metrics.reconnectionAttempts.inc({ platform });
+          serviceContext.diagnosticContext.logger.info(`WebSocket reconnected: attempt ${attempt}`);
         },
       },
     );
@@ -98,7 +175,8 @@ export class BinanceWebsocketManager<
   }
 
   async connect() {
-    const { diagnosticContext } = this.#serviceContext;
+    const { diagnosticContext, metricsContext, envContext } = this.#serviceContext;
+    const platform = envContext.config.PLATFORM;
 
     // Connect to the WebSocket
     this.#consumer.connect();
@@ -116,11 +194,18 @@ export class BinanceWebsocketManager<
 
     const response = await this.#sendRequestAndWaitForResponse(subscriptionRequest, 5_000);
 
+    // Update active subscriptions metric
+    const totalSubscriptions = subscriptionRequest.params.length;
+    metricsContext.metrics.activeSubscriptions.set({ platform }, totalSubscriptions);
+
     diagnosticContext.logger.info('BinanceWebsocketManager connected and subscribed', {
       symbols: this.#subscriptions,
       streams: subscriptionRequest.params,
       responseId: response.id,
     });
+
+    // Schedule reconnection before 24-hour limit
+    this.#scheduleReconnection();
   }
 
   async unsubscribe() {
@@ -137,9 +222,16 @@ export class BinanceWebsocketManager<
   }
 
   async disconnect() {
-    const { diagnosticContext } = this.#serviceContext;
+    const { diagnosticContext, metricsContext, envContext } = this.#serviceContext;
+    const platform = envContext.config.PLATFORM;
 
+    this.#clearReconnectionTimer();
+    this.#stopUptimeTracking();
     this.#consumer.disconnect();
+
+    // Reset metrics
+    metricsContext.metrics.connectionStatus.set({ platform }, 0);
+    metricsContext.metrics.activeSubscriptions.set({ platform }, 0);
 
     diagnosticContext.logger.info('BinanceWebsocketManager disconnected');
   }
@@ -156,20 +248,6 @@ export class BinanceWebsocketManager<
         reject(new Error(`WebSocket connection timeout after ${ms}ms`));
       }, ms);
     });
-  }
-
-  async handleCommonResponse(response: BinanceWS.CommonResponseStream) {
-    const pending = this.#pendingRequests.get(response.id);
-
-    if (!pending) {
-      this.#serviceContext.diagnosticContext.logger.warn('Received response for unknown request', {
-        response,
-      });
-
-      return;
-    }
-
-    await pending.release(response);
   }
 
   async #sendRequestAndWaitForResponse(
@@ -209,5 +287,87 @@ export class BinanceWebsocketManager<
     }
 
     return response;
+  }
+
+  #scheduleReconnection() {
+    const { diagnosticContext } = this.#serviceContext;
+    const TWENTY_THREE_HOURS_MS = 23 * 60 * 60 * 1000;
+
+    this.#clearReconnectionTimer();
+
+    this.#reconnectionTimer = setTimeout(() => {
+      diagnosticContext.logger.info(
+        'BinanceWebsocketManager initiating scheduled reconnection after 23 hours',
+      );
+
+      this.#performReconnection().catch((error) => {
+        diagnosticContext.logger.error(
+          'BinanceWebsocketManager failed to reconnect',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          error as any,
+        );
+      });
+    }, TWENTY_THREE_HOURS_MS);
+
+    diagnosticContext.logger.info('BinanceWebsocketManager scheduled reconnection in 23 hours');
+  }
+
+  #clearReconnectionTimer() {
+    if (this.#reconnectionTimer) {
+      clearTimeout(this.#reconnectionTimer);
+      this.#reconnectionTimer = null;
+    }
+  }
+
+  async #performReconnection() {
+    const { diagnosticContext } = this.#serviceContext;
+
+    if (this.#isReconnecting) {
+      diagnosticContext.logger.warn('BinanceWebsocketManager reconnection already in progress');
+      return;
+    }
+
+    this.#isReconnecting = true;
+
+    try {
+      diagnosticContext.logger.info('BinanceWebsocketManager disconnecting');
+      await this.disconnect();
+
+      diagnosticContext.logger.info('BinanceWebsocketManager reconnecting');
+      await this.connect();
+
+      diagnosticContext.logger.info('BinanceWebsocketManager reconnection completed successfully');
+    } catch (error) {
+      diagnosticContext.logger.error(
+        'BinanceWebsocketManager reconnection failed',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        error as any,
+      );
+      throw error;
+    } finally {
+      this.#isReconnecting = false;
+    }
+  }
+
+  #startUptimeTracking() {
+    const { metricsContext, envContext } = this.#serviceContext;
+    const platform = envContext.config.PLATFORM;
+
+    this.#stopUptimeTracking();
+
+    // Update uptime every 10 seconds
+    this.#uptimeUpdateInterval = setInterval(() => {
+      if (this.#connectionStartTime !== null) {
+        const uptimeSeconds = (Date.now() - this.#connectionStartTime) / 1000;
+        metricsContext.metrics.connectionUptime.set({ platform }, uptimeSeconds);
+      }
+    }, 10_000);
+  }
+
+  #stopUptimeTracking() {
+    if (this.#uptimeUpdateInterval) {
+      clearInterval(this.#uptimeUpdateInterval);
+      this.#uptimeUpdateInterval = null;
+    }
   }
 }

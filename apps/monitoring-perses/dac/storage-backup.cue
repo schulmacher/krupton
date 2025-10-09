@@ -46,7 +46,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "mds_storage_storage_backup_size_bytes"
+												query: "external_bridge_storage_storage_backup_size_bytes"
 											}
 										}
 									}
@@ -79,7 +79,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "(time() - mds_storage_storage_backup_last_timestamp_seconds) / 3600"
+												query: "(time() - external_bridge_storage_storage_backup_last_timestamp_seconds) / 3600"
 											}
 										}
 									}
@@ -112,7 +112,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "mds_storage_storage_backup_successes_total / (mds_storage_storage_backup_successes_total + mds_storage_storage_backup_failures_total)"
+												query: "external_bridge_storage_storage_backup_successes_total / (external_bridge_storage_storage_backup_successes_total + external_bridge_storage_storage_backup_failures_total)"
 											}
 										}
 									}
@@ -151,7 +151,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_backup_size_bytes"
+												query:            "external_bridge_storage_storage_backup_size_bytes"
 												seriesNameFormat: "Total Size"
 											}
 										}
@@ -185,7 +185,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "rate(mds_storage_storage_backup_size_bytes[5m])"
+												query:            "rate(external_bridge_storage_storage_backup_size_bytes[5m])"
 												seriesNameFormat: "Growth Rate"
 											}
 										}
@@ -228,7 +228,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "changes(mds_storage_storage_backup_successes_total[1h])"
+												query:            "changes(external_bridge_storage_storage_backup_successes_total[1h])"
 												seriesNameFormat: "Backups"
 											}
 										}
@@ -262,7 +262,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "(time() - mds_storage_storage_backup_last_timestamp_seconds) / 3600"
+												query:            "(time() - external_bridge_storage_storage_backup_last_timestamp_seconds) / 3600"
 												seriesNameFormat: "Backup Age (hours)"
 											}
 										}
@@ -302,7 +302,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_backup_successes_total"
+												query:            "external_bridge_storage_storage_backup_successes_total"
 												seriesNameFormat: "Successful"
 											}
 										}
@@ -336,7 +336,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "mds_storage_storage_backup_failures_total"
+												query:            "external_bridge_storage_storage_backup_failures_total"
 												seriesNameFormat: "Failed"
 											}
 										}

@@ -1,14 +1,14 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getIndexEntryCount, readIndex, readIndexHeader } from './endpointStorageIndex.js';
+import { getIndexEntryCount, readIndex, readIndexHeader } from './persistentStorageIndex.js';
 import {
   readFromLastIndex,
   reindexAllFiles,
   replaceLastRowBasedOnIndex
-} from './endpointStorageIndexOps.js';
+} from './persistentStorageIndexOps.js';
 
-describe('endpointStorageIndexOps', () => {
+describe('persistentStorageIndexOps', () => {
   let tempDir: string;
 
   beforeEach(async () => {

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { createMdsFetcherContext } from './process/fetcherProcess/context.js';
+import { createExternalBridgeFetcherContext } from './process/fetcherProcess/context.js';
 import { startMdsFetcherService } from './process/fetcherProcess/fetcherProcess.js';
 
 async function bootstrap(): Promise<void> {
   try {
-    const context = createMdsFetcherContext();
+    const context = createExternalBridgeFetcherContext();
 
     context.diagnosticContext.logger.info('Bootstrapping mdsFetcher service', {
       processName: context.envContext.config.PROCESS_NAME,

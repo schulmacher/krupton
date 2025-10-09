@@ -44,7 +44,7 @@ const totalErrorsGauge: MetricConfigGauge = {
   help: 'Total number of fetch errors encountered',
 };
 
-export const mdsFetcherMetrics = {
+export const externalBridgeFetcherMetrics = {
   fetchCounter,
   fetchDuration,
   activeSymbolsGauge,

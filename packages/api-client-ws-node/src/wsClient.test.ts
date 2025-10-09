@@ -6,13 +6,14 @@ import type { WebSocketStreamDefinition } from './types.js';
 
 // Mock WebSocket stream definitions
 const MockTradeStream = {
-  streamNamePattern: 'trade',
+  streamName: 'trade',
   messageSchema: TB.Object({
     type: TB.Literal('trade'),
     symbol: TB.String(),
     price: TB.String(),
     quantity: TB.String(),
   }),
+  params: TB.Object({}),
   messageIdentifier: (message: unknown): boolean => {
     return (
       typeof message === 'object' &&
@@ -24,7 +25,8 @@ const MockTradeStream = {
 } satisfies WebSocketStreamDefinition;
 
 const MockDepthStream = {
-  streamNamePattern: 'depth',
+  streamName: 'depth',
+  params: TB.Object({}),
   messageSchema: TB.Object({
     type: TB.Literal('depth'),
     symbol: TB.String(),

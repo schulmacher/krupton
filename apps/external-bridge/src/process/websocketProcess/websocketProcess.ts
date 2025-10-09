@@ -33,20 +33,34 @@ export async function startWebsocketService(context: WebsocketContext): Promise<
   const websocketManager = new BinanceWebsocketManager(
     context,
     createWSHandlers(BinanceWSDefinition, {
-      tradeStream: (data) => {
-        console.log('tradeStream', data);
+      tradeStream: (message) => {
+        context.websocketStorageRepository.binanceTrade.write({
+          message,
+        });
       },
-      partialBookDepthStream: (data) => {
-        console.log('partialBookDepthStream', data);
+      partialBookDepthStream: (message) => {
+        context.websocketStorageRepository.binancePartialDepth.write({
+          message,
+        });
       },
-      diffDepthStream: (data) => {
-        console.log('diffDepthStream', data);
+      diffDepthStream: (message) => {
+        context.websocketStorageRepository.binanceDiffDepth.write({
+          message,
+        });
       },
     }),
     {
-      tradeStream: symbols.map((s) => BinanceWS.getTradeStreamSubscriptionName(s)),
-      partialBookDepthStream: symbols.map((s) => BinanceWS.getPartialBookDepthStreamSubscriptionName(s)),
-      diffDepthStream: symbols.map((s) => BinanceWS.getDiffDepthStreamSubscriptionName(s)),
+      tradeStream: symbols.map((s) => BinanceWS.getTradeStreamSubscriptionName({ symbol: s })),
+      partialBookDepthStream: symbols.map((s) =>
+        BinanceWS.getPartialBookDepthStreamSubscriptionName({
+          symbol: s,
+          level: '5',
+          time: '100ms',
+        }),
+      ),
+      diffDepthStream: symbols.map((s) =>
+        BinanceWS.getDiffDepthStreamSubscriptionName({ symbol: s, time: '100ms' }),
+      ),
     },
   );
 
@@ -56,7 +70,6 @@ export async function startWebsocketService(context: WebsocketContext): Promise<
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
       diagnosticContext.logger.info('Shutting down websocket services');
-      await websocketManager.unsubscribe();
       await websocketManager.disconnect();
     });
   };

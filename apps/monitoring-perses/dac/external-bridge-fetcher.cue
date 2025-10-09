@@ -6,11 +6,11 @@ import (
 )
 
 dashboardBuilder & {
-	#name:    "mds-fetcher"
+	#name:    "external-bridge-fetcher"
 	#project: "default"
 	#display: {
-		name:        "Market Data Simulator - Fetcher"
-		description: "Monitoring dashboard for MDS Fetcher component showing fetch requests, duration, active symbols, and error metrics"
+		name:        "External Bridge - Fetcher"
+		description: "Monitoring dashboard for External Bridge Fetcher component showing fetch requests, duration, active symbols, and error metrics"
 	}
 	#duration:        "1h"
 	#refreshInterval: "30s"
@@ -46,7 +46,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "mds_fetcher_active_symbols"
+												query: "external_bridge_fetcher_active_symbols"
 											}
 										}
 									}
@@ -79,7 +79,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "mds_fetcher_total_fetches"
+												query: "external_bridge_fetcher_total_fetches"
 											}
 										}
 									}
@@ -112,7 +112,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "time() - mds_fetcher_last_fetch_timestamp_seconds"
+												query: "time() - external_bridge_fetcher_last_fetch_timestamp_seconds"
 											}
 										}
 									}
@@ -145,7 +145,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "mds_fetcher_total_errors"
+												query: "external_bridge_fetcher_total_errors"
 											}
 										}
 									}
@@ -183,7 +183,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform, endpoint, status) (rate(mds_fetcher_fetch_requests_total[1m]))"
+												query: "sum by (platform, endpoint, status) (rate(external_bridge_fetcher_fetch_requests_total[1m]))"
 											}
 										}
 									}
@@ -220,7 +220,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "100 * (sum(rate(mds_fetcher_fetch_requests_total{status=\"success\"}[1m])) / sum(rate(mds_fetcher_fetch_requests_total[1m])))"
+												query: "100 * (sum(rate(external_bridge_fetcher_fetch_requests_total{status=\"success\"}[1m])) / sum(rate(external_bridge_fetcher_fetch_requests_total[1m])))"
 											}
 										}
 									}
@@ -252,7 +252,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform) (rate(mds_fetcher_fetch_requests_total[1m]))"
+												query: "sum by (platform) (rate(external_bridge_fetcher_fetch_requests_total[1m]))"
 											}
 										}
 									}
@@ -284,7 +284,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (endpoint) (rate(mds_fetcher_fetch_requests_total[1m]))"
+												query: "sum by (endpoint) (rate(external_bridge_fetcher_fetch_requests_total[1m]))"
 											}
 										}
 									}
@@ -323,7 +323,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "histogram_quantile(0.50, rate(mds_fetcher_fetch_duration_seconds_bucket[1m]))"
+												query:            "histogram_quantile(0.50, rate(external_bridge_fetcher_fetch_duration_seconds_bucket[1m]))"
 												seriesNameFormat: "p50 - {{platform}} - {{endpoint}}"
 											}
 										}
@@ -339,7 +339,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "histogram_quantile(0.95, rate(mds_fetcher_fetch_duration_seconds_bucket[1m]))"
+												query:            "histogram_quantile(0.95, rate(external_bridge_fetcher_fetch_duration_seconds_bucket[1m]))"
 												seriesNameFormat: "p95 - {{platform}} - {{endpoint}}"
 											}
 										}
@@ -355,7 +355,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "histogram_quantile(0.99, rate(mds_fetcher_fetch_duration_seconds_bucket[1m]))"
+												query:            "histogram_quantile(0.99, rate(external_bridge_fetcher_fetch_duration_seconds_bucket[1m]))"
 												seriesNameFormat: "p99 - {{platform}} - {{endpoint}}"
 											}
 										}
@@ -388,7 +388,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform, endpoint) (rate(mds_fetcher_fetch_requests_total{status=\"error\"}[1m]))"
+												query: "sum by (platform, endpoint) (rate(external_bridge_fetcher_fetch_requests_total{status=\"error\"}[1m]))"
 											}
 										}
 									}

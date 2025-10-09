@@ -35,11 +35,7 @@ All resources in the `dac/` directory are automatically built and deployed using
 
 - **victoriametrics-datasource.cue**: VictoriaMetrics global datasource definition
 - **project.cue**: Default project definition
-- **mds-fetcher.cue**: Market Data Simulator Fetcher metrics dashboard
 - **nodejs-process.cue**: Node.js process metrics dashboard (prom-client default metrics)
-  - Includes a `job` variable for filtering by Prometheus job name (default: `mds`)
-  - Uses regex matching `{job=~".*${job}.*"}` for partial job name matching
-  - Leave the variable empty to match all jobs, or enter a partial name (e.g., `mds` matches all jobs containing "mds")
 
 ### Adding New Resources
 

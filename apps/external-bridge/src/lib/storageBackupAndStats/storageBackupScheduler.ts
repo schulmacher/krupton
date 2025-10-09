@@ -1,4 +1,4 @@
-import type { MdsStorageContext } from '../../process/storageProcess/context.js';
+import type { StorageContext } from '../../process/storageProcess/context.js';
 import {
   doStorageBackup,
   listBackups,
@@ -6,7 +6,7 @@ import {
   removeHistoricalBackups,
 } from './storageBackup.js';
 
-async function performBackup(context: MdsStorageContext): Promise<void> {
+async function performBackup(context: StorageContext): Promise<void> {
   const { diagnosticContext } = context;
 
   try {
@@ -37,7 +37,7 @@ async function performBackup(context: MdsStorageContext): Promise<void> {
 }
 
 async function calculateNextBackupDelay(
-  context: MdsStorageContext,
+  context: StorageContext,
   backupIntervalMs: number,
 ): Promise<number> {
   const { diagnosticContext } = context;
@@ -90,7 +90,7 @@ async function calculateNextBackupDelay(
 }
 
 export function createStorageBackupScheduler(
-  context: MdsStorageContext,
+  context: StorageContext,
   backupIntervalMs: number = 3 * 60 * 60 * 1000, // Default: 3 hours
 ) {
   const { processContext, diagnosticContext } = context;

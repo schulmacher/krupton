@@ -35,7 +35,7 @@
  * 5. Removes old files from cloud based on retention policy
  */
 
-import { createMdsStorageContext } from '../../process/storageProcess/context.js';
+import { createStorageContext } from '../../process/storageProcess/context.js';
 import { syncLocalAndCloudBackups } from './storageBackupCloud.js';
 
 
@@ -44,7 +44,7 @@ async function testRcloneSync() {
 
   try {
     // Create context
-    const context = createMdsStorageContext();
+    const context = createStorageContext();
 
     console.log('Environment configuration:');
     console.log('- CLOUD_SYNC_ENABLED:', context.envContext.config.CLOUD_SYNC_ENABLED);

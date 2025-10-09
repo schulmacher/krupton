@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MdsStorageContext } from '../../process/storageProcess/context.js';
+import type { StorageContext } from '../../process/storageProcess/context.js';
 
 vi.mock('./storageStats.js', () => ({
   readStorageStats: vi.fn(),
@@ -9,7 +9,7 @@ const { createStorageStatsReporter } = await import('./storageStatsReporter.js')
 const { readStorageStats } = await import('./storageStats.js');
 
 describe('createStorageStatsReporter', () => {
-  let mockContext: MdsStorageContext;
+  let mockContext: StorageContext;
   let mockMetrics: {
     directoryStorageSize: { set: ReturnType<typeof vi.fn> };
     directoryFileCount: { set: ReturnType<typeof vi.fn> };
@@ -56,7 +56,7 @@ describe('createStorageStatsReporter', () => {
         logger: mockLogger,
       },
       processContext: mockProcessContext,
-    } as unknown as MdsStorageContext;
+    } as unknown as StorageContext;
   });
 
   afterEach(() => {

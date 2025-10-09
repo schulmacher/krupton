@@ -1,9 +1,9 @@
 import { SF } from '@krupton/service-framework-node';
-import type { MdsStorageContext } from './context.js';
-import { createStorageStatsReporter } from '../../lib/mdsStorage/storageStatsReporter.js';
-import { createStorageBackupScheduler } from '../../lib/mdsStorage/storageBackupScheduler.js';
+import type { StorageContext } from './context.js';
+import { createStorageStatsReporter } from '../../lib/storageBackupAndStats/storageStatsReporter.js';
+import { createStorageBackupScheduler } from '../../lib/storageBackupAndStats/storageBackupScheduler.js';
 
-export async function startStorageService(context: MdsStorageContext): Promise<void> {
+export async function startStorageService(context: StorageContext): Promise<void> {
   const { diagnosticContext, processContext } = context;
 
   const createHttpServerWithHealthChecks = () =>

@@ -1,10 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
 import {
   createEndpointStorage,
   type EndpointStorage,
   type EndpointStorageRecord,
-} from '../lib/persistentStorage/endpointStorage.js';
+} from '../../lib/persistentStorage/endpointStorage.js';
 
 export type BinanceHistoricalTradeStorage = EndpointStorage<
   typeof BinanceApi.GetHistoricalTradesEndpoint

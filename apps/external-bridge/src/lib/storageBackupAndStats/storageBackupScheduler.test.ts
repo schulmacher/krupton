@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MdsStorageContext } from '../../process/storageProcess/context.js';
+import type { StorageContext } from '../../process/storageProcess/context.js';
 
 vi.mock('./storageBackup.js', () => ({
   doStorageBackup: vi.fn(),
@@ -19,7 +19,7 @@ const {
 } = await import('./storageBackup.js');
 
 describe('createStorageBackupScheduler', () => {
-  let mockContext: MdsStorageContext;
+  let mockContext: StorageContext;
   let mockMetrics: {
     backupSuccesses: { inc: ReturnType<typeof vi.fn> };
     backupFailures: { inc: ReturnType<typeof vi.fn> };
@@ -64,7 +64,7 @@ describe('createStorageBackupScheduler', () => {
         logger: mockLogger,
       },
       processContext: mockProcessContext,
-    } as unknown as MdsStorageContext;
+    } as unknown as StorageContext;
 
     // Default mock implementations
     vi.mocked(doStorageBackup).mockResolvedValue({

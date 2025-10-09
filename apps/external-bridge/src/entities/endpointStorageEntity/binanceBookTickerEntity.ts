@@ -1,15 +1,15 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../lib/endpointStorage/endpointEntity.js';
-import type { EndpointStorage, StorageRecord } from '../lib/endpointStorage/endpointStorage.js';
-import { createEndpointStorage } from '../lib/endpointStorage/endpointStorage.js';
+import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import {
+  createEndpointStorage,
+  EndpointStorage,
+  EndpointStorageRecord,
+} from '../../lib/persistentStorage/endpointStorage.js';
 
 export type BinanceBookTickerStorage = EndpointStorage<typeof BinanceApi.GetBookTickerEndpoint>;
 export type BinanceBookTickerEntity = ReturnType<typeof createBinanceBookTickerEntity>;
 
-type BookTickerRecord = StorageRecord<
-  BinanceApi.GetBookTickerResponse,
-  BinanceApi.GetBookTickerRequest
->;
+type BookTickerRecord = EndpointStorageRecord<typeof BinanceApi.GetBookTickerEndpoint>;
 
 function areResponsesEqual(
   response1: BinanceApi.GetBookTickerResponse,

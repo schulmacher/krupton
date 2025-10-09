@@ -6,29 +6,14 @@ import (
 )
 
 dashboardBuilder & {
-	#name:    "nodejs-process"
+	#name:    "external-bridge-websocket"
 	#project: "default"
 	#display: {
-		name:        "Node.js Process Metrics"
-		description: "System and runtime metrics for Node.js processes from prom-client"
+		name:        "External Bridge - WebSockets"
+		description: "Monitoring dashboard for External Bridge WebSocket component showing connection status, message metrics, and performance"
 	}
 	#duration:        "1h"
 	#refreshInterval: "30s"
-
-	#variables: [
-		{
-			kind: "TextVariable"
-			spec: {
-				name:  "job"
-				value: "external_bridge"
-				display: {
-					name:        "Job"
-					description: "Prometheus job name filter (partial match, leave empty for all)"
-					hidden:      false
-				}
-			}
-		},
-	]
 
 	#panelGroups: panelGroupsBuilder & {
 		#input: [
@@ -40,46 +25,20 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "CPU Usage Rate"
-								description: "CPU seconds per second (user + system)"
-							}
-							plugin: {
-								kind: "TimeSeriesChart"
-								spec: {
-									legend: position: "bottom"
-								}
-							}
-							queries: [
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query: "rate(process_cpu_seconds_total{job=~\".*${job}.*\"}[1m])"
-											}
-										}
-									}
-								},
-							]
-						}
-					},
-					{
-						kind: "Panel"
-						spec: {
-							display: {
-								name:        "Resident Memory"
-								description: "Physical memory used by the process"
+								name:        "Connection Status"
+								description: "WebSocket connection status (1=connected, 0=disconnected)"
 							}
 							plugin: {
 								kind: "StatChart"
 								spec: {
 									calculation: "last"
-									format: unit: "bytes"
+									format: unit: "decimal"
+									thresholds: {
+										defaultColor: "red"
+										steps: [
+											{value: 1, color: "green"},
+										]
+									}
 								}
 							}
 							queries: [
@@ -93,7 +52,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "process_resident_memory_bytes{job=~\".*${job}.*\"}"
+												query: "external_bridge_websocket_websocket_connection_status"
 											}
 										}
 									}
@@ -105,14 +64,14 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Heap Used"
-								description: "Heap memory currently in use"
+								name:        "Active Subscriptions"
+								description: "Number of active WebSocket subscriptions"
 							}
 							plugin: {
 								kind: "StatChart"
 								spec: {
 									calculation: "last"
-									format: unit: "bytes"
+									format: unit: "decimal"
 								}
 							}
 							queries: [
@@ -126,7 +85,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "nodejs_heap_size_used_bytes{job=~\".*${job}.*\"}"
+												query: "external_bridge_websocket_websocket_active_subscriptions"
 											}
 										}
 									}
@@ -138,8 +97,8 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Event Loop Lag (p99)"
-								description: "99th percentile event loop lag"
+								name:        "Connection Uptime"
+								description: "WebSocket connection uptime in seconds"
 							}
 							plugin: {
 								kind: "StatChart"
@@ -159,7 +118,40 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "nodejs_eventloop_lag_p99_seconds{job=~\".*${job}.*\"}"
+												query: "external_bridge_websocket_websocket_connection_uptime_seconds"
+											}
+										}
+									}
+								},
+							]
+						}
+					},
+					{
+						kind: "Panel"
+						spec: {
+							display: {
+								name:        "Time Since Last Message"
+								description: "Seconds since last received message"
+							}
+							plugin: {
+								kind: "StatChart"
+								spec: {
+									calculation: "last"
+									format: unit: "seconds"
+								}
+							}
+							queries: [
+								{
+									kind: "TimeSeriesQuery"
+									spec: {
+										plugin: {
+											kind: "PrometheusTimeSeriesQuery"
+											spec: {
+												datasource: {
+													kind: "PrometheusDatasource"
+													name: "victoriametrics"
+												}
+												query: "time() - max(external_bridge_websocket_websocket_last_message_timestamp_seconds)"
 											}
 										}
 									}
@@ -170,15 +162,15 @@ dashboardBuilder & {
 				]
 			},
 			{
-				#title: "CPU & Memory"
+				#title: "Message Metrics"
 				#cols:  2
 				#panels: [
 					{
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "CPU Time"
-								description: "CPU time breakdown (user vs system)"
+								name:        "Message Rate"
+								description: "Rate of WebSocket messages received per second by stream type and status"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
@@ -197,24 +189,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "rate(process_cpu_user_seconds_total{job=~\".*${job}.*\"}[1m])"
-												seriesNameFormat: "User CPU"
-											}
-										}
-									}
-								},
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "rate(process_cpu_system_seconds_total{job=~\".*${job}.*\"}[1m])"
-												seriesNameFormat: "System CPU"
+												query: "sum by (platform, stream_type, status) (rate(external_bridge_websocket_websocket_messages_received_total[1m]))"
 											}
 										}
 									}
@@ -226,114 +201,8 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Memory Usage"
-								description: "Resident and virtual memory over time"
-							}
-							plugin: {
-								kind: "TimeSeriesChart"
-								spec: {
-									legend: position: "bottom"
-									yAxis: format: unit: "bytes"
-								}
-							}
-							queries: [
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "process_resident_memory_bytes{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Resident Memory"
-											}
-										}
-									}
-								},
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "process_virtual_memory_bytes{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Virtual Memory"
-											}
-										}
-									}
-								},
-							]
-						}
-					},
-				]
-			},
-			{
-				#title: "Heap Memory"
-				#cols:  2
-				#panels: [
-					{
-						kind: "Panel"
-						spec: {
-							display: {
-								name:        "Heap Size"
-								description: "Total and used heap size"
-							}
-							plugin: {
-								kind: "TimeSeriesChart"
-								spec: {
-									legend: position: "bottom"
-									yAxis: format: unit: "bytes"
-								}
-							}
-							queries: [
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "nodejs_heap_size_total_bytes{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Total Heap"
-											}
-										}
-									}
-								},
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "nodejs_heap_size_used_bytes{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Used Heap"
-											}
-										}
-									}
-								},
-							]
-						}
-					},
-					{
-						kind: "Panel"
-						spec: {
-							display: {
-								name:        "Heap Utilization"
-								description: "Percentage of heap being used"
+								name:        "Success Rate"
+								description: "Percentage of successfully processed messages"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
@@ -357,7 +226,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "100 * (nodejs_heap_size_used_bytes{job=~\".*${job}.*\"} / nodejs_heap_size_total_bytes{job=~\".*${job}.*\"})"
+												query: "100 * (sum(rate(external_bridge_websocket_websocket_messages_received_total{status=\"success\"}[1m])) / sum(rate(external_bridge_websocket_websocket_messages_received_total[1m])))"
 											}
 										}
 									}
@@ -369,14 +238,13 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "External Memory"
-								description: "Memory used by C++ objects bound to JavaScript"
+								name:        "Messages by Stream Type"
+								description: "Message rate grouped by stream type"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
 								spec: {
 									legend: position: "bottom"
-									yAxis: format: unit: "bytes"
 								}
 							}
 							queries: [
@@ -390,7 +258,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "nodejs_external_memory_bytes{job=~\".*${job}.*\"}"
+												query: "sum by (stream_type) (rate(external_bridge_websocket_websocket_messages_received_total[1m]))"
 											}
 										}
 									}
@@ -402,14 +270,13 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Heap Space Usage"
-								description: "Heap space breakdown by type"
+								name:        "Validation Errors"
+								description: "Rate of message validation errors by stream type"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
 								spec: {
 									legend: position: "bottom"
-									yAxis: format: unit: "bytes"
 								}
 							}
 							queries: [
@@ -423,7 +290,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "nodejs_heap_space_size_used_bytes{job=~\".*${job}.*\"}"
+												query: "sum by (platform, stream_type) (rate(external_bridge_websocket_websocket_validation_errors_total[1m]))"
 											}
 										}
 									}
@@ -434,15 +301,15 @@ dashboardBuilder & {
 				]
 			},
 			{
-				#title: "Event Loop"
+				#title: "Performance Metrics"
 				#cols:  2
 				#panels: [
 					{
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Event Loop Lag"
-								description: "Event loop lag statistics"
+								name:        "Message Processing Duration (p50, p95, p99)"
+								description: "Message processing latency percentiles by stream type"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
@@ -462,8 +329,8 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_mean_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Mean"
+												query:            "histogram_quantile(0.50, sum by (stream_type, le) (rate(external_bridge_websocket_websocket_message_processing_duration_seconds_bucket[1m])))"
+												seriesNameFormat: "p50 - {{stream_type}}"
 											}
 										}
 									}
@@ -478,8 +345,8 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_min_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Min"
+												query:            "histogram_quantile(0.95, sum by (stream_type, le) (rate(external_bridge_websocket_websocket_message_processing_duration_seconds_bucket[1m])))"
+												seriesNameFormat: "p95 - {{stream_type}}"
 											}
 										}
 									}
@@ -494,8 +361,8 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_max_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Max"
+												query:            "histogram_quantile(0.99, sum by (stream_type, le) (rate(external_bridge_websocket_websocket_message_processing_duration_seconds_bucket[1m])))"
+												seriesNameFormat: "p99 - {{stream_type}}"
 											}
 										}
 									}
@@ -507,14 +374,13 @@ dashboardBuilder & {
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "Event Loop Lag Percentiles"
-								description: "Event loop lag p50, p90, p99"
+								name:        "Error Rate"
+								description: "Rate of message processing errors per second by stream type"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
 								spec: {
 									legend: position: "bottom"
-									yAxis: format: unit: "seconds"
 								}
 							}
 							queries: [
@@ -528,12 +394,28 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_p50_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "p50"
+												query: "sum by (platform, stream_type) (rate(external_bridge_websocket_websocket_messages_received_total{status=\"error\"}[1m]))"
 											}
 										}
 									}
 								},
+							]
+						}
+					},
+					{
+						kind: "Panel"
+						spec: {
+							display: {
+								name:        "Reconnection Attempts"
+								description: "Rate of WebSocket reconnection attempts"
+							}
+							plugin: {
+								kind: "TimeSeriesChart"
+								spec: {
+									legend: position: "bottom"
+								}
+							}
+							queries: [
 								{
 									kind: "TimeSeriesQuery"
 									spec: {
@@ -544,12 +426,32 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_p90_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "p90"
+												query: "sum by (platform) (rate(external_bridge_websocket_websocket_reconnection_attempts_total[5m]))"
 											}
 										}
 									}
 								},
+							]
+						}
+					},
+					{
+						kind: "Panel"
+						spec: {
+							display: {
+								name:        "Connection Status History"
+								description: "WebSocket connection status over time"
+							}
+							plugin: {
+								kind: "TimeSeriesChart"
+								spec: {
+									legend: position: "bottom"
+									yAxis: {
+										min: 0
+										max: 1
+									}
+								}
+							}
+							queries: [
 								{
 									kind: "TimeSeriesQuery"
 									spec: {
@@ -560,8 +462,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "nodejs_eventloop_lag_p99_seconds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "p99"
+												query: "external_bridge_websocket_websocket_connection_status"
 											}
 										}
 									}
@@ -572,20 +473,21 @@ dashboardBuilder & {
 				]
 			},
 			{
-				#title: "System Resources"
-				#cols:  3
+				#title: "Last Message Timestamps"
+				#cols:  1
 				#panels: [
 					{
 						kind: "Panel"
 						spec: {
 							display: {
-								name:        "File Descriptors"
-								description: "Open file descriptors"
+								name:        "Last Message by Stream Type"
+								description: "Timestamp of last received message for each stream type"
 							}
 							plugin: {
 								kind: "TimeSeriesChart"
 								spec: {
 									legend: position: "bottom"
+									yAxis: format: unit: "seconds"
 								}
 							}
 							queries: [
@@ -599,88 +501,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query:            "process_open_fds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Open FDs"
-											}
-										}
-									}
-								},
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query:            "process_max_fds{job=~\".*${job}.*\"}"
-												seriesNameFormat: "Max FDs"
-											}
-										}
-									}
-								},
-							]
-						}
-					},
-					{
-						kind: "Panel"
-						spec: {
-							display: {
-								name:        "Active Handles"
-								description: "Number of active libuv handles"
-							}
-							plugin: {
-								kind: "TimeSeriesChart"
-								spec: {
-									legend: position: "bottom"
-								}
-							}
-							queries: [
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query: "nodejs_active_handles_total{job=~\".*${job}.*\"}"
-											}
-										}
-									}
-								},
-							]
-						}
-					},
-					{
-						kind: "Panel"
-						spec: {
-							display: {
-								name:        "Active Requests"
-								description: "Number of active libuv requests"
-							}
-							plugin: {
-								kind: "TimeSeriesChart"
-								spec: {
-									legend: position: "bottom"
-								}
-							}
-							queries: [
-								{
-									kind: "TimeSeriesQuery"
-									spec: {
-										plugin: {
-											kind: "PrometheusTimeSeriesQuery"
-											spec: {
-												datasource: {
-													kind: "PrometheusDatasource"
-													name: "victoriametrics"
-												}
-												query: "nodejs_active_requests_total{job=~\".*${job}.*\"}"
+												query: "time() - external_bridge_websocket_websocket_last_message_timestamp_seconds"
 											}
 										}
 									}
@@ -693,3 +514,4 @@ dashboardBuilder & {
 		]
 	}
 }
+

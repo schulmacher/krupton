@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { createMdsStorageContext } from './process/storageProcess/context.js';
+import { createStorageContext } from './process/storageProcess/context.js';
 import { startStorageService } from './process/storageProcess/storageProcess.js';
 
 async function bootstrap(): Promise<void> {
   try {
-    const context = createMdsStorageContext();
+    const context = createStorageContext();
 
     context.diagnosticContext.logger.info('Bootstrapping mdsStorage service', {
       processName: context.envContext.config.PROCESS_NAME,

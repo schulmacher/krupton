@@ -35,7 +35,7 @@ export const storageEnvSchema = TB.Object({
   }),
   CLOUD_SYNC_ENABLED: TB.Boolean({
     description: 'Enable cloud backup synchronization',
-    default: false,
+    default: true,
   }),
 }) satisfies SF.DefaultEnvSchema;
 

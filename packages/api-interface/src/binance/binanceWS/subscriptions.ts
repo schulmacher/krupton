@@ -29,7 +29,12 @@ export const ListSubscriptionsRequest = TB.Object({
 export type ListSubscriptionsRequest = TB.Static<typeof ListSubscriptionsRequest>;
 
 export const CommonResponseStream = {
-  streamNamePattern: 'SUBSCRIBE_RESPONSE' as const,
+  streamName: 'connectionMaintenance' as const,
+  params: TB.Object({
+    method: TB.Union([TB.Literal('SUBSCRIBE'), TB.Literal('UNSUBSCRIBE')]),
+    params: TB.Array(TB.String()),
+    id: TB.Number(),
+  }),
   messageSchema: TB.Union([
     // Success response
     TB.Object({

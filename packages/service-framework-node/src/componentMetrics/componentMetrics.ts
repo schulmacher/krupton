@@ -1,3 +1,4 @@
-export { mdsFetcherMetrics } from './components/mdsFetcher.js';
-export { mdsStorageMetrics } from './components/mdsStorage.js';
+export { externalBridgeFetcherMetrics } from './components/externalBridgeFetcher.js';
+export { externalBridgeWebsocketsMetrics } from './components/externalBridgeWebsockets.js';
+export { storageMetrics } from './components/storage.js';
 export { httpServerMetrics } from './components/httpServer.js';

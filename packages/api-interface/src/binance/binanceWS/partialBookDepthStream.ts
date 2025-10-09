@@ -1,46 +1,54 @@
 import type {
   ExtractWebSocketStreamMessage,
+  ExtractWebSocketStreamParams,
   WebSocketStreamDefinition,
 } from '@krupton/api-client-ws-node';
 import { TB } from '@krupton/service-framework-node/typebox';
 
 export const PartialBookDepthStream = {
-  streamNamePattern: '<symbol>@depth<levels>[@100ms]' as const,
-  messageSchema: TB.Object({
-    lastUpdateId: TB.Number(),
-    bids: TB.Array(
-      TB.Tuple([
-        TB.String(), // price
-        TB.String(), // quantity
-      ]),
-    ),
-    asks: TB.Array(
-      TB.Tuple([
-        TB.String(), // price
-        TB.String(), // quantity
-      ]),
-    ),
+  streamName: 'partialBookDepth' as const,
+  params: TB.Object({
+    symbol: TB.String(),
+    level: TB.Union([TB.Literal('5'), TB.Literal('10'), TB.Literal('20')]),
+    time: TB.Union([TB.Literal('100ms'), TB.Literal('1000ms')]),
   }),
-  messageIdentifier: (message: unknown): boolean => {
+  messageSchema: TB.Object({
+    stream: TB.String(),
+    data: TB.Object({
+      lastUpdateId: TB.Number(),
+      bids: TB.Array(
+        TB.Tuple([
+          TB.String(), // price
+          TB.String(), // quantity
+        ]),
+      ),
+      asks: TB.Array(
+        TB.Tuple([
+          TB.String(), // price
+          TB.String(), // quantity
+        ]),
+      ),
+    }),
+  }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messageIdentifier: (message: any): boolean => {
     return (
-      typeof message === 'object' &&
-      message !== null &&
-      'lastUpdateId' in message &&
-      'bids' in message &&
-      'asks' in message &&
-      !('e' in message)
+      String(message?.stream).includes('@depth') &&
+      !!message?.data?.lastUpdateId &&
+      !!message?.data?.bids &&
+      !!message?.data?.asks
     );
   },
 } satisfies WebSocketStreamDefinition;
 
-export function getPartialBookDepthStreamSubscriptionName(
-  symbol: string,
-  level: '5' | '10' | '20' = '5',
-  time: '100ms' | '1000ms' = '1000ms',
-) {
+export function getPartialBookDepthStreamSubscriptionName(params: PartialBookDepthStreamParams) {
+  const { symbol, level, time } = params;
   return `${symbol.toLowerCase()}@depth${level}@${time}`;
 }
 
 export type PartialBookDepthStreamMessage = ExtractWebSocketStreamMessage<
+  typeof PartialBookDepthStream
+>;
+export type PartialBookDepthStreamParams = ExtractWebSocketStreamParams<
   typeof PartialBookDepthStream
 >;

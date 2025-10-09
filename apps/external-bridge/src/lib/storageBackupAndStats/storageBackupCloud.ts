@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { MdsStorageContext } from '../../process/storageProcess/context.js';
+import { StorageContext } from '../../process/storageProcess/context.js';
 import { ensureDir } from '../fs.js';
 import {
     deleteFileFromRemote,
@@ -63,7 +63,7 @@ async function listLocalTempFiles(tempDir: string): Promise<Array<{ name: string
 }
 
 // Step 1: Push files to cloud
-async function pushFilesToCloud(context: MdsStorageContext): Promise<string[]> {
+async function pushFilesToCloud(context: StorageContext): Promise<string[]> {
   const { diagnosticContext, envContext } = context;
   const backupBaseDir = envContext.config.BACKUP_BASE_DIR;
   const tempDir = envContext.config.CLOUD_BACKUP_TEMP_DIR;
@@ -147,7 +147,7 @@ async function pushFilesToCloud(context: MdsStorageContext): Promise<string[]> {
 }
 
 // Step 2: Pull files from cloud
-async function pullFilesFromCloud(context: MdsStorageContext): Promise<string[]> {
+async function pullFilesFromCloud(context: StorageContext): Promise<string[]> {
   const { diagnosticContext, envContext } = context;
   const tempDir = envContext.config.CLOUD_BACKUP_TEMP_DIR;
   const remoteName = envContext.config.RCLONE_REMOTE_NAME;
@@ -195,7 +195,7 @@ async function pullFilesFromCloud(context: MdsStorageContext): Promise<string[]>
   return pulledFiles;
 }
 
-async function copyTempFilesToBackupBaseDir(context: MdsStorageContext): Promise<void> {
+async function copyTempFilesToBackupBaseDir(context: StorageContext): Promise<void> {
   const { diagnosticContext, envContext } = context;
 
   const tempDir = envContext.config.CLOUD_BACKUP_TEMP_DIR;
@@ -205,7 +205,7 @@ async function copyTempFilesToBackupBaseDir(context: MdsStorageContext): Promise
 }
 
 // Step 3: Reconcile - remove files from cloud that are too old
-async function reconcileCloudBackups(context: MdsStorageContext): Promise<string[]> {
+async function reconcileCloudBackups(context: StorageContext): Promise<string[]> {
   const { diagnosticContext, envContext } = context;
   const tempDir = envContext.config.CLOUD_BACKUP_TEMP_DIR;
   const remoteName = envContext.config.RCLONE_REMOTE_NAME;
@@ -239,7 +239,7 @@ async function reconcileCloudBackups(context: MdsStorageContext): Promise<string
   return deletedFiles;
 }
 
-export async function syncLocalAndCloudBackups(context: MdsStorageContext): Promise<SyncResult> {
+export async function syncLocalAndCloudBackups(context: StorageContext): Promise<SyncResult> {
   const { diagnosticContext, envContext } = context;
   const startTime = Date.now();
 
