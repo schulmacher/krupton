@@ -1,4 +1,4 @@
-# Market Data Simulator - Data Fetcher
+# External Bridge - Data Fetcher
 
 ## Overview
 

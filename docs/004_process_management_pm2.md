@@ -65,7 +65,7 @@ Applications may expose multiple services, each configured as a separate PM2 pro
 module.exports = {
   apps: [
     {
-      name: 'mds-webhooks-kraken',
+      name: 'external-bridge-webhooks-kraken',
       script: '../../apps/external-bridge/src/services/webhooks/webhooks_kraken.ts',
       interpreter: 'tsx',
       instances: 1,
@@ -77,7 +77,7 @@ module.exports = {
       }
     },
     {
-      name: 'mds-rest-binance',
+      name: 'external-bridge-rest-binance',
       script: '../../apps/external-bridge/src/services/rest/rest_binance.ts',
       interpreter: 'tsx',
       instances: 1,
@@ -89,7 +89,7 @@ module.exports = {
       }
     },
     {
-      name: 'mds-fetcher',
+      name: 'external-bridge-fetcher',
       script: '../../apps/external-bridge/src/services/fetcher/fetcher.ts',
       interpreter: 'tsx',
       instances: 1,
@@ -135,14 +135,14 @@ The `interpreter` field directs PM2 to execute the script through the Python int
 The environment-level ecosystem file aggregates individual application configurations:
 
 ```javascript
-const marketDataSimulator = require('./external-bridge/ecosystem.config');
+const externalBridge = require('./external-bridge/ecosystem.config');
 const publicApi = require('./public-api/ecosystem.config');
 const monitoring = require('./monitoring/ecosystem.config');
 const predictionModel = require('./prediction-model/ecosystem.config');
 
 module.exports = {
   apps: [
-    ...marketDataSimulator.apps,
+    ...externalBridge.apps,
     ...publicApi.apps,
     ...monitoring.apps,
     ...predictionModel.apps
@@ -179,7 +179,7 @@ pm2 start ecosystem.config.js
 This command launches all services defined within the external-bridge configuration (webhooks, REST API, fetcher). To start a specific service within an application:
 
 ```bash
-pm2 start ecosystem.config.js --only mds-fetcher
+pm2 start ecosystem.config.js --only external-bridge-fetcher
 ```
 
 The `--only` flag restricts execution to the named process, enabling developers to run only the services required for their current development context, reducing resource consumption.
@@ -187,13 +187,13 @@ The `--only` flag restricts execution to the named process, enabling developers 
 Alternatively, PM2 supports namespace-based operations using pattern matching. To manage all services within the external-bridge namespace:
 
 ```bash
-pm2 start "mds-*"
-pm2 restart "mds-*"
-pm2 stop "mds-*"
-pm2 delete "mds-*"
+pm2 start "external-bridge-*"
+pm2 restart "external-bridge-*"
+pm2 stop "external-bridge-*"
+pm2 delete "external-bridge-*"
 ```
 
-The wildcard pattern `mds-*` matches all process names beginning with the `mds-` prefix, enabling collective operations on logically related services without affecting other processes in the PM2 daemon.
+The wildcard pattern `external-bridge-*` matches all process names beginning with the `external-bridge-` prefix, enabling collective operations on logically related services without affecting other processes in the PM2 daemon.
 
 ### Monitoring and Management
 

@@ -1,6 +1,6 @@
 # VictoriaMetrics Monitoring
 
-VictoriaMetrics time-series database for monitoring infrastructure metrics from the Market Data Simulator and other services.
+VictoriaMetrics time-series database for monitoring infrastructure metrics from the External Bridge and other services.
 
 ## Overview
 
@@ -29,9 +29,9 @@ Alternatively, download manually from: https://github.com/VictoriaMetrics/Victor
 
 The `prometheus.yml` file configures which services VictoriaMetrics scrapes for metrics:
 
-- **mds-fetcher** (port 3000): Market data fetcher service metrics
-- **mds-rest-api** (port 3002): REST API service metrics
-- **mds-storage** (port 3001): Storage service metrics
+- **external-bridge-fetcher** (port 3000): Market data fetcher service metrics
+- **external-bridge-rest-api** (port 3002): REST API service metrics
+- **external-bridge-storage** (port 3001): Storage service metrics
 - **victoriametrics** (port 8428): VictoriaMetrics self-monitoring
 
 ### Storage Configuration
@@ -77,27 +77,27 @@ Query examples for vmui:
 
 ### Request Rate by Service
 ```promql
-rate(mds_fetcher_http_requests_total[5m])
+rate(external_bridge_fetcher_http_requests_total[5m])
 ```
 
 ### Fetcher Operations
 ```promql
-rate(mds_fetcher_fetch_counter_total[1m])
+rate(external_bridge_fetcher_fetch_counter_total[1m])
 ```
 
 ### HTTP Request Duration (95th percentile)
 ```promql
-histogram_quantile(0.95, rate(mds_fetcher_http_request_duration_seconds_bucket[5m]))
+histogram_quantile(0.95, rate(external_bridge_fetcher_http_request_duration_seconds_bucket[5m]))
 ```
 
 ### Active Symbols Being Monitored
 ```promql
-mds_fetcher_active_symbols_gauge
+external_bridge_fetcher_active_symbols_gauge
 ```
 
 ### Process CPU Usage
 ```promql
-rate(mds_fetcher_process_cpu_user_seconds_total[5m])
+rate(external_bridge_fetcher_process_cpu_user_seconds_total[5m])
 ```
 ## References
 

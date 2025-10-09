@@ -5,14 +5,14 @@ import type {
   ExtractEndpointParams,
 } from '@krupton/api-client-node';
 
-export interface MdsFetcherLoopState {
+export interface ExternalBridgeFetcherLoopState {
   isRunning: boolean;
   fetchCount: number;
   lastFetchTime: number | null;
   errors: number;
 }
 
-export interface MdsFetcherLoop {
+export interface ExternalBridgeFetcherLoop {
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }

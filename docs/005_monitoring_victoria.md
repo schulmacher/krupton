@@ -139,31 +139,31 @@ PM2 metrics encompass multiple dimensions of process health:
 ```prometheus
 # HELP pm2_cpu CPU usage percentage
 # TYPE pm2_cpu gauge
-pm2_cpu{app="mds-fetcher",instance="0"} 12.5
-pm2_cpu{app="mds-webhooks-kraken",instance="0"} 8.3
+pm2_cpu{app="external-bridge-fetcher",instance="0"} 12.5
+pm2_cpu{app="external-bridge-webhooks-kraken",instance="0"} 8.3
 
 # HELP pm2_memory Memory usage in bytes
 # TYPE pm2_memory gauge
-pm2_memory{app="mds-fetcher",instance="0"} 89456640
-pm2_memory{app="mds-webhooks-kraken",instance="0"} 67108864
+pm2_memory{app="external-bridge-fetcher",instance="0"} 89456640
+pm2_memory{app="external-bridge-webhooks-kraken",instance="0"} 67108864
 ```
 
 **Process uptime and restart counts:**
 ```prometheus
 # HELP pm2_uptime Process uptime in seconds
 # TYPE pm2_uptime gauge
-pm2_uptime{app="mds-fetcher",instance="0"} 86400
+pm2_uptime{app="external-bridge-fetcher",instance="0"} 86400
 
 # HELP pm2_restart_count Number of process restarts
 # TYPE pm2_restart_count counter
-pm2_restart_count{app="mds-fetcher",instance="0"} 3
+pm2_restart_count{app="external-bridge-fetcher",instance="0"} 3
 ```
 
 **Process status indicators:**
 ```prometheus
 # HELP pm2_status Process status (1=online, 0=stopped, -1=error)
 # TYPE pm2_status gauge
-pm2_status{app="mds-fetcher",instance="0"} 1
+pm2_status{app="external-bridge-fetcher",instance="0"} 1
 pm2_status{app="prediction-model",instance="0"} 1
 ```
 
@@ -243,7 +243,7 @@ The complete monitoring pipeline integrates application metrics, PM2 process met
 
 ```mermaid
 graph TB
-    A[Market Data Simulator] -->|Prometheus Metrics :9090| E[VictoriaMetrics :8428]
+    A[External Bridge] -->|Prometheus Metrics :9090| E[VictoriaMetrics :8428]
     B[Public API] -->|Prometheus Metrics :9091| E
     C[Prediction Model] -->|Prometheus Metrics :9092| E
     D[PM2 Exporter :9209] -->|Process Metrics| E

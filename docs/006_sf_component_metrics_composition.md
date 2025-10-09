@@ -11,14 +11,14 @@ Component metrics are defined as configuration constants that can be composed to
 Each component exports its metrics as a configuration object:
 
 ```typescript
-// packages/service-framework-node/src/componentMetrics/components/mdsFetcher.ts
+// packages/service-framework-node/src/componentMetrics/components/externalBridgeFetcher.ts
 const fetchCounter: MetricConfigCounter<'platform' | 'endpoint' | 'status'> = {
   name: 'fetch_requests_total',
   help: 'Total number of fetch requests',
   labelNames: ['platform', 'endpoint', 'status'] as const,
 };
 
-export const mdsFetcherMetrics = {
+export const externalBridgeFetcherMetrics = {
   fetchCounter,
   fetchDuration,
   activeSymbolsGauge,
@@ -31,7 +31,7 @@ export const mdsFetcherMetrics = {
 Processes instantiate only the metrics they need:
 
 ```typescript
-// apps/external-bridge/src/process/mdsFetcherProcess/context.ts
+// apps/external-bridge/src/process/fetcherProcess/context.ts
 const metricsContextBase = SF.createMetricsContext({
   envContext,
   enableDefaultMetrics: true,
@@ -39,8 +39,8 @@ const metricsContextBase = SF.createMetricsContext({
 });
 
 const metrics = {
-  fetchCounter: metricsContextBase.createCounter(SF.mdsFetcherMetrics.fetchCounter),
-  fetchDuration: metricsContextBase.createHistogram(SF.mdsFetcherMetrics.fetchDuration),
+  fetchCounter: metricsContextBase.createCounter(SF.externalBridgeFetcherMetrics.fetchCounter),
+  fetchDuration: metricsContextBase.createHistogram(SF.externalBridgeFetcherMetrics.fetchDuration),
   // ... other metrics
 };
 
@@ -55,9 +55,9 @@ const metricsContext = SF.createMetricsContext({
 
 When a process uses services from multiple components, it can combine their metrics:
 
-### Example: MDS Fetcher Using Storage
+### Example: External Bridge Fetcher Using Storage
 
-The `mdsFetcher` process uses the `mdsStorage` service to write files, so it can expose metrics from both components:
+The `externalBridgeFetcher` process uses the `externalBridgeStorage` service to write files, so it can expose metrics from both components:
 
 ```typescript
 const metricsContextBase = SF.createMetricsContext({
@@ -68,14 +68,14 @@ const metricsContextBase = SF.createMetricsContext({
 // Combine metrics from both components
 const metrics = {
   // Fetcher-specific metrics
-  fetchCounter: metricsContextBase.createCounter(SF.mdsFetcherMetrics.fetchCounter),
-  fetchDuration: metricsContextBase.createHistogram(SF.mdsFetcherMetrics.fetchDuration),
-  activeSymbolsGauge: metricsContextBase.createGauge(SF.mdsFetcherMetrics.activeSymbolsGauge),
+  fetchCounter: metricsContextBase.createCounter(SF.externalBridgeFetcherMetrics.fetchCounter),
+  fetchDuration: metricsContextBase.createHistogram(SF.externalBridgeFetcherMetrics.fetchDuration),
+  activeSymbolsGauge: metricsContextBase.createGauge(SF.externalBridgeFetcherMetrics.activeSymbolsGauge),
   
   // Storage metrics (used by the storage service)
-  storageWriteOps: metricsContextBase.createCounter(SF.mdsStorageMetrics.writeOperations),
-  storageWriteDuration: metricsContextBase.createHistogram(SF.mdsStorageMetrics.writeDuration),
-  storageFileCount: metricsContextBase.createGauge(SF.mdsStorageMetrics.fileCount),
+  storageWriteOps: metricsContextBase.createCounter(SF.externalBridgeStorageMetrics.writeOperations),
+  storageWriteDuration: metricsContextBase.createHistogram(SF.externalBridgeStorageMetrics.writeDuration),
+  storageFileCount: metricsContextBase.createGauge(SF.externalBridgeStorageMetrics.fileCount),
 };
 ```
 

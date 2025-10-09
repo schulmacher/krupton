@@ -1,10 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { MdsFetcherContext } from '../process/fetcherProcess/context.js';
-import { createMdsFetcherLoop } from '../lib/mdsFetcher/mdsFetcherLoop.js';
-import type { MdsFetcherLoop } from '../lib/mdsFetcher/types.js';
+import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
+import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const handleBookTickerResponse = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   query: BinanceApi.GetBookTickerQuery,
   response: BinanceApi.GetBookTickerResponse,
   symbol: string,
@@ -32,9 +32,9 @@ const handleBookTickerResponse = async (
 };
 
 const createBinanceBookTickerFetcherLoopForSymbol = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbol: string,
-): Promise<MdsFetcherLoop> => {
+): Promise<ExternalBridgeFetcherLoop> => {
   const { diagnosticContext, envContext, binanceClient } = context;
   const config = envContext.config;
 
@@ -43,7 +43,7 @@ const createBinanceBookTickerFetcherLoopForSymbol = async (
     symbol,
   });
 
-  return createMdsFetcherLoop<typeof BinanceApi.GetBookTickerEndpoint>(context, {
+  return createExternalBridgeFetcherLoop<typeof BinanceApi.GetBookTickerEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getBookTicker,
     buildRequestParams: () => {
@@ -61,9 +61,9 @@ const createBinanceBookTickerFetcherLoopForSymbol = async (
 };
 
 export const createBinanceBookTickerFetcherLoops = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbols: string[],
-): Promise<MdsFetcherLoop[]> => {
+): Promise<ExternalBridgeFetcherLoop[]> => {
   const fetcherLoops = await Promise.all(
     symbols.map((symbol) => {
       const childContext = {

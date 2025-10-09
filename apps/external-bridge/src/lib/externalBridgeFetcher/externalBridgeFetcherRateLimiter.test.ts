@@ -1,8 +1,8 @@
 import type { SF } from '@krupton/service-framework-node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMdsFetcherRateLimiter } from './mdsFetcherRateLimiter.js';
+import { createExternalBridgeFetcherRateLimiter } from './externalBridgeFetcherRateLimiter.js';
 
-describe('createMdsFetcherRateLimiter', () => {
+describe('createExternalBridgeFetcherRateLimiter', () => {
   let mockDiagnosticContext: SF.DiagnosticContext;
 
   beforeEach(() => {
@@ -27,7 +27,7 @@ describe('createMdsFetcherRateLimiter', () => {
 
   describe('recordRequest', () => {
     it('should increment request count', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -43,7 +43,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should reset request count when window expires', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -64,7 +64,7 @@ describe('createMdsFetcherRateLimiter', () => {
 
   describe('throttle', () => {
     it('should not throttle on first request', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -77,7 +77,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should throttle to maintain even distribution', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -97,7 +97,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should wait until window end when rate limit is hit', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 5,
         windowMs: 1000,
       });
@@ -117,7 +117,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should not throttle if behind schedule', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -134,7 +134,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should reset window when expired', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 5,
         windowMs: 1000,
       });
@@ -155,7 +155,7 @@ describe('createMdsFetcherRateLimiter', () => {
 
   describe('rate limiting scenarios', () => {
     it('should handle rapid successive requests', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 100,
         windowMs: 1000,
       });
@@ -172,7 +172,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should distribute requests evenly across window', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -201,7 +201,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should handle Binance rate limit (2400 requests/minute)', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 2400,
         windowMs: 60000,
       });
@@ -218,7 +218,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should block when max requests reached until window resets', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 3,
         windowMs: 1000,
       });
@@ -237,7 +237,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should handle multiple symbols sharing same rate limiter', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -258,7 +258,7 @@ describe('createMdsFetcherRateLimiter', () => {
 
   describe('edge cases', () => {
     it('should handle zero elapsed time', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10,
         windowMs: 1000,
       });
@@ -275,7 +275,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should handle very small window sizes', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 2,
         windowMs: 100,
       });
@@ -294,7 +294,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should handle very large window sizes', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 10000,
         windowMs: 3600000,
       });
@@ -310,7 +310,7 @@ describe('createMdsFetcherRateLimiter', () => {
     });
 
     it('should handle single request per window', async () => {
-      const rateLimiter = createMdsFetcherRateLimiter(mockDiagnosticContext, {
+      const rateLimiter = createExternalBridgeFetcherRateLimiter(mockDiagnosticContext, {
         maxRequests: 1,
         windowMs: 1000,
       });

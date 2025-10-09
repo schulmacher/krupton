@@ -2,7 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 import { TB } from '@krupton/service-framework-node/typebox';
 import { getMonorepoRootDir } from '../../lib/fs.js';
 
-export const mdsFetcherEnvSchema = TB.Object({
+export const externalBridgeFetcherEnvSchema = TB.Object({
   // Required framework variables
   PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher' }),
   NODE_ENV: TB.String({ default: 'development' }),
@@ -64,4 +64,4 @@ export const mdsFetcherEnvSchema = TB.Object({
   }),
 }) satisfies SF.DefaultEnvSchema;
 
-export type MdsFetcherEnv = TB.Static<typeof mdsFetcherEnvSchema>;
+export type ExternalBridgeFetcherEnv = TB.Static<typeof externalBridgeFetcherEnvSchema>;

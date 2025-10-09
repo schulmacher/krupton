@@ -91,7 +91,7 @@ pnpm --filter 'perses' dac:build
 cd dac && ../bin/percli dac build -d . -ojson
 
 # Build a single resource (if needed)
-cd dac && ../bin/percli dac build -f mds-fetcher.cue -ojson
+cd dac && ../bin/percli dac build -f external-bridge-fetcher.cue -ojson
 ```
 
 Built resources will be in the `built/` directory.
@@ -101,7 +101,7 @@ Built resources will be in the `built/` directory.
 You can validate your CUE files before building:
 
 ```bash
-cue vet mds-fetcher.cue
+cue vet external-bridge-fetcher.cue
 ```
 
 ### 4. Deploy Resources
@@ -119,7 +119,7 @@ pnpm --filter 'perses' dac:apply
 ../bin/percli apply -d built  # Applies all files in built/
 
 # Apply a single resource (if needed)
-../bin/percli apply -f built/mds-fetcher_output.json
+../bin/percli apply -f built/external-bridge-fetcher_output.json
 ```
 
 **Note**: `percli apply -d` automatically applies all JSON files in the directory.
@@ -171,7 +171,7 @@ If deployment fails:
 ### Checking What Was Deployed
 
 ```bash
-curl http://localhost:8080/api/v1/projects/default/dashboards/mds-fetcher
+curl http://localhost:8080/api/v1/projects/default/dashboards/external-bridge-fetcher
 ```
 
-Or visit: http://localhost:8080/projects/default/dashboards/mds-fetcher
+Or visit: http://localhost:8080/projects/default/dashboards/external-bridge-fetcher

@@ -3,18 +3,18 @@ import type {
   ExtractEndpointDefinitionResponseSchema,
   ExtractEndpointParams,
 } from '@krupton/api-client-node';
-import type { MdsFetcherContext } from '../../process/fetcherProcess/context.js';
-import type { FetcherConfig, MdsFetcherLoop, MdsFetcherLoopState } from './types.js';
+import type { ExternalBridgeFetcherContext } from '../../process/fetcherProcess/context.js';
+import type { FetcherConfig, ExternalBridgeFetcherLoop, ExternalBridgeFetcherLoopState } from './types.js';
 
-export const createMdsFetcherLoop = <E extends EndpointDefinition>(
-  context: MdsFetcherContext,
+export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
+  context: ExternalBridgeFetcherContext,
   config: FetcherConfig<E>,
-): MdsFetcherLoop => {
+): ExternalBridgeFetcherLoop => {
   const { envContext, diagnosticContext, metricsContext, processContext, rateLimiter } = context;
   const env = envContext.config;
   const { onSuccess, buildRequestParams, endpointFn, symbol } = config;
 
-  const state: MdsFetcherLoopState = {
+  const state: ExternalBridgeFetcherLoopState = {
     isRunning: false,
     fetchCount: 0,
     lastFetchTime: null,

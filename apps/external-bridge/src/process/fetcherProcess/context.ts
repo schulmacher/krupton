@@ -1,13 +1,13 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApiDefinition } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
-import { createMdsFetcherRateLimiter } from '../../lib/mdsFetcher/mdsFetcherRateLimiter.js';
-import type { MdsFetcherEnv } from './environment.js';
-import { mdsFetcherEnvSchema } from './environment.js';
+import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
+import type { ExternalBridgeFetcherEnv } from './environment.js';
+import { externalBridgeFetcherEnvSchema } from './environment.js';
 import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 
 export function createExternalBridgeFetcherContext() {
-  const envContext = SF.createEnvContext(mdsFetcherEnvSchema);
+  const envContext = SF.createEnvContext(externalBridgeFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
@@ -30,7 +30,7 @@ export function createExternalBridgeFetcherContext() {
     diagnosticContext,
   });
 
-  const rateLimiter = createMdsFetcherRateLimiter(diagnosticContext, {
+  const rateLimiter = createExternalBridgeFetcherRateLimiter(diagnosticContext, {
     maxRequests: envContext.config.RATE_LIMIT_MAX_REQUESTS,
     windowMs: envContext.config.RATE_LIMIT_WINDOW_MS,
   });
@@ -62,8 +62,8 @@ export function createExternalBridgeFetcherContext() {
   };
 }
 
-export type MdsFetcherContext = ReturnType<typeof createExternalBridgeFetcherContext>;
+export type ExternalBridgeFetcherContext = ReturnType<typeof createExternalBridgeFetcherContext>;
 
-export type MdsFetcherMetrics = SF.RegisteredMetrics<MdsFetcherContext>;
+export type ExternalBridgeFetcherMetrics = SF.RegisteredMetrics<ExternalBridgeFetcherContext>;
 
-export type MdsFetcherServiceContext = SF.ServiceContext<MdsFetcherEnv, MdsFetcherMetrics>;
+export type ExternalBridgeFetcherServiceContext = SF.ServiceContext<ExternalBridgeFetcherEnv, ExternalBridgeFetcherMetrics>;

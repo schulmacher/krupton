@@ -3,9 +3,9 @@ import { createBinanceBookTickerFetcherLoops } from '../../fetchers/createBinanc
 import { createBinanceExchangeInfoFetcherLoop } from '../../fetchers/createBinanceExchangeInfoFetcherLoop.js';
 import { createBinanceHistoricalTradesFetcherLoops } from '../../fetchers/createBinanceHistoricalTradesFetcherLoops.js';
 import { createBinanceOrderBookFetcherLoops } from '../../fetchers/createBinanceOrderBookFetcherLoops.js';
-import type { MdsFetcherContext } from './context.js';
+import type { ExternalBridgeFetcherContext } from './context.js';
 
-export async function startMdsFetcherService(context: MdsFetcherContext): Promise<void> {
+export async function startExternalBridgeFetcherService(context: ExternalBridgeFetcherContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
 

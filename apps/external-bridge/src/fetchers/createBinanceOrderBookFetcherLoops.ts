@@ -1,12 +1,12 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { MdsFetcherContext } from '../process/fetcherProcess/context.js';
-import { createMdsFetcherLoop } from '../lib/mdsFetcher/mdsFetcherLoop.js';
-import type { MdsFetcherLoop } from '../lib/mdsFetcher/types.js';
+import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
+import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const handleOrderBookResponse = async (
   query: BinanceApi.GetOrderBookQuery,
   response: BinanceApi.GetOrderBookResponse,
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbol: string,
 ): Promise<void> => {
   const { diagnosticContext, endpointStorageRepository } = context;
@@ -24,10 +24,10 @@ const handleOrderBookResponse = async (
 };
 
 const createBinanceOrderBookFetcherLoopForSymbol = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbol: string,
   limit = 100,
-): Promise<MdsFetcherLoop> => {
+): Promise<ExternalBridgeFetcherLoop> => {
   const { diagnosticContext, binanceClient } = context;
 
   diagnosticContext.logger.info('Order book fetcher initialized', {
@@ -35,7 +35,7 @@ const createBinanceOrderBookFetcherLoopForSymbol = async (
     limit,
   });
 
-  return createMdsFetcherLoop<typeof BinanceApi.GetOrderBookEndpoint>(context, {
+  return createExternalBridgeFetcherLoop<typeof BinanceApi.GetOrderBookEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getOrderBook,
     buildRequestParams: () => {
@@ -58,10 +58,10 @@ interface CreateBinanceOrderBookFetcherLoopsOptions {
 }
 
 export const createBinanceOrderBookFetcherLoops = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbols: string[],
   options?: CreateBinanceOrderBookFetcherLoopsOptions,
-): Promise<MdsFetcherLoop[]> => {
+): Promise<ExternalBridgeFetcherLoop[]> => {
   const fetcherLoops = await Promise.all(
     symbols.map((symbol) => {
       const childContext = {

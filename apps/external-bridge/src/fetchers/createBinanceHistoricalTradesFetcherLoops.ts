@@ -1,11 +1,11 @@
 import { BinanceApi } from '@krupton/api-interface';
 import { sleep } from '@krupton/utils';
-import type { MdsFetcherContext } from '../process/fetcherProcess/context.js';
-import { createMdsFetcherLoop } from '../lib/mdsFetcher/mdsFetcherLoop.js';
-import type { MdsFetcherLoop } from '../lib/mdsFetcher/types.js';
+import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
+import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const handleHistoricalTradesResponse = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   query: BinanceApi.GetHistoricalTradesQuery,
   response: BinanceApi.GetHistoricalTradesResponse,
   endpoint: string,
@@ -65,10 +65,10 @@ const handleHistoricalTradesResponse = async (
 };
 
 const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbol: string,
   endpoint: string,
-): Promise<MdsFetcherLoop> => {
+): Promise<ExternalBridgeFetcherLoop> => {
   const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
   const config = envContext.config;
 
@@ -93,7 +93,7 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
       : 0,
   });
 
-  return createMdsFetcherLoop<typeof BinanceApi.GetHistoricalTradesEndpoint>(context, {
+  return createExternalBridgeFetcherLoop<typeof BinanceApi.GetHistoricalTradesEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getHistoricalTrades,
     buildRequestParams: ({ prevResponse: lastResponse, prevParams: lastParams }) => {
@@ -126,9 +126,9 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
 };
 
 export const createBinanceHistoricalTradesFetcherLoops = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   symbols: string[],
-): Promise<MdsFetcherLoop[]> => {
+): Promise<ExternalBridgeFetcherLoop[]> => {
   const { binanceClient } = context;
   const endpoint = binanceClient.getHistoricalTrades.definition.path;
 

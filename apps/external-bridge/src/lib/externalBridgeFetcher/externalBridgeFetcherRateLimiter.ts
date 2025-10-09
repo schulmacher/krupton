@@ -7,17 +7,17 @@ export interface RateLimiterConfig {
   backoffMaxMs?: number;
 }
 
-export interface MdsFetcherRateLimiter {
+export interface ExternalBridgeFetcherRateLimiter {
   recordRequest: () => void;
   throttle: () => Promise<void>;
   onError: () => void;
   resetBackoff: () => void;
 }
 
-export function createMdsFetcherRateLimiter(
+export function createExternalBridgeFetcherRateLimiter(
   diagnosticContext: SF.DiagnosticContext,
   config: RateLimiterConfig,
-): MdsFetcherRateLimiter {
+): ExternalBridgeFetcherRateLimiter {
   const { maxRequests, windowMs, backoffBaseMs = 1000, backoffMaxMs = 60000 } = config;
 
   const defaultWaitMs = windowMs / maxRequests;

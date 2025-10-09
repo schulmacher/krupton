@@ -1,13 +1,13 @@
 import { BinanceApi } from '@krupton/api-interface';
 import { sleep } from '@krupton/utils';
-import type { MdsFetcherContext } from '../process/fetcherProcess/context.js';
-import { createMdsFetcherLoop } from '../lib/mdsFetcher/mdsFetcherLoop.js';
-import type { MdsFetcherLoop } from '../lib/mdsFetcher/types.js';
+import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
+import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const FETCH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 const handleExchangeInfoResponse = async (
-  context: MdsFetcherContext,
+  context: ExternalBridgeFetcherContext,
   query: BinanceApi.GetExchangeInfoQuery,
   response: BinanceApi.GetExchangeInfoResponse,
 ): Promise<void> => {
@@ -24,8 +24,8 @@ const handleExchangeInfoResponse = async (
 };
 
 export const createBinanceExchangeInfoFetcherLoop = async (
-  context: MdsFetcherContext,
-): Promise<MdsFetcherLoop> => {
+  context: ExternalBridgeFetcherContext,
+): Promise<ExternalBridgeFetcherLoop> => {
   const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
   const config = envContext.config;
   const endpoint = binanceClient.getExchangeInfo.definition.path;
@@ -37,7 +37,7 @@ export const createBinanceExchangeInfoFetcherLoop = async (
     fetchInterval: `${FETCH_INTERVAL_MS / 1000}s`,
   });
 
-  return createMdsFetcherLoop<typeof BinanceApi.GetExchangeInfoEndpoint>(context, {
+  return createExternalBridgeFetcherLoop<typeof BinanceApi.GetExchangeInfoEndpoint>(context, {
     symbol: 'ALL',
     endpointFn: binanceClient.getExchangeInfo,
     buildRequestParams: async () => {

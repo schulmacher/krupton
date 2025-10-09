@@ -3,7 +3,7 @@
  */
 
 module.exports = {
-  // Market Data Simulator Services
+  // External Bridge Services
   EXTERNAL_BRIDGE_FETCHER: 3000,
   EXTERNAL_BRIDGE_STORAGE: 3001,
   EXTERNAL_BRIDGE_WEBSOCKET: 3002,

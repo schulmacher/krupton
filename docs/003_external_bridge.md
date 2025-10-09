@@ -1,8 +1,8 @@
-# Market Data Simulator
+# External Bridge
 
 ## Introduction
 
-The market data simulator represents a critical component in the development infrastructure, designed to address the challenge of testing real-time market data processing systems without continuous dependency on live exchange connections. This component transforms historical REST API responses from cryptocurrency exchanges into simulated real-time WebSocket streams, thereby enabling deterministic testing and development workflows. Additionally, the simulator provides mock REST API endpoints that replicate exchange interfaces, offering a comprehensive development environment that mirrors production exchange behavior.
+The External Bridge represents a critical component in the development infrastructure, designed to address the challenge of testing real-time market data processing systems without continuous dependency on live exchange connections. This component transforms historical REST API responses from cryptocurrency exchanges into simulated real-time WebSocket streams, thereby enabling deterministic testing and development workflows. Additionally, the simulator provides mock REST API endpoints that replicate exchange interfaces, offering a comprehensive development environment that mirrors production exchange behavior.
 
 ## System Architecture
 
@@ -15,7 +15,7 @@ graph TB
         Kraken[Kraken REST]
     end
     
-    subgraph "Market Data Simulator"
+    subgraph "External Bridge"
         Fetcher[Data Fetcher<br/>Processes]
         Storage[(Persistent Storage<br/>JSONL Files)]
         WSTransformer[WebSocket<br/>Publishers]
@@ -57,25 +57,25 @@ The simulator comprises four primary subsystems that work in concert to provide 
 
 The data fetcher subsystem retrieves market data from cryptocurrency exchange REST API endpoints and persists responses to structured storage. Operating as platform-specific processes, fetchers execute scheduled HTTP requests to collect historical datasets that serve as the foundation for all simulator operations.
 
-For detailed documentation of the fetcher process architecture, data retrieval operations, rate limiting strategies, and storage integration, refer to [002_market_data_simulator_fetcher](./002_market_data_simulator_fetcher.md).
+For detailed documentation of the fetcher process architecture, data retrieval operations, rate limiting strategies, and storage integration, refer to [003_external_bridge_fetcher](./003_external_bridge_fetcher.md).
 
 ### Persistent Storage System
 
 The simulator incorporates a persistent storage subsystem that enables offline development and deterministic testing capabilities. REST API responses are persisted in structured format to support replay operations without live exchange dependencies.
 
-For comprehensive documentation of the storage architecture, schema design, operational modes, and data management strategies, refer to [002_market_data_simulator_storage](./002_market_data_simulator_storage.md).
+For comprehensive documentation of the storage architecture, schema design, operational modes, and data management strategies, refer to [003_external_bridge_storage](./003_external_bridge_storage.md).
 
 ### WebSocket Stream Generation
 
 The WebSocket subsystem transforms stored REST API responses into platform-specific WebSocket messages and publishes them to the public-api endpoint. This enables simulation of real-time market data streams without maintaining live exchange connections.
 
-For detailed documentation of data transformation operations, stream publishing architecture, connection management, and timing simulation, refer to [002_market_data_simulator_websockets](./002_market_data_simulator_websockets.md).
+For detailed documentation of data transformation operations, stream publishing architecture, connection management, and timing simulation, refer to [002_data_source_websocket_connection](./002_data_source_websocket_connection.md).
 
 ### Mock REST API
 
 The simulator exposes mock REST API endpoints that replicate the interface specifications of cryptocurrency exchanges. Each platform operates as an independent Node.js process bound to a dedicated network port, enabling comprehensive testing of systems that interact with both REST and WebSocket APIs.
 
-For detailed documentation of the mock REST API architecture, endpoint replication, process management, and error simulation capabilities, refer to [002_market_data_simulator_mock_rest_api](./002_market_data_simulator_mock_rest_api.md).
+For detailed documentation of the mock REST API architecture, endpoint replication, process management, and error simulation capabilities, refer to [003_external_bridge_mock_rest_api](./003_external_bridge_mock_rest_api.md).
 
 ## Design Principles
 

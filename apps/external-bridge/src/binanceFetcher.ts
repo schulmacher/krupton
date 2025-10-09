@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 import { createExternalBridgeFetcherContext } from './process/fetcherProcess/context.js';
-import { startMdsFetcherService } from './process/fetcherProcess/fetcherProcess.js';
+import { startExternalBridgeFetcherService } from './process/fetcherProcess/fetcherProcess.js';
 
 async function bootstrap(): Promise<void> {
   try {
     const context = createExternalBridgeFetcherContext();
 
-    context.diagnosticContext.logger.info('Bootstrapping mdsFetcher service', {
+    context.diagnosticContext.logger.info('Bootstrapping externalBridgeFetcher service', {
       processName: context.envContext.config.PROCESS_NAME,
       nodeEnv: context.envContext.nodeEnv,
       platform: context.envContext.config.PLATFORM,
     });
 
-    await startMdsFetcherService(context);
+    await startExternalBridgeFetcherService(context);
   } catch (error) {
-    console.error('Failed to bootstrap mdsFetcher service:', error);
+    console.error('Failed to bootstrap externalBridgeFetcher service:', error);
     process.exit(1);
   }
 }
