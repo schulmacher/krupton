@@ -1,8 +1,8 @@
 import { BinanceApi } from '@krupton/api-interface';
 import { sleep } from '@krupton/utils';
-import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
+import { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
 
 const FETCH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 

@@ -5,6 +5,7 @@ import {
   type EndpointStorage,
   type EndpointStorageRecord,
 } from '../../lib/persistentStorage/endpointStorage.js';
+import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
 
 export type BinanceHistoricalTradeStorage = EndpointStorage<
   typeof BinanceApi.GetHistoricalTradesEndpoint
@@ -38,8 +39,10 @@ export function createBinanceHistoricalTradeEntity(baseDir: string) {
         return;
       }
 
+      const normalizedSymbol = normalizeSymbol('binance', symbol);
+
       await storage.appendRecord({
-        subIndexDir: symbol,
+        subIndexDir: normalizedSymbol,
         record: {
           timestamp,
           request: params.request,
@@ -48,8 +51,8 @@ export function createBinanceHistoricalTradeEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string): Promise<HistoricalTradeRecord | null> {
-      return await storage.readLastRecord(symbol);
+    async readLatestRecord(normalizedSymbol: string): Promise<HistoricalTradeRecord | null> {
+      return await storage.readLastRecord(normalizedSymbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetHistoricalTradesEndpoint>;
 }

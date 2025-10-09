@@ -3,9 +3,12 @@ import { createBinanceBookTickerFetcherLoops } from '../../fetchers/createBinanc
 import { createBinanceExchangeInfoFetcherLoop } from '../../fetchers/createBinanceExchangeInfoFetcherLoop.js';
 import { createBinanceHistoricalTradesFetcherLoops } from '../../fetchers/createBinanceHistoricalTradesFetcherLoops.js';
 import { createBinanceOrderBookFetcherLoops } from '../../fetchers/createBinanceOrderBookFetcherLoops.js';
+import { initBinanceLatestExchangeInfoProvider } from '../../lib/binance/binanceLatestExchangeInfoProvider.js';
 import type { ExternalBridgeFetcherContext } from './context.js';
 
-export async function startExternalBridgeFetcherService(context: ExternalBridgeFetcherContext): Promise<void> {
+export async function startExternalBridgeFetcherService(
+  context: ExternalBridgeFetcherContext,
+): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
 
@@ -30,6 +33,11 @@ export async function startExternalBridgeFetcherService(context: ExternalBridgeF
   context.metricsContext.metrics.totalErrorsGauge.set(0);
   context.metricsContext.metrics.activeSymbolsGauge.set(symbols.length);
 
+  await initBinanceLatestExchangeInfoProvider(
+    context.endpointStorageRepository.binanceExchangeInfo,
+    context.binanceClient.getExchangeInfo,
+  );
+
   const fetcherLoops = [
     ...(await createBinanceHistoricalTradesFetcherLoops(context, symbols)),
     ...(await createBinanceBookTickerFetcherLoops(context, symbols)),
@@ -43,7 +51,6 @@ export async function startExternalBridgeFetcherService(context: ExternalBridgeF
       await Promise.all(fetcherLoops.map((service) => service.stop()));
     });
   };
-
   registerGracefulShutdownCallback();
 
   processContext.start();

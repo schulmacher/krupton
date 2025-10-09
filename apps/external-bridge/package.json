@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev:fetcher": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
-    "dev:websocket": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:websocket-binance": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:websocket-kraken": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "dev:storage": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/storage.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",

@@ -3,7 +3,7 @@ import { TB } from '@krupton/service-framework-node/typebox';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createEndpointStorage } from './endpointStorage.js';
+import { createEndpointStorage } from '../endpointStorage.js';
 
 describe('createEndpointStorage', () => {
   let tempDir: string;
@@ -33,7 +33,7 @@ describe('createEndpointStorage', () => {
     it('should normalize endpoint path by removing leading slashes and replacing slashes with underscores', () => {
       const storage = createEndpointStorage(tempDir, testEndpoint);
 
-      expect(storage.normalizedEndpoint).toBe('api_v3_test');
+      expect(storage.normalizedEndpoint).toBe('endpoint_api_v3_test');
       expect(storage.endpointPath).toBe('/api/v3/test');
     });
 
@@ -46,7 +46,7 @@ describe('createEndpointStorage', () => {
 
       const storage = createEndpointStorage(tempDir, endpoint);
 
-      expect(storage.normalizedEndpoint).toBe('api_v3_test');
+      expect(storage.normalizedEndpoint).toBe('endpoint_api_v3_test');
     });
 
     it('should handle endpoints with multiple leading slashes', () => {
@@ -58,7 +58,7 @@ describe('createEndpointStorage', () => {
 
       const storage = createEndpointStorage(tempDir, endpoint);
 
-      expect(storage.normalizedEndpoint).toBe('api_v3_test');
+      expect(storage.normalizedEndpoint).toBe('endpoint_api_v3_test');
     });
   });
 });

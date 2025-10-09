@@ -98,10 +98,9 @@ export function createMetricsContext<
 > {
   const registry = new Registry();
 
-  const normalizedServiceName = normalizeServiceName(config.envContext.config.PROCESS_NAME);
   const fullPrefix = config.prefix
-    ? `${normalizedServiceName}_${config.prefix}`
-    : `${normalizedServiceName}_`;
+    ? `${config.prefix}_`
+    : `${normalizeServiceName(config.envContext.config.PROCESS_NAME)}_`;
 
   const defaultMetricsCollection = config.enableDefaultMetrics
     ? createDefaultMetricsCollection(registry)

@@ -11,7 +11,7 @@ import {
   readIndexEntries,
   readIndexHeader,
   type IndexEntry,
-} from './persistentStorageIndex.js';
+} from '../persistentStorageIndex.js';
 
 describe('persistentStorageIndex - Basic Operations', () => {
   let tempDir: string;

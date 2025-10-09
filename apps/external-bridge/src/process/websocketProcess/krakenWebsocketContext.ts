@@ -1,10 +1,9 @@
 import { SF } from '@krupton/service-framework-node';
 import { createWebsocketStorageRepository } from '../../entities/websocketStorageRepository.js';
-import type { WebsocketEnv } from './environment.js';
-import { websocketEnvSchema } from './environment.js';
+import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
 
-export function createWebsocketContext() {
-  const envContext = SF.createEnvContext(websocketEnvSchema);
+export function createKrakenWebsocketContext() {
+  const envContext = SF.createEnvContext(krakenWebSocketEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
@@ -13,6 +12,7 @@ export function createWebsocketContext() {
   const metricsContext = SF.createMetricsContext({
     envContext,
     enableDefaultMetrics: true,
+    prefix: 'external_bridge_websocket',
     metrics: {
       messagesReceived: SF.externalBridgeWebsocketsMetrics.messagesReceived,
       messageProcessingDuration: SF.externalBridgeWebsocketsMetrics.messageProcessingDuration,
@@ -31,7 +31,6 @@ export function createWebsocketContext() {
 
   const websocketStorageRepository = createWebsocketStorageRepository(
     envContext.config.STORAGE_BASE_DIR,
-    envContext.config.PLATFORM,
   );
 
   return {
@@ -43,8 +42,9 @@ export function createWebsocketContext() {
   };
 }
 
-export type WebsocketContext = ReturnType<typeof createWebsocketContext>;
-
-export type WebsocketMetrics = SF.RegisteredMetrics<WebsocketContext>;
-
-export type WebsocketServiceContext = SF.ServiceContext<WebsocketEnv, WebsocketMetrics>;
+export type KrakenWebSocketContext = ReturnType<typeof createKrakenWebsocketContext>;
+export type KrakenWebSocketMetrics = SF.RegisteredMetrics<KrakenWebSocketContext>;
+export type KrakenWebSocketServiceContext = SF.ServiceContext<
+  KrakenWebSocketEnv,
+  KrakenWebSocketMetrics
+>;

@@ -2,35 +2,44 @@ import { SF } from '@krupton/service-framework-node';
 import { TB } from '@krupton/service-framework-node/typebox';
 import { getMonorepoRootDir } from '../../lib/fs.js';
 
-export const websocketEnvSchema = TB.Object({
-  // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'external-bridge-websocket' }),
+export const binanceWebSocketEnvSchema = TB.Object({
+  PROCESS_NAME: TB.String({ default: 'external-bridge-websocket-binance' }),
   NODE_ENV: TB.String({ default: 'development' }),
-  PORT: TB.Integer({ default: 3000 }),
+  PORT: TB.Integer({ default: 3002 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
-
-  // Platform configuration
-  PLATFORM: TB.Union([TB.Literal('binance'), TB.Literal('kraken')], {
-    description: 'Exchange platform to fetch from (binance, kraken)',
-    default: 'binance',
-  }),
-
   API_BASE_URL: TB.String({
     description: 'Base URL for the websocket streams API',
     default: 'wss://stream.testnet.binance.vision/stream?streams',
   }),
-
-  // Symbol configuration
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., BTCUSDT,ETHUSDT)',
     default: 'BTCUSDT,ETHUSDT',
   }),
-
-  // Storage configuration
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage'),
   }),
 }) satisfies SF.DefaultEnvSchema;
 
-export type WebsocketEnv = TB.Static<typeof websocketEnvSchema>;
+export type BinanceWebSocketEnv = TB.Static<typeof binanceWebSocketEnvSchema>;
+
+export const krakenWebSocketEnvSchema = TB.Object({
+  PROCESS_NAME: TB.String({ default: 'external-bridge-websocket-kraken' }),
+  NODE_ENV: TB.String({ default: 'development' }),
+  PORT: TB.Integer({ default: 3003 }),
+  LOG_LEVEL: TB.String({ default: 'debug' }),
+  API_BASE_URL: TB.String({
+    description: 'Base URL for the websocket streams API',
+    default: 'wss://ws.kraken.com/v2',
+  }),
+  SYMBOLS: TB.String({
+    description: 'Comma-separated list of trading pairs (e.g., BTCUSDT,ETHUSDT)',
+    default: 'BTCUSDT,ETHUSDT',
+  }),
+  STORAGE_BASE_DIR: TB.String({
+    description: 'Base directory for storing fetched data',
+    default: getMonorepoRootDir('storage'),
+  }),
+}) satisfies SF.DefaultEnvSchema;
+
+export type KrakenWebSocketEnv = TB.Static<typeof krakenWebSocketEnvSchema>;

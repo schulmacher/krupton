@@ -5,6 +5,7 @@ import {
   EndpointStorage,
   EndpointStorageRecord,
 } from '../../lib/persistentStorage/endpointStorage.js';
+import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
 
 export type BinanceOrderBookStorage = EndpointStorage<typeof BinanceApi.GetOrderBookEndpoint>;
 export type BinanceOrderBookEntity = ReturnType<typeof createBinanceOrderBookEntity>;
@@ -33,18 +34,20 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       response: BinanceApi.GetOrderBookResponse;
     }): Promise<void> {
       const timestamp = Date.now();
-      const symbol = params.request.query?.symbol;
+      const responseSymbol = params.request.query?.symbol;
 
-      if (!symbol) {
+      if (!responseSymbol) {
         throw new Error('Symbol is required in request params');
       }
 
-      const existingLastRecord = await storage.readLastRecord(symbol);
+      const normalizedSymbol = normalizeSymbol('binance', responseSymbol);
+
+      const existingLastRecord = await storage.readLastRecord(normalizedSymbol);
 
       if (existingLastRecord) {
         if (areResponsesIdentical(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
-            subIndexDir: symbol,
+            subIndexDir: normalizedSymbol,
             record: {
               timestamp,
               request: params.request,
@@ -57,7 +60,7 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
-        subIndexDir: symbol,
+        subIndexDir: normalizedSymbol,
         record: {
           timestamp,
           request: params.request,
@@ -66,8 +69,8 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
-      return await storage.readLastRecord(symbol);
+    async readLatestRecord(normalizedSymbol: string): Promise<OrderBookRecord | null> {
+      return await storage.readLastRecord(normalizedSymbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
 }

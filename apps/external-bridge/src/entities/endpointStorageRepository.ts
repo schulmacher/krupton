@@ -3,15 +3,22 @@ import { createBinanceBookTickerEntity } from './endpointStorageEntity/binanceBo
 import { createBinanceExchangeInfoEntity } from './endpointStorageEntity/binanceExchangeInfoEntity.js';
 import { createBinanceHistoricalTradeEntity } from './endpointStorageEntity/binanceHistoricalTradeEntity.js';
 import { createBinanceOrderBookEntity } from './endpointStorageEntity/binanceOrderBookEntity.js';
+import { createKrakenAssetPairsEntity } from './endpointStorageEntity/krakenAssetPairsEntity.js';
+import { createKrakenOrderBookEntity } from './endpointStorageEntity/krakenOrderBookEntity.js';
+import { createKrakenRecentTradesEntity } from './endpointStorageEntity/krakenRecentTradesEntity.js';
 
-export function createEndpointStorageRepository(storageBaseDir: string, platform: string) {
-  const baseDir = join(storageBaseDir, platform);
+export function createEndpointStorageRepository(storageBaseDir: string) {
+  const binanceBaseDir = join(storageBaseDir, 'binance');
+  const krakenBaseDir = join(storageBaseDir, 'kraken');
 
   return {
-    binanceBookTicker: createBinanceBookTickerEntity(baseDir),
-    binanceOrderBook: createBinanceOrderBookEntity(baseDir),
-    binanceHistoricalTrade: createBinanceHistoricalTradeEntity(baseDir),
-    binanceExchangeInfo: createBinanceExchangeInfoEntity(baseDir),
+    binanceBookTicker: createBinanceBookTickerEntity(binanceBaseDir),
+    binanceOrderBook: createBinanceOrderBookEntity(binanceBaseDir),
+    binanceHistoricalTrade: createBinanceHistoricalTradeEntity(binanceBaseDir),
+    binanceExchangeInfo: createBinanceExchangeInfoEntity(binanceBaseDir),
+    krakenAssetPairs: createKrakenAssetPairsEntity(krakenBaseDir),
+    krakenOrderBook: createKrakenOrderBookEntity(krakenBaseDir),
+    krakenRecentTrades: createKrakenRecentTradesEntity(krakenBaseDir),
   };
 }
 

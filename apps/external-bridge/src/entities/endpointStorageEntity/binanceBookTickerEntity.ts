@@ -5,6 +5,7 @@ import {
   EndpointStorage,
   EndpointStorageRecord,
 } from '../../lib/persistentStorage/endpointStorage.js';
+import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
 
 export type BinanceBookTickerStorage = EndpointStorage<typeof BinanceApi.GetBookTickerEndpoint>;
 export type BinanceBookTickerEntity = ReturnType<typeof createBinanceBookTickerEntity>;
@@ -39,12 +40,13 @@ export function createBinanceBookTickerEntity(baseDir: string) {
         throw new Error('Symbol is required in request params');
       }
 
-      const existingLastRecord = await storage.readLastRecord(symbol);
+      const normalizedSymbol = normalizeSymbol('binance', symbol);
+      const existingLastRecord = await storage.readLastRecord(normalizedSymbol);
 
       if (existingLastRecord) {
         if (areResponsesEqual(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
-            subIndexDir: symbol,
+            subIndexDir: normalizedSymbol,
             record: {
               timestamp,
               request: params.request,
@@ -57,7 +59,7 @@ export function createBinanceBookTickerEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
-        subIndexDir: symbol,
+        subIndexDir: normalizedSymbol,
         record: {
           timestamp,
           request: params.request,
@@ -66,8 +68,8 @@ export function createBinanceBookTickerEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string): Promise<BookTickerRecord | null> {
-      return await storage.readLastRecord(symbol);
+    async readLatestRecord(normalizedSymbol: string): Promise<BookTickerRecord | null> {
+      return await storage.readLastRecord(normalizedSymbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetBookTickerEndpoint>;
 }

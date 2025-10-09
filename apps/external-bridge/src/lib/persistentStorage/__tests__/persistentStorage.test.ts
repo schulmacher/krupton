@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createPersistentStorage } from './persistentStorage.js';
+import { createPersistentStorage } from '../persistentStorage.js';
 
 describe('createPersistentStorage', () => {
   let tempDir: string;

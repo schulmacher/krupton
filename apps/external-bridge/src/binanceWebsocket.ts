@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
-import { createWebsocketContext } from "./process/websocketProcess/context";
-import { startWebsocketService } from "./process/websocketProcess/websocketProcess";
+import { createBinanceWebsocketContext } from "./process/websocketProcess/binanceWebsocketContext";
+import { startWebsocketService } from "./process/websocketProcess/binanceWebsocketProcess";
 
 async function bootstrap(): Promise<void> {
   try {
-    const context = createWebsocketContext();
+    const context = createBinanceWebsocketContext();
 
-    context.diagnosticContext.logger.info('Bootstrapping external-bridge websocket service', {
+    context.diagnosticContext.logger.info('Bootstrapping external-bridge binance websocket service', {
       processName: context.envContext.config.PROCESS_NAME,
       nodeEnv: context.envContext.nodeEnv,
-      platform: context.envContext.config.PLATFORM,
+      platform: 'binance',
     });
 
     await startWebsocketService(context);
   } catch (error) {
-    console.error('Failed to bootstrap external-bridge websocket service:', error);
+    console.error('Failed to bootstrap external-bridge binance websocket service:', error);
     process.exit(1);
   }
 }

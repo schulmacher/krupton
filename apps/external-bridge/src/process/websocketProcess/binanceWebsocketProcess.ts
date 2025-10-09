@@ -2,10 +2,11 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { BinanceWS } from '@krupton/api-interface';
+import { setBinanceLatestExchangeInfo } from '../../lib/binance/binanceLatestExchangeInfoProvider.js';
 import { BinanceWebsocketManager } from '../../lib/websockets/BinanceWebsocketManager.js';
-import type { WebsocketContext } from './context.js';
+import type { BinanceWebSocketContext } from './binanceWebsocketContext.js';
 
-export async function startWebsocketService(context: WebsocketContext): Promise<void> {
+export async function startWebsocketService(context: BinanceWebSocketContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
 
@@ -63,6 +64,17 @@ export async function startWebsocketService(context: WebsocketContext): Promise<
       ),
     },
   );
+
+  const exchangeInfo =
+    await context.endpointStorageRepository.binanceExchangeInfo.readLatestRecord();
+
+  console.log('exchangeInfo', exchangeInfo);
+
+  if (!exchangeInfo) {
+    throw new Error('Exchange info not found for binance, this is required for symbol mapping');
+  }
+
+  setBinanceLatestExchangeInfo(exchangeInfo.response);
 
   diagnosticContext.logger.info('Starting websocket manager', { symbols });
   await websocketManager.connect();

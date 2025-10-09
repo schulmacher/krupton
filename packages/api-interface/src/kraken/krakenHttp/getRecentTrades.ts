@@ -1,5 +1,5 @@
 import { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointDefinition } from '@krupton/api-client-node';
+import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 
 export const GetRecentTradesEndpoint = {
   path: '/public/Trades',
@@ -33,3 +33,4 @@ export const GetRecentTradesEndpoint = {
 
 export type GetRecentTradesQuery = TB.Static<typeof GetRecentTradesEndpoint.querySchema>;
 export type GetRecentTradesResponse = TB.Static<typeof GetRecentTradesEndpoint.responseSchema>;
+export type GetRecentTradesRequest = ExtractEndpointParams<typeof GetRecentTradesEndpoint>;

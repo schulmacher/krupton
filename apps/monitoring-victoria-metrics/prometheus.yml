@@ -10,24 +10,36 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:3000']
         labels:
-          service: 'external-bridge'
-          component: 'fetcher'
+          namespace: 'external-bridge'
+          service: 'fetcher'
+          component: ''
           environment: 'development'
 
   - job_name: 'external-bridge-storage'
     static_configs:
       - targets: ['localhost:3001']
         labels:
-          service: 'external-bridge'
-          component: 'storage'
+          namespace: 'external-bridge'
+          service: 'storage'
+          component: ''
           environment: 'development'
 
-  - job_name: 'external-bridge-websockets'
+  - job_name: 'external-bridge-websockets-binance'
     static_configs:
       - targets: ['localhost:3002']
         labels:
-          service: 'external-bridge'
-          component: 'websockets'
+          namespace: 'external-bridge'
+          service: 'websocket'
+          component: 'binance'
+          environment: 'development'
+
+  - job_name: 'external-bridge-websockets-kraken'
+    static_configs:
+      - targets: ['localhost:3003']
+        labels:
+          namespace: 'external-bridge'
+          service: 'websocket'
+          component: 'kraken'
           environment: 'development'
 
   - job_name: 'victoriametrics'

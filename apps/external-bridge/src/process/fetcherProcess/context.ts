@@ -1,10 +1,10 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApiDefinition } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
+import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { ExternalBridgeFetcherEnv } from './environment.js';
 import { externalBridgeFetcherEnvSchema } from './environment.js';
-import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 
 export function createExternalBridgeFetcherContext() {
   const envContext = SF.createEnvContext(externalBridgeFetcherEnvSchema);
@@ -48,7 +48,6 @@ export function createExternalBridgeFetcherContext() {
 
   const endpointStorageRepository = createEndpointStorageRepository(
     envContext.config.STORAGE_BASE_DIR,
-    envContext.config.PLATFORM,
   );
 
   return {
@@ -66,4 +65,7 @@ export type ExternalBridgeFetcherContext = ReturnType<typeof createExternalBridg
 
 export type ExternalBridgeFetcherMetrics = SF.RegisteredMetrics<ExternalBridgeFetcherContext>;
 
-export type ExternalBridgeFetcherServiceContext = SF.ServiceContext<ExternalBridgeFetcherEnv, ExternalBridgeFetcherMetrics>;
+export type ExternalBridgeFetcherServiceContext = SF.ServiceContext<
+  ExternalBridgeFetcherEnv,
+  ExternalBridgeFetcherMetrics
+>;

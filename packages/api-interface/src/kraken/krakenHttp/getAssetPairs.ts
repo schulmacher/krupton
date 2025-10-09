@@ -1,5 +1,5 @@
 import { TB } from '@krupton/service-framework-node/typebox';
-import type { EndpointDefinition } from '@krupton/api-client-node';
+import type { EndpointDefinition, ExtractEndpointParams } from '@krupton/api-client-node';
 
 export const GetAssetPairsEndpoint = {
   path: '/public/AssetPairs',
@@ -41,3 +41,4 @@ export const GetAssetPairsEndpoint = {
 
 export type GetAssetPairsQuery = TB.Static<typeof GetAssetPairsEndpoint.querySchema>;
 export type GetAssetPairsResponse = TB.Static<typeof GetAssetPairsEndpoint.responseSchema>;
+export type GetAssetPairsRequest = ExtractEndpointParams<typeof GetAssetPairsEndpoint>;

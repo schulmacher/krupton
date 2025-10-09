@@ -1,0 +1,73 @@
+import { SF } from '@krupton/service-framework-node';
+
+import { createWSHandlers } from '@krupton/api-client-ws-node';
+import { KrakenWS } from '@krupton/api-interface';
+import { KrakenWebsocketManager } from '../../lib/websockets/KrakenWebsocketManager.js';
+import type { KrakenWebSocketContext } from './krakenWebsocketContext.js';
+
+export async function startWebsocketService(context: KrakenWebSocketContext): Promise<void> {
+  const { diagnosticContext, processContext, envContext } = context;
+  const config = envContext.config;
+
+  const createHttpServerWithHealthChecks = () =>
+    SF.createHttpServer(context, {
+      healthChecks: [
+        async () => ({
+          component: 'fetcher',
+          isHealthy: true,
+        }),
+      ],
+    });
+
+  const httpServer = createHttpServerWithHealthChecks();
+
+  const symbols = config.SYMBOLS.split(',')
+    .map((s) => s.trim())
+    .filter((s) => !!s);
+
+  const KrakenWSDefinition = {
+    tickerStream: KrakenWS.TickerStream,
+    tradeStream: KrakenWS.TradeStream,
+    bookStream: KrakenWS.BookStream,
+  };
+  const websocketManager = new KrakenWebsocketManager(
+    context,
+    createWSHandlers(KrakenWSDefinition, {
+      tickerStream: (message) => {
+        context.websocketStorageRepository.krakenTicker.write({
+          message,
+        });
+      },
+      tradeStream: (message) => {
+        context.websocketStorageRepository.krakenTrade.write({
+          message,
+        });
+      },
+      bookStream: (message) => {
+        context.websocketStorageRepository.krakenBook.write({
+          message,
+        });
+      },
+    }),
+    [
+      { channel: 'ticker', symbols, snapshot: true },
+      { channel: 'trade', symbols, snapshot: true },
+      { channel: 'book', symbols, depth: 10, snapshot: true },
+    ],
+  );
+
+  diagnosticContext.logger.info('Starting websocket manager', { symbols });
+  await websocketManager.connect();
+
+  const registerGracefulShutdownCallback = () => {
+    processContext.onShutdown(async () => {
+      diagnosticContext.logger.info('Shutting down websocket services');
+      await websocketManager.disconnect();
+    });
+  };
+
+  registerGracefulShutdownCallback();
+
+  processContext.start();
+  await httpServer.startServer();
+}

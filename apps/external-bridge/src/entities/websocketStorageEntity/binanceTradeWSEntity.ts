@@ -5,6 +5,7 @@ import {
   WebSocketStorage,
   WebSocketStorageRecord,
 } from '../../lib/persistentStorage/websocketStorage.js';
+import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
 
 export type BinanceTradeWSStorage = WebSocketStorage<typeof BinanceWS.TradeStream>;
 export type BinanceTradeWSEntity = ReturnType<typeof createBinanceTradeWSEntity>;
@@ -30,8 +31,10 @@ export function createBinanceTradeWSEntity(baseDir: string) {
         throw new Error('Symbol is required in message');
       }
 
+      const normalizedSymbol = normalizeSymbol('binance', symbol);
+
       await storage.appendRecord({
-        subIndexDir: symbol.toUpperCase(),
+        subIndexDir: normalizedSymbol,
         record: {
           timestamp,
           message: params.message,
@@ -39,8 +42,8 @@ export function createBinanceTradeWSEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string): Promise<TradeRecord | null> {
-      return await storage.readLastRecord(symbol);
+    async readLatestRecord(normalizedSymbol: string): Promise<TradeRecord | null> {
+      return await storage.readLastRecord(normalizedSymbol);
     },
   } satisfies WebSocketEntity<typeof BinanceWS.TradeStream>;
 }
