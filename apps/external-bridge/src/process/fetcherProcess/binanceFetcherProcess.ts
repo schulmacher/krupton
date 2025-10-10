@@ -3,11 +3,12 @@ import { createBinanceBookTickerFetcherLoops } from '../../fetchers/createBinanc
 import { createBinanceExchangeInfoFetcherLoop } from '../../fetchers/createBinanceExchangeInfoFetcherLoop.js';
 import { createBinanceHistoricalTradesFetcherLoops } from '../../fetchers/createBinanceHistoricalTradesFetcherLoops.js';
 import { createBinanceOrderBookFetcherLoops } from '../../fetchers/createBinanceOrderBookFetcherLoops.js';
-import { initBinanceLatestExchangeInfoProvider } from '../../lib/binance/binanceLatestExchangeInfoProvider.js';
-import type { ExternalBridgeFetcherContext } from './context.js';
+import { initBinanceLatestExchangeInfoProvider } from '../../lib/symbol/binanceLatestExchangeInfoProvider.js';
+import { unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
+import type { BinanceFetcherContext } from './binanceFetcherContext.js';
 
 export async function startExternalBridgeFetcherService(
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
 ): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
   const config = envContext.config;
@@ -24,14 +25,14 @@ export async function startExternalBridgeFetcherService(
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  const symbols = config.SYMBOLS.split(',')
-    .map((s) => s.trim())
+  const binanceSymbols = config.SYMBOLS.split(',')
+    .map((s) => unnormalizeToBinanceSymbol(s).trim())
     .filter((s) => !!s);
 
   context.metricsContext.metrics.totalFetchesGauge.set(0);
   context.metricsContext.metrics.lastFetchTimestampGauge.set(0);
   context.metricsContext.metrics.totalErrorsGauge.set(0);
-  context.metricsContext.metrics.activeSymbolsGauge.set(symbols.length);
+  context.metricsContext.metrics.activeSymbolsGauge.set(binanceSymbols.length);
 
   await initBinanceLatestExchangeInfoProvider(
     context.endpointStorageRepository.binanceExchangeInfo,
@@ -39,9 +40,9 @@ export async function startExternalBridgeFetcherService(
   );
 
   const fetcherLoops = [
-    ...(await createBinanceHistoricalTradesFetcherLoops(context, symbols)),
-    ...(await createBinanceBookTickerFetcherLoops(context, symbols)),
-    ...(await createBinanceOrderBookFetcherLoops(context, symbols)),
+    ...(await createBinanceHistoricalTradesFetcherLoops(context, binanceSymbols)),
+    ...(await createBinanceBookTickerFetcherLoops(context, binanceSymbols)),
+    ...(await createBinanceOrderBookFetcherLoops(context, binanceSymbols)),
     await createBinanceExchangeInfoFetcherLoop(context),
   ];
 

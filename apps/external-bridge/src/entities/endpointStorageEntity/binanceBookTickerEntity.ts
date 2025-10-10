@@ -68,8 +68,8 @@ export function createBinanceBookTickerEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<BookTickerRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<BookTickerRecord | null> {
+      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetBookTickerEndpoint>;
 }

@@ -45,8 +45,8 @@ export function createKrakenRecentTradesEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<RecentTradesRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<RecentTradesRecord | null> {
+      return await storage.readLastRecord(normalizeSymbol('kraken', symbol));
     },
   } satisfies EndpointEntity<typeof KrakenApi.GetRecentTradesEndpoint>;
 }

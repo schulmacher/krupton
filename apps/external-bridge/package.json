@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev:fetcher": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:fetcher-binance": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:fetcher-kraken": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenFetcher.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "dev:websocket-binance": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "dev:websocket-kraken": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenWebsocket.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "dev:storage": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/storage.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",

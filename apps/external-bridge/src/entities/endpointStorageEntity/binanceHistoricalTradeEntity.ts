@@ -51,8 +51,8 @@ export function createBinanceHistoricalTradeEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<HistoricalTradeRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<HistoricalTradeRecord | null> {
+      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetHistoricalTradesEndpoint>;
 }

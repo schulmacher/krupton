@@ -69,8 +69,8 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<OrderBookRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
+      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
 }

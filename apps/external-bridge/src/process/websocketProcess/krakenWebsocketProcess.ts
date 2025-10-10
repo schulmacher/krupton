@@ -2,8 +2,12 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
+import {
+  unnormalizeToKrakenWSSymbol
+} from '../../lib/symbol/normalizeSymbol.js';
 import { KrakenWebsocketManager } from '../../lib/websockets/KrakenWebsocketManager.js';
 import type { KrakenWebSocketContext } from './krakenWebsocketContext.js';
+import { initKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
 
 export async function startWebsocketService(context: KrakenWebSocketContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
@@ -21,9 +25,14 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  const symbols = config.SYMBOLS.split(',')
+  await initKrakenLatestAssetPairsProvider(
+    context.endpointStorageRepository.krakenAssetPairs,
+    context.endpointStorageRepository.krakenAssetInfo,
+  );
+
+  const symbols = config.SYMBOLS.split(','  )
     .map((s) => s.trim())
-    .filter((s) => !!s);
+    .map((s) => unnormalizeToKrakenWSSymbol(s).trim());
 
   const KrakenWSDefinition = {
     tickerStream: KrakenWS.TickerStream,

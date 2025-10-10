@@ -25,7 +25,7 @@ export async function initBinanceLatestExchangeInfoProvider(
   if (!latestBinanceExchangeInfo) {
     const result = await getExchangeInfo({ query: {} });
     await binanceExchangeInfoEntity.write({
-      request: { query: { symbol: 'ALL' } },
+      request: { query: {} },
       response: result,
     });
     latestBinanceExchangeInfo = result;

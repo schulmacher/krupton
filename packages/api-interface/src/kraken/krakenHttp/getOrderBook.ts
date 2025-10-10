@@ -11,7 +11,7 @@ export const GetOrderBookEndpoint = {
   responseSchema: TB.Object({
     error: TB.Array(TB.String()),
     result: TB.Record(
-      TB.String(),
+      TB.String(), // pair
       TB.Object({
         asks: TB.Array(TB.Tuple([TB.String(), TB.String(), TB.Number()])),
         bids: TB.Array(TB.Tuple([TB.String(), TB.String(), TB.Number()])),

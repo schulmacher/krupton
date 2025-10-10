@@ -5,6 +5,7 @@ import type {
 } from '@krupton/api-client-ws-node';
 import { TB } from '@krupton/service-framework-node/typebox';
 
+// https://docs.kraken.com/api/docs/websocket-v2/book#snapshot-response
 export const BookStream = {
   streamName: 'book' as const,
   params: TB.Object({
@@ -39,7 +40,7 @@ export const BookStream = {
           }),
         ),
         checksum: TB.Number(),
-        timestamp: TB.String(),
+        timestamp: TB.Optional(TB.String()), // only for updates
       }),
     ),
   }),

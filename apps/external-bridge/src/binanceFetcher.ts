@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { createExternalBridgeFetcherContext } from './process/fetcherProcess/context.js';
-import { startExternalBridgeFetcherService } from './process/fetcherProcess/fetcherProcess.js';
+import { createBinanceFetcherContext } from './process/fetcherProcess/binanceFetcherContext.js';
+import { startExternalBridgeFetcherService } from './process/fetcherProcess/binanceFetcherProcess.js';
 
 async function bootstrap(): Promise<void> {
   try {
-    const context = createExternalBridgeFetcherContext();
+    const context = createBinanceFetcherContext();
 
     context.diagnosticContext.logger.info('Bootstrapping externalBridgeFetcher service', {
       processName: context.envContext.config.PROCESS_NAME,

@@ -9,11 +9,11 @@ export const binanceWebSocketEnvSchema = TB.Object({
   LOG_LEVEL: TB.String({ default: 'debug' }),
   API_BASE_URL: TB.String({
     description: 'Base URL for the websocket streams API',
-    default: 'wss://stream.testnet.binance.vision/stream?streams',
+    default: 'wss://stream.binance.com/stream',
   }),
   SYMBOLS: TB.String({
-    description: 'Comma-separated list of trading pairs (e.g., BTCUSDT,ETHUSDT)',
-    default: 'BTCUSDT,ETHUSDT',
+    description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
+    default: 'btc_usdt,eth_usdt',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
@@ -33,8 +33,8 @@ export const krakenWebSocketEnvSchema = TB.Object({
     default: 'wss://ws.kraken.com/v2',
   }),
   SYMBOLS: TB.String({
-    description: 'Comma-separated list of trading pairs (e.g., BTCUSDT,ETHUSDT)',
-    default: 'BTCUSDT,ETHUSDT',
+    description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
+    default: 'btc_usdt,eth_usdt',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',

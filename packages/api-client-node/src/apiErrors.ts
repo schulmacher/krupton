@@ -4,6 +4,14 @@ export class ApiClientError extends Error {
     this.name = 'ApiClientError';
     Object.setPrototypeOf(this, ApiClientError.prototype);
   }
+
+  public getLogData() {
+    return {
+      name: this.name,
+      message: this.message,
+      stack: this.stack,
+    };
+  }
 }
 
 export class ApiClientValidationError extends ApiClientError {
@@ -15,6 +23,13 @@ export class ApiClientValidationError extends ApiClientError {
     this.errors = errors;
     Object.setPrototypeOf(this, ApiClientValidationError.prototype);
   }
+
+  public getLogData() {
+    return {
+      ...super.getLogData(),
+      errors: this.errors,
+    };
+  }
 }
 
 export class ApiClientRequestValidationError extends ApiClientError {
@@ -25,6 +40,13 @@ export class ApiClientRequestValidationError extends ApiClientError {
     this.name = 'ApiClientRequestValidationError';
     this.errors = errors;
     Object.setPrototypeOf(this, ApiClientRequestValidationError.prototype);
+  }
+
+  public getLogData() {
+    return {
+      ...super.getLogData(),
+      errors: this.errors,
+    };
   }
 }
 
@@ -39,6 +61,21 @@ export class ApiClientStatusError extends ApiClientError {
     this.responseBody = responseBody;
     Object.setPrototypeOf(this, ApiClientStatusError.prototype);
   }
+
+  public getLogData() {
+    const responseBodyString = this.responseBody ? JSON.stringify(this.responseBody) : undefined;
+    const partialResponseBody = responseBodyString
+      ? responseBodyString.slice(0, 50) +
+        (responseBodyString.length > 50
+          ? '...' + responseBodyString.slice(-50, responseBodyString.length)
+          : '')
+      : undefined;
+    return {
+      ...super.getLogData(),
+      statusCode: this.statusCode,
+      responseBody: partialResponseBody,
+    };
+  }
 }
 
 export class ApiClientFetchError extends ApiClientError {
@@ -49,5 +86,12 @@ export class ApiClientFetchError extends ApiClientError {
     this.name = 'ApiClientFetchError';
     this.cause = cause;
     Object.setPrototypeOf(this, ApiClientFetchError.prototype);
+  }
+
+  public getLogData() {
+    return {
+      ...super.getLogData(),
+      cause: this.cause,
+    };
   }
 }

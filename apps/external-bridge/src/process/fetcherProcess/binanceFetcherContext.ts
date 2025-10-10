@@ -3,11 +3,11 @@ import { BinanceApi } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
 import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
-import type { ExternalBridgeFetcherEnv } from './environment.js';
-import { externalBridgeFetcherEnvSchema } from './environment.js';
+import type { BinanceFetcherEnv } from './environment.js';
+import { binanceFetcherEnvSchema } from './environment.js';
 
-export function createExternalBridgeFetcherContext() {
-  const envContext = SF.createEnvContext(externalBridgeFetcherEnvSchema);
+export function createBinanceFetcherContext() {
+  const envContext = SF.createEnvContext(binanceFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
@@ -16,6 +16,7 @@ export function createExternalBridgeFetcherContext() {
   const metricsContext = SF.createMetricsContext({
     envContext,
     enableDefaultMetrics: true,
+    prefix: 'external_bridge_fetcher',
     metrics: {
       fetchCounter: SF.externalBridgeFetcherMetrics.fetchCounter,
       fetchDuration: SF.externalBridgeFetcherMetrics.fetchDuration,
@@ -66,11 +67,11 @@ export function createExternalBridgeFetcherContext() {
   };
 }
 
-export type ExternalBridgeFetcherContext = ReturnType<typeof createExternalBridgeFetcherContext>;
+export type BinanceFetcherContext = ReturnType<typeof createBinanceFetcherContext>;
 
-export type ExternalBridgeFetcherMetrics = SF.RegisteredMetrics<ExternalBridgeFetcherContext>;
+export type BinanceFetcherMetrics = SF.RegisteredMetrics<BinanceFetcherContext>;
 
-export type ExternalBridgeFetcherServiceContext = SF.ServiceContext<
-  ExternalBridgeFetcherEnv,
-  ExternalBridgeFetcherMetrics
+export type BinanceFetcherServiceContext = SF.ServiceContext<
+  BinanceFetcherEnv,
+  BinanceFetcherMetrics
 >;

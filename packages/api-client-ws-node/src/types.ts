@@ -4,7 +4,7 @@ export interface WebSocketStreamDefinition {
   streamName: string;
   params: ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>;
   messageSchema: ReturnType<typeof TB.Object | typeof TB.Array | typeof TB.Union>;
-  messageIdentifier?: (message: unknown) => boolean;
+  messageIdentifier: (message: unknown) => boolean;
 }
 
 export type ExtractWebSocketStreamMessage<T extends WebSocketStreamDefinition> =

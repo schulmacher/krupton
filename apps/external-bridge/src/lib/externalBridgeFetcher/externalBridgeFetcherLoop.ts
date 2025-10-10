@@ -1,13 +1,19 @@
-import type {
-  EndpointDefinition,
-  ExtractEndpointDefinitionResponseSchema,
-  ExtractEndpointParams,
+import {
+  ApiClientError,
+  type EndpointDefinition,
+  type ExtractEndpointDefinitionResponseSchema,
+  type ExtractEndpointParams,
 } from '@krupton/api-client-node';
-import type { ExternalBridgeFetcherContext } from '../../process/fetcherProcess/context.js';
-import type { FetcherConfig, ExternalBridgeFetcherLoop, ExternalBridgeFetcherLoopState } from './types.js';
+import type { BinanceFetcherContext } from '../../process/fetcherProcess/binanceFetcherContext.js';
+import type { KrakenFetcherContext } from '../../process/fetcherProcess/krakenFetcherContext.js';
+import type {
+  ExternalBridgeFetcherLoop,
+  ExternalBridgeFetcherLoopState,
+  FetcherConfig,
+} from './types.js';
 
 export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext | KrakenFetcherContext,
   config: FetcherConfig<E>,
 ): ExternalBridgeFetcherLoop => {
   const { envContext, diagnosticContext, metricsContext, processContext, rateLimiter } = context;
@@ -131,7 +137,12 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
         platform: env.PLATFORM,
         symbol: symbol,
         endpoint: endpointPath,
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          error instanceof ApiClientError
+            ? error.getLogData()
+            : error instanceof Error
+              ? error.message
+              : String(error),
       });
     }
   };

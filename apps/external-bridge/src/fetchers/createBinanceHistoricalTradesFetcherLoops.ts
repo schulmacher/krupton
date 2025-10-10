@@ -1,11 +1,11 @@
 import { BinanceApi } from '@krupton/api-interface';
 import { sleep } from '@krupton/utils';
-import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import type { BinanceFetcherContext } from '../process/fetcherProcess/binanceFetcherContext.js';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const handleHistoricalTradesResponse = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   query: BinanceApi.GetHistoricalTradesQuery,
   response: BinanceApi.GetHistoricalTradesResponse,
   endpoint: string,
@@ -65,52 +65,24 @@ const handleHistoricalTradesResponse = async (
 };
 
 const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   symbol: string,
   endpoint: string,
 ): Promise<ExternalBridgeFetcherLoop> => {
-  const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
-  const config = envContext.config;
-
-  const latestStorageRecord =
-    await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
-  const latestStorageRecordMaxId = latestStorageRecord?.response?.reduce(
-    (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
-    0,
-  );
-
-  diagnosticContext.logger.info('Latest record loaded', {
-    platform: config.PLATFORM,
-    symbol,
-    endpoint,
-    hasRecord: !!latestStorageRecord,
-    latestStorageRecordMaxId,
-    recordTimestamp: latestStorageRecord?.timestamp,
-    recordCount: latestStorageRecord?.response
-      ? Array.isArray(latestStorageRecord.response)
-        ? latestStorageRecord.response.length
-        : 1
-      : 0,
-  });
+  const { binanceClient, endpointStorageRepository } = context;
 
   return createExternalBridgeFetcherLoop<typeof BinanceApi.GetHistoricalTradesEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getHistoricalTrades,
-    buildRequestParams: ({ prevResponse: lastResponse, prevParams: lastParams }) => {
-      const prevResponseMaxId = lastResponse
-        ? lastResponse.reduce((acc: number, curr: { id: number }) => Math.max(acc, curr.id), 0)
-        : undefined;
-      const prevId = prevResponseMaxId ?? latestStorageRecordMaxId;
-      const queryFromId = prevId ? prevId + 1 : 0;
-      const nextQuery: BinanceApi.GetHistoricalTradesQuery = {
-        symbol,
-        limit: 100,
-        fromId: queryFromId,
-      };
+    buildRequestParams: async () => {
+      const latestRecord =
+        await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
+      const latestRecordMaxId = latestRecord?.response?.reduce(
+        (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
+        0,
+      );
 
-      if (lastResponse && lastResponse.length === 0) {
-        return lastParams ? lastParams : { query: nextQuery };
-      }
+      const queryFromId = latestRecordMaxId ? latestRecordMaxId + 1 : 1;
 
       return {
         query: {
@@ -126,7 +98,7 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
 };
 
 export const createBinanceHistoricalTradesFetcherLoops = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   symbols: string[],
 ): Promise<ExternalBridgeFetcherLoop[]> => {
   const { binanceClient } = context;

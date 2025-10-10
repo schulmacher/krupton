@@ -1,10 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { ExternalBridgeFetcherContext } from '../process/fetcherProcess/context.js';
+import type { BinanceFetcherContext } from '../process/fetcherProcess/binanceFetcherContext.js';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 
 const handleBookTickerResponse = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   query: BinanceApi.GetBookTickerQuery,
   response: BinanceApi.GetBookTickerResponse,
   symbol: string,
@@ -32,7 +32,7 @@ const handleBookTickerResponse = async (
 };
 
 const createBinanceBookTickerFetcherLoopForSymbol = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   symbol: string,
 ): Promise<ExternalBridgeFetcherLoop> => {
   const { diagnosticContext, envContext, binanceClient } = context;
@@ -61,7 +61,7 @@ const createBinanceBookTickerFetcherLoopForSymbol = async (
 };
 
 export const createBinanceBookTickerFetcherLoops = async (
-  context: ExternalBridgeFetcherContext,
+  context: BinanceFetcherContext,
   symbols: string[],
 ): Promise<ExternalBridgeFetcherLoop[]> => {
   const fetcherLoops = await Promise.all(

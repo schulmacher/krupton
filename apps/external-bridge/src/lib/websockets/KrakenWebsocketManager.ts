@@ -1,10 +1,10 @@
 import {
-  createWSConsumer,
-  createWSHandlers,
-  StreamHandlersWithDefinitions,
-  WebSocketConsumer,
-  WebSocketStreamDefinition,
-  WebSocketValidationError,
+    createWSConsumer,
+    createWSHandlers,
+    StreamHandlersWithDefinitions,
+    WebSocketConsumer,
+    WebSocketStreamDefinition,
+    WebSocketValidationError,
 } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
 import { BinanceWebSocketServiceContext } from '../../process/websocketProcess/binanceWebsocketContext';
@@ -12,6 +12,8 @@ import { createPromiseLock, PromiseLock } from '../promise';
 
 const CommonDefinition = {
   subscriptionStatusStream: KrakenWS.SubscriptionStatusStream,
+  heartbeatStream: KrakenWS.HeartbeatStream,
+  statusStream: KrakenWS.StatusStream,
 };
 
 interface SubscriptionRequest {
@@ -98,6 +100,16 @@ export class KrakenWebsocketManager<
       {
         ...wrappedHandlers,
         ...createWSHandlers(CommonDefinition, {
+          heartbeatStream: () => {
+            // no-op
+          },
+          statusStream: (data) => {
+            this.#serviceContext.diagnosticContext.logger.info('Kraken WebSocket status update', {
+              system: data.data[0].system,
+              api_version: data.data[0].api_version,
+              version: data.data[0].version,
+            });
+          },
           subscriptionStatusStream: async (data) => {
             if ('result' in data && data.result) {
               const key = `${data.method}-${data.result.channel}`;
@@ -206,7 +218,7 @@ export class KrakenWebsocketManager<
   }
 
   async connect() {
-    const { diagnosticContext, metricsContext} = this.#serviceContext;
+    const { diagnosticContext, metricsContext } = this.#serviceContext;
     const platform = 'kraken';
 
     // Connect to the WebSocket
@@ -248,7 +260,9 @@ export class KrakenWebsocketManager<
     );
     metricsContext.metrics.activeSubscriptions.set({ platform }, totalSymbols);
 
-    diagnosticContext.logger.info('KrakenWebsocketManager connected and subscribed to all channels');
+    diagnosticContext.logger.info(
+      'KrakenWebsocketManager connected and subscribed to all channels',
+    );
 
     // Kraken doesn't require periodic reconnection like Binance
   }
@@ -279,7 +293,7 @@ export class KrakenWebsocketManager<
   }
 
   async disconnect() {
-    const { diagnosticContext, metricsContext} = this.#serviceContext;
+    const { diagnosticContext, metricsContext } = this.#serviceContext;
     const platform = 'kraken';
 
     this.#clearReconnectionTimer();
@@ -409,7 +423,7 @@ export class KrakenWebsocketManager<
   }
 
   #startUptimeTracking() {
-    const { metricsContext} = this.#serviceContext;
+    const { metricsContext } = this.#serviceContext;
     const platform = 'kraken';
 
     this.#stopUptimeTracking();
@@ -430,4 +444,3 @@ export class KrakenWebsocketManager<
     }
   }
 }
-
