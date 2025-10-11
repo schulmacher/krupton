@@ -1,11 +1,10 @@
 import { KrakenWS } from '@krupton/api-interface';
-import type { WebSocketEntity, WebsocketEntityInput } from '../../lib/persistentStorage/websocketEntity.js';
+import type { WebSocketEntity, WebsocketEntityInput } from '../../websocketEntity.js';
 import {
   createWebSocketStorage,
   WebSocketStorage,
   WebSocketStorageRecord,
-} from '../../lib/persistentStorage/websocketStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../websocketStorage.js';
 
 export type KrakenTickerWSStorage = WebSocketStorage<typeof KrakenWS.TickerStream>;
 export type KrakenTickerWSEntity = ReturnType<typeof createKrakenTickerWSEntity>;
@@ -31,10 +30,8 @@ export function createKrakenTickerWSEntity(baseDir: string) {
         throw new Error('Symbol is required in message');
       }
 
-      const normalizedSymbol = normalizeSymbol('kraken', symbol);
-
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           message: params.message,

@@ -4,10 +4,10 @@ import {
     ExtractEndpointParams,
 } from '@krupton/api-client-node';
 import { join } from 'path';
-import { createPersistentStorage, StorageRecord } from './persistentStorage';
+import { createPersistentStorage, normalizeIndexDir, StorageRecord } from './persistentStorage.js';
 
 function normalizeEndpointPath(endpoint: string): string {
-  return 'endpoint_' + endpoint.replace(/^\/+/, '').replace(/\//g, '_');
+  return 'endpoint_' + normalizeIndexDir(endpoint);
 }
 
 export type EndpointStorageRecord<T extends EndpointDefinition> = StorageRecord<{

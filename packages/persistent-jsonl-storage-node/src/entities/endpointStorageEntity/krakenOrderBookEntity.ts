@@ -1,11 +1,10 @@
 import { KrakenApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   EndpointStorage,
   EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../endpointStorage.js';
 
 export type KrakenOrderBookStorage = EndpointStorage<typeof KrakenApi.GetOrderBookEndpoint>;
 export type KrakenOrderBookEntity = ReturnType<typeof createKrakenOrderBookEntity>;
@@ -34,20 +33,18 @@ export function createKrakenOrderBookEntity(baseDir: string) {
       response: KrakenApi.GetOrderBookResponse;
     }): Promise<void> {
       const timestamp = Date.now();
-      const requestPair = params.request.query?.pair;
+      const symbol = params.request.query?.pair;
 
-      if (!requestPair) {
+      if (!symbol) {
         throw new Error('Pair is required in request params');
       }
 
-      const noramlizedSymbol = normalizeSymbol('kraken', requestPair);
-
-      const existingLastRecord = await storage.readLastRecord(noramlizedSymbol);
+      const existingLastRecord = await storage.readLastRecord(symbol);
 
       if (existingLastRecord) {
         if (areResponsesIdentical(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
-            subIndexDir: noramlizedSymbol,
+            subIndexDir: symbol,
             record: {
               timestamp,
               request: params.request,
@@ -60,7 +57,7 @@ export function createKrakenOrderBookEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
-        subIndexDir: noramlizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
@@ -69,8 +66,8 @@ export function createKrakenOrderBookEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<OrderBookRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof KrakenApi.GetOrderBookEndpoint>;
 }

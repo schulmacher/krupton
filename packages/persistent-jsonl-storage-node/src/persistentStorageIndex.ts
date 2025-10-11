@@ -16,7 +16,7 @@
  * Formula: `nextFileName = currentFileName + lineCount`
  */
 import { open, truncate, writeFile } from 'node:fs/promises';
-import { ensureDirForFile } from '../fs';
+import { ensureDirForFile } from './lib/fs.js';
 
 export type TimeSource = 'created' | 'extracted';
 

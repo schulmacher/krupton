@@ -1,11 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   EndpointStorage,
   EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../endpointStorage.js';
 
 export type BinanceBookTickerStorage = EndpointStorage<typeof BinanceApi.GetBookTickerEndpoint>;
 export type BinanceBookTickerEntity = ReturnType<typeof createBinanceBookTickerEntity>;
@@ -40,13 +39,12 @@ export function createBinanceBookTickerEntity(baseDir: string) {
         throw new Error('Symbol is required in request params');
       }
 
-      const normalizedSymbol = normalizeSymbol('binance', symbol);
-      const existingLastRecord = await storage.readLastRecord(normalizedSymbol);
+      const existingLastRecord = await storage.readLastRecord(symbol);
 
       if (existingLastRecord) {
         if (areResponsesEqual(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
-            subIndexDir: normalizedSymbol,
+            subIndexDir: symbol,
             record: {
               timestamp,
               request: params.request,
@@ -59,7 +57,7 @@ export function createBinanceBookTickerEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
@@ -69,7 +67,7 @@ export function createBinanceBookTickerEntity(baseDir: string) {
     },
 
     async readLatestRecord(symbol: string): Promise<BookTickerRecord | null> {
-      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetBookTickerEndpoint>;
 }

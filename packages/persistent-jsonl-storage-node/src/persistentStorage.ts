@@ -1,8 +1,8 @@
 import { constants } from 'node:fs';
 import { access, appendFile, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ensureFile } from '../fs.js';
-import { createPromiseLock } from '../promise.js';
+import { ensureFile } from './lib/fs.js';
+import { createPromiseLock } from './lib/promise.js';
 import { getLastIndexEntry } from './persistentStorageIndex.js';
 import {
   addRowIndexes,
@@ -14,6 +14,14 @@ import {
 
 const FS_PAGE_SIZE = 4096;
 const DEFAULT_MAX_FILE_SIZE_BYTES = FS_PAGE_SIZE * 25600; // ~100MB (4096 * 25600 = 104,857,600 bytes)
+
+export function normalizeIndexDir(subIndexDir: string): string {
+  return subIndexDir
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
 
 export type StorageRecord<T extends Record<string, unknown>> = {
   timestamp: number;
@@ -150,7 +158,8 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
   return {
     async appendRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
-      const { record, subIndexDir } = params;
+      const { record, subIndexDir: rawSubIndexDir } = params;
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
 
       let fileName = await getCurrentOrInitialFileName(subIndexDir);
 
@@ -175,7 +184,8 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
 
     async readRecords(params: ReadRecordsParams): Promise<StorageRecord<T>[]> {
       await promiseLock.waitForRelease();
-      const { subIndexDir, fileName } = params;
+      const { subIndexDir: rawSubIndexDir, fileName } = params;
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
       const filePath = getFilePath(subIndexDir, fileName);
 
       try {
@@ -194,8 +204,9 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
       }
     },
 
-    async readLastRecord(subIndexDir: string): Promise<StorageRecord<T> | null> {
+    async readLastRecord(rawSubIndexDir: string): Promise<StorageRecord<T> | null> {
       await promiseLock.waitForRelease();
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
       const fileName = await getCurrentOrInitialFileName(subIndexDir);
       const filePath = getFilePath(subIndexDir, fileName);
 
@@ -204,7 +215,8 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
 
     async replaceLastRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
-      const { record, subIndexDir } = params;
+      const { record, subIndexDir: rawSubIndexDir } = params;
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
       const fileName = await getCurrentOrInitialFileName(subIndexDir);
       const filePath = getFilePath(subIndexDir, fileName);
 

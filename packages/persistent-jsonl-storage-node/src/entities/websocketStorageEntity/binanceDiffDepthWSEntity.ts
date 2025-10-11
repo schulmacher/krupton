@@ -1,11 +1,10 @@
 import { BinanceWS } from '@krupton/api-interface';
-import type { WebSocketEntity, WebsocketEntityInput } from '../../lib/persistentStorage/websocketEntity.js';
+import type { WebSocketEntity, WebsocketEntityInput } from '../../websocketEntity.js';
 import {
   createWebSocketStorage,
   WebSocketStorage,
   WebSocketStorageRecord,
-} from '../../lib/persistentStorage/websocketStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../websocketStorage.js';
 
 export type BinanceDiffDepthWSStorage = WebSocketStorage<typeof BinanceWS.DiffDepthStream>;
 export type BinanceDiffDepthWSEntity = ReturnType<typeof createBinanceDiffDepthWSEntity>;
@@ -31,10 +30,8 @@ export function createBinanceDiffDepthWSEntity(baseDir: string) {
         throw new Error('Symbol is required in message');
       }
 
-      const normalizedSymbol = normalizeSymbol('binance', symbol);
-
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           message: params.message,
@@ -42,8 +39,8 @@ export function createBinanceDiffDepthWSEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<DiffDepthRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<DiffDepthRecord | null> {
+      return await storage.readLastRecord(symbol);
     },
   } satisfies WebSocketEntity<typeof BinanceWS.DiffDepthStream>;
 }

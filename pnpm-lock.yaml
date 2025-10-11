@@ -75,6 +75,33 @@ importers:
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@krupton/persistent-jsonl-storage-node':
+        specifier: workspace:*
+        version: link:../../packages/persistent-jsonl-storage-node
+      '@krupton/service-framework-node':
+        specifier: workspace:*
+        version: link:../../packages/service-framework-node
+      '@krupton/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.3
+
+  apps/internal-bridge:
+    dependencies:
+      '@krupton/api-client-node':
+        specifier: workspace:*
+        version: link:../../packages/api-client-node
+      '@krupton/api-client-ws-node':
+        specifier: workspace:*
+        version: link:../../packages/api-client-ws-node
+      '@krupton/api-interface':
+        specifier: workspace:*
+        version: link:../../packages/api-interface
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@krupton/service-framework-node':
         specifier: workspace:*
         version: link:../../packages/service-framework-node
@@ -184,6 +211,21 @@ importers:
       vitest:
         specifier: ^2.1.3
         version: 2.1.9(@types/node@22.18.6)
+
+  packages/persistent-jsonl-storage-node:
+    dependencies:
+      '@krupton/api-interface':
+        specifier: workspace:*
+        version: link:../api-interface
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../config
+      '@krupton/service-framework-node':
+        specifier: workspace:*
+        version: link:../service-framework-node
+      typescript:
+        specifier: '>=5.0.0'
+        version: 5.9.2
 
   packages/service-framework-node:
     dependencies:

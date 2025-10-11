@@ -1,11 +1,10 @@
 import { KrakenWS } from '@krupton/api-interface';
-import type { WebSocketEntity, WebsocketEntityInput } from '../../lib/persistentStorage/websocketEntity.js';
+import type { WebSocketEntity, WebsocketEntityInput } from '../../websocketEntity.js';
 import {
   createWebSocketStorage,
   WebSocketStorage,
   WebSocketStorageRecord,
-} from '../../lib/persistentStorage/websocketStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../websocketStorage.js';
 
 export type KrakenBookWSStorage = WebSocketStorage<typeof KrakenWS.BookStream>;
 export type KrakenBookWSEntity = ReturnType<typeof createKrakenBookWSEntity>;
@@ -31,10 +30,8 @@ export function createKrakenBookWSEntity(baseDir: string) {
         throw new Error('Symbol is required in message');
       }
 
-      const normalizedSymbol = normalizeSymbol('kraken', symbol);
-
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           message: params.message,
@@ -42,8 +39,8 @@ export function createKrakenBookWSEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(normalizedSymbol: string): Promise<BookRecord | null> {
-      return await storage.readLastRecord(normalizedSymbol);
+    async readLatestRecord(symbol: string): Promise<BookRecord | null> {
+      return await storage.readLastRecord(symbol);
     },
   } satisfies WebSocketEntity<typeof KrakenWS.BookStream>;
 }

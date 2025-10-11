@@ -1,7 +1,6 @@
+import { createEndpointStorageRepository, createWebsocketStorageRepository } from '@krupton/persistent-jsonl-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { createWebsocketStorageRepository } from '../../entities/websocketStorageRepository.js';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
-import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 
 export function createKrakenWebsocketContext() {
   const envContext = SF.createEnvContext(krakenWebSocketEnvSchema);

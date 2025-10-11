@@ -1,11 +1,10 @@
 import { KrakenApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   type EndpointStorage,
   type EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../endpointStorage.js';
 
 export type KrakenRecentTradesStorage = EndpointStorage<typeof KrakenApi.GetRecentTradesEndpoint>;
 export type KrakenRecentTradesEntity = ReturnType<typeof createKrakenRecentTradesEntity>;
@@ -27,16 +26,14 @@ export function createKrakenRecentTradesEntity(baseDir: string) {
       response: KrakenApi.GetRecentTradesResponse;
     }): Promise<void> {
       const timestamp = Date.now();
-      const requestPair = params.request.query?.pair;
+      const symbol = params.request.query?.pair;
 
-      if (!requestPair) {
+      if (!symbol) {
         throw new Error('Pair is required in request params');
       }
 
-      const normalizedSymbol = normalizeSymbol('kraken', requestPair);
-
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
@@ -46,7 +43,7 @@ export function createKrakenRecentTradesEntity(baseDir: string) {
     },
 
     async readLatestRecord(symbol: string): Promise<RecentTradesRecord | null> {
-      return await storage.readLastRecord(normalizeSymbol('kraken', symbol));
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof KrakenApi.GetRecentTradesEndpoint>;
 }

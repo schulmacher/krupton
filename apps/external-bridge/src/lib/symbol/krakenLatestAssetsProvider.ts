@@ -1,7 +1,7 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
-import { KrakenAssetInfoEntity } from '../../entities/endpointStorageEntity/krakenAssetInfoEntity';
-import { KrakenAssetPairsEntity } from '../../entities/endpointStorageEntity/krakenAssetPairsEntity';
+import { KrakenAssetInfoEntity } from '@krupton/persistent-jsonl-storage-node';
+import { KrakenAssetPairsEntity } from '@krupton/persistent-jsonl-storage-node';
 
 let assetPairs: KrakenApi.GetAssetPairsResponse | null = null;
 let assetInfo: KrakenApi.GetAssetInfoResponse | null = null;

@@ -3,14 +3,10 @@ import {
   WebSocketStreamDefinition,
 } from '@krupton/api-client-ws-node';
 import { join } from 'path';
-import { createPersistentStorage, StorageRecord } from './persistentStorage';
-
-function toSnakeCase(str: string): string {
-  return str.replace(/([A-Z])/g, '_$1').toLowerCase();
-}
+import { createPersistentStorage, normalizeIndexDir, StorageRecord } from './persistentStorage.js';
 
 function normalizeStreamName(name: string): string {
-  return 'ws_' + toSnakeCase(name).replace(/^\/+/, '').replace(/\//g, '_');
+  return 'ws_' + normalizeIndexDir(name);
 }
 
 export type WebSocketStorageRecord<T extends WebSocketStreamDefinition> = StorageRecord<{

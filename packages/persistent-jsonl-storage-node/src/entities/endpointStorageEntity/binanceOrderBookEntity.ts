@@ -1,11 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   EndpointStorage,
   EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../endpointStorage.js';
 
 export type BinanceOrderBookStorage = EndpointStorage<typeof BinanceApi.GetOrderBookEndpoint>;
 export type BinanceOrderBookEntity = ReturnType<typeof createBinanceOrderBookEntity>;
@@ -34,20 +33,19 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       response: BinanceApi.GetOrderBookResponse;
     }): Promise<void> {
       const timestamp = Date.now();
-      const responseSymbol = params.request.query?.symbol;
+      const symbol = params.request.query?.symbol;
 
-      if (!responseSymbol) {
+      if (!symbol) {
         throw new Error('Symbol is required in request params');
       }
 
-      const normalizedSymbol = normalizeSymbol('binance', responseSymbol);
 
-      const existingLastRecord = await storage.readLastRecord(normalizedSymbol);
+      const existingLastRecord = await storage.readLastRecord(symbol);
 
       if (existingLastRecord) {
         if (areResponsesIdentical(existingLastRecord.response, params.response)) {
           await storage.replaceLastRecord({
-            subIndexDir: normalizedSymbol,
+            subIndexDir: symbol,
             record: {
               timestamp,
               request: params.request,
@@ -60,7 +58,7 @@ export function createBinanceOrderBookEntity(baseDir: string) {
       }
 
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
@@ -70,7 +68,7 @@ export function createBinanceOrderBookEntity(baseDir: string) {
     },
 
     async readLatestRecord(symbol: string): Promise<OrderBookRecord | null> {
-      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetOrderBookEndpoint>;
 }

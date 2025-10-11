@@ -1,7 +1,7 @@
 import { createApiClient } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
-import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
+import { createEndpointStorageRepository } from '@krupton/persistent-jsonl-storage-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';

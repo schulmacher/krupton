@@ -1,11 +1,11 @@
 import { BinanceApi } from '@krupton/api-interface';
 import { createHash } from 'node:crypto';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   EndpointStorage,
   EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
+} from '../../endpointStorage.js';
 
 export type BinanceExchangeInfoStorage = EndpointStorage<typeof BinanceApi.GetExchangeInfoEndpoint>;
 export type BinanceExchangeInfoEntity = ReturnType<typeof createBinanceExchangeInfoEntity>;
@@ -75,8 +75,8 @@ export function createBinanceExchangeInfoEntity(baseDir: string) {
       });
     },
 
-    async readLatestRecord(symbol: string = SYMBOL_ALL): Promise<ExchangeInfoRecord | null> {
-      return await storage.readLastRecord(symbol);
+    async readLatestRecord(): Promise<ExchangeInfoRecord | null> {
+      return await storage.readLastRecord(SYMBOL_ALL);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetExchangeInfoEndpoint>;
 }

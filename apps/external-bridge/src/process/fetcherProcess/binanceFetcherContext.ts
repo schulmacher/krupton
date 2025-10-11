@@ -1,7 +1,7 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
+import { createEndpointStorageRepository } from '@krupton/persistent-jsonl-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { BinanceFetcherEnv } from './environment.js';
 import { binanceFetcherEnvSchema } from './environment.js';

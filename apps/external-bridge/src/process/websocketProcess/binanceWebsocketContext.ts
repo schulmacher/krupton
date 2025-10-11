@@ -1,7 +1,9 @@
+import {
+  createEndpointStorageRepository,
+  createWebsocketStorageRepository,
+} from '@krupton/persistent-jsonl-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { createWebsocketStorageRepository } from '../../entities/websocketStorageRepository.js';
 import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
-import { createEndpointStorageRepository } from '../../entities/endpointStorageRepository.js';
 
 export function createBinanceWebsocketContext() {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);

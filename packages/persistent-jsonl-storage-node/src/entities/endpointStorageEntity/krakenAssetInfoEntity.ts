@@ -1,10 +1,10 @@
 import { KrakenApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   type EndpointStorage,
   type EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
+} from '../../endpointStorage.js';
 
 export type KrakenAssetInfoStorage = EndpointStorage<typeof KrakenApi.GetAssetInfoEndpoint>;
 export type KrakenAssetInfoEntity = ReturnType<typeof createKrakenAssetInfoEntity>;

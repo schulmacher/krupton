@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createPersistentStorage } from '../persistentStorage.js';
+import { createPersistentStorage, normalizeIndexDir } from '../persistentStorage.js';
 import { readIndex } from '../persistentStorageIndex.js';
 
 describe('createPersistentStorage', () => {
@@ -564,5 +564,192 @@ describe('createPersistentStorage', () => {
         }),
       ).rejects.toThrow('Cannot replace last record in empty file');
     });
+  });
+});
+
+describe('normalizeSubIndexDir', () => {
+  it('should convert to lowercase', () => {
+    expect(normalizeIndexDir('BTCUSDT')).toBe('btcusdt');
+    expect(normalizeIndexDir('BinanceAPI')).toBe('binanceapi');
+    expect(normalizeIndexDir('MixedCase123')).toBe('mixedcase123');
+  });
+
+  it('should replace special characters with underscores', () => {
+    expect(normalizeIndexDir('binance-book-ticker')).toBe('binance_book_ticker');
+    expect(normalizeIndexDir('kraken::orderbook')).toBe('kraken_orderbook');
+    expect(normalizeIndexDir('api@endpoint#test')).toBe('api_endpoint_test');
+    expect(normalizeIndexDir('data.source.name')).toBe('data_source_name');
+  });
+
+  it('should replace path separators with underscores', () => {
+    expect(normalizeIndexDir('binance/book/ticker')).toBe('binance_book_ticker');
+    expect(normalizeIndexDir('path\\to\\data')).toBe('path_to_data');
+    expect(normalizeIndexDir('mixed/path\\separators')).toBe('mixed_path_separators');
+  });
+
+  it('should preserve alphanumeric characters and underscores', () => {
+    expect(normalizeIndexDir('valid_name_123')).toBe('valid_name_123');
+    expect(normalizeIndexDir('abc123xyz')).toBe('abc123xyz');
+    expect(normalizeIndexDir('test_123_data')).toBe('test_123_data');
+  });
+
+  it('should collapse multiple consecutive underscores', () => {
+    expect(normalizeIndexDir('test___data')).toBe('test_data');
+    expect(normalizeIndexDir('multiple____underscores')).toBe('multiple_underscores');
+    expect(normalizeIndexDir('a__b__c')).toBe('a_b_c');
+  });
+
+  it('should remove leading underscores', () => {
+    expect(normalizeIndexDir('_test')).toBe('test');
+    expect(normalizeIndexDir('___test')).toBe('test');
+    expect(normalizeIndexDir('_leading_underscore')).toBe('leading_underscore');
+  });
+
+  it('should remove trailing underscores', () => {
+    expect(normalizeIndexDir('test_')).toBe('test');
+    expect(normalizeIndexDir('test___')).toBe('test');
+    expect(normalizeIndexDir('trailing_underscore_')).toBe('trailing_underscore');
+  });
+
+  it('should remove both leading and trailing underscores', () => {
+    expect(normalizeIndexDir('_test_')).toBe('test');
+    expect(normalizeIndexDir('___test___')).toBe('test');
+    expect(normalizeIndexDir('_both_sides_')).toBe('both_sides');
+  });
+
+  it('should handle complex cases', () => {
+    expect(normalizeIndexDir('Binance/Book-Ticker')).toBe('binance_book_ticker');
+    expect(normalizeIndexDir('KRAKEN::OrderBook@REST')).toBe('kraken_orderbook_rest');
+    expect(normalizeIndexDir('___Complex---Case___')).toBe('complex_case');
+    expect(normalizeIndexDir('My__Data///Folder')).toBe('my_data_folder');
+  });
+
+  it('should handle edge cases', () => {
+    expect(normalizeIndexDir('a')).toBe('a');
+    expect(normalizeIndexDir('123')).toBe('123');
+    expect(normalizeIndexDir('_')).toBe('');
+    expect(normalizeIndexDir('___')).toBe('');
+    expect(normalizeIndexDir('---')).toBe('');
+  });
+
+  it('should handle empty string', () => {
+    expect(normalizeIndexDir('')).toBe('');
+  });
+
+  it('should handle strings with only special characters', () => {
+    expect(normalizeIndexDir('!!@@##$$')).toBe('');
+    expect(normalizeIndexDir('//\\\\//')).toBe('');
+    expect(normalizeIndexDir('---:::')).toBe('');
+  });
+});
+
+describe('createPersistentStorage with subIndexDir normalization', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = join(process.cwd(), 'test-storage-normalize-' + Date.now());
+    await mkdir(tempDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('should normalize subIndexDir when appending records', async () => {
+    const storage = createPersistentStorage(tempDir);
+
+    const record = { timestamp: 1000, id: 1, data: 'test' };
+
+    await storage.appendRecord({
+      record,
+      subIndexDir: 'Binance/Book-Ticker',
+    });
+
+    // Check that the directory was created with normalized name
+    const dirs = await readdir(tempDir);
+    expect(dirs).toContain('binance_book_ticker');
+    expect(dirs).not.toContain('Binance/Book-Ticker');
+  });
+
+  it('should normalize subIndexDir when reading records', async () => {
+    const storage = createPersistentStorage(tempDir);
+
+    const record = { timestamp: 1000, id: 1, data: 'test' };
+
+    // Write with one format
+    await storage.appendRecord({
+      record,
+      subIndexDir: 'test-data',
+    });
+
+    // Read with another format (should be normalized to same directory)
+    const result = await storage.readRecords({
+      subIndexDir: 'TEST___DATA',
+      fileName: '00000000000000000000000000000000',
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(record);
+  });
+
+  it('should normalize subIndexDir consistently across operations', async () => {
+    const storage = createPersistentStorage(tempDir);
+
+    const records = [
+      { timestamp: 1000, id: 1, data: 'first' },
+      { timestamp: 2000, id: 2, data: 'second' },
+      { timestamp: 3000, id: 3, data: 'third' },
+    ];
+
+    // Write records with different formats of the same logical name
+    await storage.appendRecord({ record: records[0]!, subIndexDir: 'Test-Data' });
+    await storage.appendRecord({ record: records[1]!, subIndexDir: 'TEST___DATA' });
+    await storage.appendRecord({ record: records[2]!, subIndexDir: 'test/data' });
+
+    // All should be written to the same directory
+    const result = await storage.readRecords({
+      subIndexDir: 'test_data',
+      fileName: '00000000000000000000000000000000',
+    });
+
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(records);
+  });
+
+  it('should normalize subIndexDir when reading last record', async () => {
+    const storage = createPersistentStorage(tempDir);
+
+    const record = { timestamp: 1000, id: 1, data: 'test' };
+
+    await storage.appendRecord({
+      record,
+      subIndexDir: 'binance-ticker',
+    });
+
+    // Read with different format
+    const result = await storage.readLastRecord('BINANCE::TICKER');
+
+    expect(result).toEqual(record);
+  });
+
+  it('should normalize subIndexDir when replacing last record', async () => {
+    const storage = createPersistentStorage(tempDir);
+
+    const record1 = { timestamp: 1000, id: 1, data: 'first' };
+    const record2 = { timestamp: 2000, id: 2, data: 'second' };
+
+    await storage.appendRecord({
+      record: record1,
+      subIndexDir: 'test-data',
+    });
+
+    await storage.replaceLastRecord({
+      record: record2,
+      subIndexDir: 'TEST/DATA',
+    });
+
+    const result = await storage.readLastRecord('test___data');
+
+    expect(result).toEqual(record2);
   });
 });

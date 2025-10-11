@@ -1,11 +1,10 @@
 import { BinanceApi } from '@krupton/api-interface';
-import type { EndpointEntity } from '../../lib/persistentStorage/endpointEntity.js';
+import type { EndpointEntity } from '../../endpointEntity.js';
 import {
   createEndpointStorage,
   type EndpointStorage,
   type EndpointStorageRecord,
-} from '../../lib/persistentStorage/endpointStorage.js';
-import { normalizeSymbol } from '../../lib/symbol/normalizeSymbol.js';
+} from '../../endpointStorage.js';
 
 export type BinanceHistoricalTradeStorage = EndpointStorage<
   typeof BinanceApi.GetHistoricalTradesEndpoint
@@ -39,10 +38,8 @@ export function createBinanceHistoricalTradeEntity(baseDir: string) {
         return;
       }
 
-      const normalizedSymbol = normalizeSymbol('binance', symbol);
-
       await storage.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndexDir: symbol,
         record: {
           timestamp,
           request: params.request,
@@ -52,7 +49,7 @@ export function createBinanceHistoricalTradeEntity(baseDir: string) {
     },
 
     async readLatestRecord(symbol: string): Promise<HistoricalTradeRecord | null> {
-      return await storage.readLastRecord(normalizeSymbol('binance', symbol));
+      return await storage.readLastRecord(symbol);
     },
   } satisfies EndpointEntity<typeof BinanceApi.GetHistoricalTradesEndpoint>;
 }
