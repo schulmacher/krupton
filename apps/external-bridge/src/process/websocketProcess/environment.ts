@@ -17,7 +17,7 @@ export const binanceWebSocketEnvSchema = TB.Object({
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
-    default: getMonorepoRootDir('storage'),
+    default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
 }) satisfies SF.DefaultEnvSchema;
 
@@ -38,7 +38,7 @@ export const krakenWebSocketEnvSchema = TB.Object({
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
-    default: getMonorepoRootDir('storage'),
+    default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
 }) satisfies SF.DefaultEnvSchema;
 

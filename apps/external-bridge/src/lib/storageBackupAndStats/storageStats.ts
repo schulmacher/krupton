@@ -2,7 +2,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DirectoryStats, FileInfo } from './types';
 
-export const STORAGE_DIRECTORY_PATTERNS = ['binance/**', 'kraken/**', 'victoria_metrics'];
+export const STORAGE_DIRECTORY_PATTERNS = ['external-bridge/binance/**', 'external-bridge/kraken/**', 'victoria_metrics'];
 
 async function collectFilesRecursively(dirPath: string): Promise<FileInfo[]> {
   const files: FileInfo[] = [];
@@ -33,10 +33,13 @@ function matchesPattern(relativePath: string, pattern: string): string | null {
   if (pattern.endsWith('/**')) {
     const prefix = pattern.slice(0, -3);
     if (relativePath.startsWith(prefix + '/')) {
-      // Extract the first two levels for binance/kraken (e.g., 'binance/api_v3_depth')
-      const parts = relativePath.split('/');
-      if (parts.length >= 2) {
-        return `${parts[0]}/${parts[1]}`;
+      // Extract the prefix + first level after
+      // e.g., 'external-bridge/binance/ws_diff_depth/...' -> 'external-bridge/binance/ws_diff_depth'
+      const afterPrefix = relativePath.substring(prefix.length + 1);
+      const parts = afterPrefix.split('/');
+      
+      if (parts.length >= 1 && parts[0]) {
+        return `${prefix}/${parts[0]}`;
       }
     }
   } else {

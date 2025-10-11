@@ -60,7 +60,7 @@ export const binanceFetcherEnvSchema = TB.Object({
   // Storage configuration
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
-    default: getMonorepoRootDir('storage'),
+    default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
 }) satisfies SF.DefaultEnvSchema;
 
@@ -125,7 +125,7 @@ export const krakenFetcherEnvSchema = TB.Object({
   // Storage configuration
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
-    default: getMonorepoRootDir('storage'),
+    default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
 }) satisfies SF.DefaultEnvSchema;
 
