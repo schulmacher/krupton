@@ -22,8 +22,8 @@ describe('persistentStorageIndexOps', () => {
 
   describe('reindexAllFiles', () => {
     it('should reindex multiple files with correct global line numbering and index data', async () => {
-      const file1Path = join(tempDir, 'file-1.jsonl');
-      const file2Path = join(tempDir, 'file-2.jsonl');
+      const file1Path = join(tempDir, '00000000000000000000000000000000.jsonl');
+      const file2Path = join(tempDir, '00000000000000000000000000000003.jsonl');
 
       const file1Data = [
         { timestamp: 1000, value: 'data1' },
@@ -49,26 +49,28 @@ describe('persistentStorageIndexOps', () => {
       expect(index1).not.toBeNull();
       expect(index2).not.toBeNull();
 
+      // File 1: starts at global index 0 (0-based)
       expect(index1?.header.fileNumber).toBe(1);
       expect(index1?.header.globalLineOffset).toBe(0n);
       expect(index1?.entries).toHaveLength(3);
-      expect(index1?.entries[0]?.lineNumberLocal).toBe(1);
-      expect(index1?.entries[0]?.lineNumberGlobal).toBe(1n);
+      expect(index1?.entries[0]?.lineNumberLocal).toBe(0);
+      expect(index1?.entries[0]?.lineNumberGlobal).toBe(0n);
       expect(index1?.entries[0]?.messageTime).toBe(1000n);
       expect(index1?.entries[0]?.timeSource).toBe('created');
-      expect(index1?.entries[2]?.lineNumberLocal).toBe(3);
-      expect(index1?.entries[2]?.lineNumberGlobal).toBe(3n);
+      expect(index1?.entries[2]?.lineNumberLocal).toBe(2);
+      expect(index1?.entries[2]?.lineNumberGlobal).toBe(2n);
       expect(index1?.entries[2]?.messageTime).toBe(3000n);
 
+      // File 2: starts at global index 3 (0-based)
       expect(index2?.header.fileNumber).toBe(2);
       expect(index2?.header.globalLineOffset).toBe(3n);
       expect(index2?.entries).toHaveLength(2);
-      expect(index2?.entries[0]?.lineNumberLocal).toBe(1);
-      expect(index2?.entries[0]?.lineNumberGlobal).toBe(4n);
+      expect(index2?.entries[0]?.lineNumberLocal).toBe(0);
+      expect(index2?.entries[0]?.lineNumberGlobal).toBe(3n);
       expect(index2?.entries[0]?.messageTime).toBe(4000n);
       expect(index2?.entries[0]?.timeSource).toBe('created');
-      expect(index2?.entries[1]?.lineNumberLocal).toBe(2);
-      expect(index2?.entries[1]?.lineNumberGlobal).toBe(5n);
+      expect(index2?.entries[1]?.lineNumberLocal).toBe(1);
+      expect(index2?.entries[1]?.lineNumberGlobal).toBe(4n);
       expect(index2?.entries[1]?.messageTime).toBe(5000n);
 
       const count1 = await getIndexEntryCount({ indexPath: file1Path });
@@ -85,7 +87,7 @@ describe('persistentStorageIndexOps', () => {
 
   describe('readFromLastIndex', () => {
     it('should read the last entry from an indexed file', async () => {
-      const filePath = join(tempDir, 'file-1.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
 
       const fileData = [
         { timestamp: 1000, value: 'data1' },
@@ -106,7 +108,7 @@ describe('persistentStorageIndexOps', () => {
     });
 
     it('should return null for a file with no index entries', async () => {
-      const filePath = join(tempDir, 'empty-file.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
       await writeFile(filePath, '');
 
       const listAllFiles = async () => [filePath];
@@ -118,7 +120,7 @@ describe('persistentStorageIndexOps', () => {
     });
 
     it('should return null for a non-existent file', async () => {
-      const filePath = join(tempDir, 'non-existent.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
 
       const lastData = await readFromLastIndex(filePath);
 
@@ -128,7 +130,7 @@ describe('persistentStorageIndexOps', () => {
 
   describe('replaceLastInIndex', () => {
     it('should replace the last record in an indexed file', async () => {
-      const filePath = join(tempDir, 'file-1.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
 
       const fileData = [
         { timestamp: 1000, value: 'data1' },
@@ -154,7 +156,7 @@ describe('persistentStorageIndexOps', () => {
     });
 
     it('should throw error when trying to replace in empty file', async () => {
-      const filePath = join(tempDir, 'empty-file.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
       await writeFile(filePath, '');
 
       const listAllFiles = async () => [filePath];
@@ -166,7 +168,7 @@ describe('persistentStorageIndexOps', () => {
     });
 
     it('should throw error for non-existent file', async () => {
-      const filePath = join(tempDir, 'non-existent.jsonl');
+      const filePath = join(tempDir, '00000000000000000000000000000000.jsonl');
 
       await expect(
         replaceLastRowBasedOnIndex(filePath, { timestamp: 1000, value: 'data' }),

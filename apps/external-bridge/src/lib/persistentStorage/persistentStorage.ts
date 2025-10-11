@@ -13,7 +13,7 @@ import {
 } from './persistentStorageIndexOps.js';
 
 const FS_PAGE_SIZE = 4096;
-const MAX_FILE_SIZE_BYTES = FS_PAGE_SIZE * 25600; // ~100MB (4096 * 25600 = 104,857,600 bytes)
+const DEFAULT_MAX_FILE_SIZE_BYTES = FS_PAGE_SIZE * 25600; // ~100MB (4096 * 25600 = 104,857,600 bytes)
 
 export type StorageRecord<T extends Record<string, unknown>> = {
   timestamp: number;
@@ -29,6 +29,10 @@ type ReadRecordsParams = {
   fileName: string;
 };
 
+type CreatePersistentStorageOptions = {
+  maxFileSize?: number;
+};
+
 function formatFileName(globalLineIndex: bigint): string {
   return globalLineIndex.toString().padStart(32, '0');
 }
@@ -37,7 +41,11 @@ function getInitialFileName(): string {
   return '00000000000000000000000000000000';
 }
 
-export function createPersistentStorage<T extends Record<string, unknown>>(baseDir: string) {
+export function createPersistentStorage<T extends Record<string, unknown>>(
+  baseDir: string,
+  options?: CreatePersistentStorageOptions,
+) {
+  const MAX_FILE_SIZE_BYTES = options?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE_BYTES;
   const promiseLock = createPromiseLock();
 
   const currentFileNameCache = new Map<string, string>();
@@ -61,7 +69,11 @@ export function createPersistentStorage<T extends Record<string, unknown>>(baseD
             .split('/')
             .pop()!
             .replace(/\.jsonl$/, '');
-          return aName.localeCompare(bName);
+          const aNum = BigInt(aName);
+          const bNum = BigInt(bName);
+          if (aNum < bNum) return -1;
+          if (aNum > bNum) return 1;
+          return 0;
         });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -116,8 +128,10 @@ export function createPersistentStorage<T extends Record<string, unknown>>(baseD
       throw new Error('Cannot create next file: current file has no entries');
     }
 
-    const nextGlobalLineIndex = lastEntry.lineNumberGlobal + 1n;
-    return formatFileName(nextGlobalLineIndex);
+    const currentFileFirstLine = BigInt(currentFile);
+    const lineCountInCurrentFile = BigInt(lastEntry.lineNumberLocal) + 1n;
+    const nextFileFirstLine = currentFileFirstLine + lineCountInCurrentFile;
+    return formatFileName(nextFileFirstLine);
   };
 
   async function writeRecords(
@@ -134,15 +148,6 @@ export function createPersistentStorage<T extends Record<string, unknown>>(baseD
   }
 
   return {
-    async writeRecord(params: WriteRecordParams<T>): Promise<void> {
-      await promiseLock.waitForRelease();
-      const { record, subIndexDir } = params;
-      const fileName = await getCurrentOrInitialFileName(subIndexDir);
-      const filePath = getFilePath(subIndexDir, fileName);
-
-      await writeRecords(filePath, [record], writeFile);
-    },
-
     async appendRecord(params: WriteRecordParams<T>): Promise<void> {
       await promiseLock.waitForRelease();
       const { record, subIndexDir } = params;

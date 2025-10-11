@@ -1,0 +1,25 @@
+FROM node:24-slim
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy package files for dependency installation
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/coordinator/package.json ./apps/coordinator/
+COPY apps/external-bridge/package.json ./apps/external-bridge/
+COPY packages/api-client-node/package.json ./packages/api-client-node/
+COPY packages/api-client-ws-node/package.json ./packages/api-client-ws-node/
+COPY packages/api-interface/package.json ./packages/api-interface/
+COPY packages/service-framework-node/package.json ./packages/service-framework-node/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/config/package.json ./packages/config/
+
+# Install all dependencies (including Linux-specific binaries)
+RUN pnpm install --frozen-lockfile
+
+# Keep container running and ready to execute commands
+CMD ["tail", "-f", "/dev/null"]
+

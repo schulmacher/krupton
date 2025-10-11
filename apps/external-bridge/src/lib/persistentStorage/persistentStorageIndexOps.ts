@@ -65,12 +65,14 @@ export async function addRowIndexes<T extends StorageRecordForReindex>(
     return [];
   }
 
+  const fileName = filePath.split('/').pop()?.replace(/\.jsonl$/, '') ?? '0';
+  const globalLineOffset = BigInt(fileName);
+
   const lastEntry = await getLastIndexEntry({ indexPath: filePath });
   const result: IndexEntry[] = [];
 
   let baseByteOffset: bigint;
   let baseLineNumberLocal: number;
-  let baseLineNumberGlobal: bigint;
   let fileNumber: number;
 
   if (!lastEntry) {
@@ -81,18 +83,16 @@ export async function addRowIndexes<T extends StorageRecordForReindex>(
     fileNumber = jsonlFilesCount;
     baseByteOffset = 0n;
     baseLineNumberLocal = 0;
-    baseLineNumberGlobal = 0n;
 
     await createIndexHeader({
       indexPath: filePath,
       fileNumber,
-      globalLineOffset: 0n,
+      globalLineOffset,
     });
   } else {
     fileNumber = lastEntry.fileNumber;
     baseByteOffset = lastEntry.endByte;
-    baseLineNumberLocal = lastEntry.lineNumberLocal;
-    baseLineNumberGlobal = lastEntry.lineNumberGlobal;
+    baseLineNumberLocal = lastEntry.lineNumberLocal + 1;
   }
 
   for (let i = 0; i < rows.length; i++) {
@@ -110,10 +110,13 @@ export async function addRowIndexes<T extends StorageRecordForReindex>(
       timeSource = 'created';
     }
 
+    const lineNumberLocal = baseLineNumberLocal + i;
+    const lineNumberGlobal = globalLineOffset + BigInt(lineNumberLocal);
+
     const entry: IndexEntry = {
       fileNumber,
-      lineNumberLocal: baseLineNumberLocal + i + 1,
-      lineNumberGlobal: baseLineNumberGlobal + BigInt(i + 1),
+      lineNumberLocal,
+      lineNumberGlobal,
       startByte: baseByteOffset + position.startByte,
       endByte: baseByteOffset + position.endByte,
       messageTime: BigInt(messageTime),
@@ -207,7 +210,7 @@ async function reindexFile<T extends StorageRecordForReindex>(
       return globalLineOffset;
     }
 
-    let lineNumberLocal = 0;
+    let lineNumberLocal = -1;
     let bytePosition = 0;
     const chunkSize = 256 * 1024;
     const buffer = Buffer.allocUnsafe(chunkSize);
@@ -305,7 +308,7 @@ async function reindexFile<T extends StorageRecordForReindex>(
       }
     }
 
-    return globalLineOffset + BigInt(lineNumberLocal);
+    return globalLineOffset + BigInt(lineNumberLocal) + 1n;
   } finally {
     await fileHandle.close();
   }
@@ -317,13 +320,14 @@ export async function reindexAllFiles<T extends StorageRecordForReindex>(
 ): Promise<void> {
   const jsonlFiles = await listAllFiles();
 
-  let globalLineOffset = 0n;
-
   for (let i = 0; i < jsonlFiles.length; i++) {
     const filePath = jsonlFiles[i]!;
     const fileNumber = i + 1;
 
-    globalLineOffset = await reindexFile<T>(filePath, fileNumber, globalLineOffset, getMessageTime);
+    const fileName = filePath.split('/').pop()?.replace(/\.jsonl$/, '') ?? '0';
+    const globalLineOffset = BigInt(fileName);
+
+    await reindexFile<T>(filePath, fileNumber, globalLineOffset, getMessageTime);
   }
 }
 

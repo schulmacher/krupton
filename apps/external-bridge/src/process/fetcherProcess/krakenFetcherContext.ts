@@ -72,4 +72,3 @@ export type KrakenFetcherServiceContext = SF.ServiceContext<
   KrakenFetcherEnv,
   KrakenFetcherMetrics
 >;
-

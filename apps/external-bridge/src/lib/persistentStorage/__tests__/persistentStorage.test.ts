@@ -1,7 +1,8 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createPersistentStorage } from '../persistentStorage.js';
+import { readIndex } from '../persistentStorageIndex.js';
 
 describe('createPersistentStorage', () => {
   let tempDir: string;
@@ -15,158 +16,201 @@ describe('createPersistentStorage', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  describe('writeRecord', () => {
-    it('should write a record to a file', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
-
-      await storage.writeRecord({
-        record,
-        subIndexDir: 'BTCUSDT',
-      });
-
-      const filePath = join(tempDir, 'BTCUSDT', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content.trim());
-
-      expect(parsed).toEqual(record);
-    });
-
-    it('should overwrite existing file when writing', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const firstRecord = {
-        timestamp: 1000,
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '1', value: 100 },
-      };
-
-      const secondRecord = {
-        timestamp: 2000,
-        request: { query: { symbol: 'ETHUSDT' } },
-        response: { id: '2', value: 200 },
-      };
-
-      await storage.writeRecord({
-        record: firstRecord,
-        subIndexDir: 'BTCUSDT',
-      });
-
-      await storage.writeRecord({
-        record: secondRecord,
-        subIndexDir: 'BTCUSDT',
-      });
-
-      const filePath = join(tempDir, 'BTCUSDT', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const lines = content.trim().split('\n');
-
-      expect(lines).toHaveLength(1);
-      expect(JSON.parse(lines[0])).toEqual(secondRecord);
-    });
-
-    it('should create directories if they do not exist', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
-
-      await storage.writeRecord({
-        record,
-        subIndexDir: 'nested/deep/path',
-      });
-
-      const filePath = join(tempDir, 'nested/deep/path', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content.trim());
-
-      expect(parsed).toEqual(record);
-    });
-  });
-
   describe('appendRecord', () => {
-    it('should append a record to a file', async () => {
+    it('should create file with correct 0-based indexing', async () => {
       const storage = createPersistentStorage(tempDir);
 
-      const firstRecord = {
-        timestamp: 1000,
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '1', value: 100 },
-      };
+      const records = [
+        { timestamp: 1000, id: 1, data: 'Record 1' },
+        { timestamp: 2000, id: 2, data: 'Record 2' },
+        { timestamp: 3000, id: 3, data: 'Record 3' },
+      ];
 
-      const secondRecord = {
-        timestamp: 2000,
-        request: { query: { symbol: 'ETHUSDT' } },
-        response: { id: '2', value: 200 },
-      };
+      for (const record of records) {
+        await storage.appendRecord({
+          record,
+          subIndexDir: 'test',
+        });
+      }
 
-      await storage.appendRecord({
-        record: firstRecord,
-        subIndexDir: 'BTCUSDT',
-      });
+      const filePath = join(tempDir, 'test', '00000000000000000000000000000000.jsonl');
+      const index = await readIndex({ indexPath: filePath });
 
-      await storage.appendRecord({
-        record: secondRecord,
-        subIndexDir: 'BTCUSDT',
-      });
+      expect(index).toBeDefined();
+      expect(index?.header.globalLineOffset).toBe(0n);
+      expect(index?.entries.length).toBe(3);
 
-      const filePath = join(tempDir, 'BTCUSDT', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const lines = content.trim().split('\n');
+      // Verify 0-based indexing
+      expect(index?.entries[0]?.lineNumberLocal).toBe(0);
+      expect(index?.entries[0]?.lineNumberGlobal).toBe(0n);
 
-      expect(lines).toHaveLength(2);
-      expect(JSON.parse(lines[0])).toEqual(firstRecord);
-      expect(JSON.parse(lines[1])).toEqual(secondRecord);
+      expect(index?.entries[1]?.lineNumberLocal).toBe(1);
+      expect(index?.entries[1]?.lineNumberGlobal).toBe(1n);
+
+      expect(index?.entries[2]?.lineNumberLocal).toBe(2);
+      expect(index?.entries[2]?.lineNumberGlobal).toBe(2n);
     });
 
-    it('should create file if it does not exist', async () => {
-      const storage = createPersistentStorage(tempDir);
+    it('should rotate files when size limit is reached and use correct filenames', async () => {
+      const storage = createPersistentStorage(tempDir, { maxFileSize: 200 });
 
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
+      // Write 15 records to trigger multiple file rotations
+      for (let i = 0; i < 15; i++) {
+        await storage.appendRecord({
+          record: {
+            timestamp: Date.now(),
+            id: i + 1,
+            data: `Record number ${i} with some test data`,
+          },
+          subIndexDir: 'test',
+        });
+      }
 
-      await storage.appendRecord({
-        record,
-        subIndexDir: 'BTCUSDT',
-      });
+      const fullPath = join(tempDir, 'test');
+      const files = await readdir(fullPath);
+      const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort();
 
-      const filePath = join(tempDir, 'BTCUSDT', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content.trim());
+      // Verify multiple files were created
+      expect(jsonlFiles.length).toBeGreaterThan(1);
 
-      expect(parsed).toEqual(record);
+      // Verify each file
+      let expectedGlobalIndex = 0n;
+      for (const file of jsonlFiles) {
+        const fileName = file.replace('.jsonl', '');
+        const fileGlobalIndex = BigInt(fileName);
+        const filePath = join(fullPath, file);
+        const index = await readIndex({ indexPath: filePath });
+
+        // Filename should match expected global index
+        expect(fileGlobalIndex).toBe(expectedGlobalIndex);
+
+        // Header globalLineOffset should match filename
+        expect(index?.header.globalLineOffset).toBe(fileGlobalIndex);
+
+        // Verify all entries have correct 0-based indexing
+        if (index) {
+          for (let j = 0; j < index.entries.length; j++) {
+            const entry = index.entries[j]!;
+            expect(entry.lineNumberLocal).toBe(j);
+            expect(entry.lineNumberGlobal).toBe(expectedGlobalIndex + BigInt(j));
+          }
+          expectedGlobalIndex += BigInt(index.entries.length);
+        }
+      }
+
+      // All 15 records should be accounted for
+      expect(expectedGlobalIndex).toBe(15n);
     });
 
-    it('should create directories if they do not exist', async () => {
+    it('should correctly name second file based on first file line count', async () => {
+      const storage = createPersistentStorage(tempDir, { maxFileSize: 200 });
+
+      // Write records to trigger rotation
+      for (let i = 0; i < 6; i++) {
+        await storage.appendRecord({
+          record: {
+            timestamp: Date.now(),
+            id: i + 1,
+            data: `Record ${i}`,
+          },
+          subIndexDir: 'test',
+        });
+      }
+
+      const fullPath = join(tempDir, 'test');
+      const files = await readdir(fullPath);
+      const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort();
+
+      expect(jsonlFiles.length).toBeGreaterThanOrEqual(2);
+
+      // First file
+      const firstFile = jsonlFiles[0]!;
+      const firstFilePath = join(fullPath, firstFile);
+      const firstIndex = await readIndex({ indexPath: firstFilePath });
+
+      expect(firstFile).toBe('00000000000000000000000000000000.jsonl');
+      expect(firstIndex?.header.globalLineOffset).toBe(0n);
+
+      const firstFileLineCount = firstIndex?.entries.length ?? 0;
+
+      // Second file should start at first file's line count
+      const secondFile = jsonlFiles[1]!;
+      const secondFileName = secondFile.replace('.jsonl', '');
+      const secondFileGlobalIndex = BigInt(secondFileName);
+
+      expect(secondFileGlobalIndex).toBe(BigInt(firstFileLineCount));
+
+      const secondFilePath = join(fullPath, secondFile);
+      const secondIndex = await readIndex({ indexPath: secondFilePath });
+
+      expect(secondIndex?.header.globalLineOffset).toBe(BigInt(firstFileLineCount));
+      expect(secondIndex?.entries[0]?.lineNumberLocal).toBe(0);
+      expect(secondIndex?.entries[0]?.lineNumberGlobal).toBe(BigInt(firstFileLineCount));
+    });
+
+    it('should maintain sequential global indices across file boundaries', async () => {
+      const storage = createPersistentStorage(tempDir, { maxFileSize: 150 });
+
+      // Write 10 records
+      for (let i = 0; i < 10; i++) {
+        await storage.appendRecord({
+          record: {
+            timestamp: Date.now(),
+            id: i + 1,
+            data: `Data ${i}`,
+          },
+          subIndexDir: 'test',
+        });
+      }
+
+      const fullPath = join(tempDir, 'test');
+      const files = await readdir(fullPath);
+      const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort();
+
+      // Collect all global indices
+      const allGlobalIndices: bigint[] = [];
+      for (const file of jsonlFiles) {
+        const filePath = join(fullPath, file);
+        const index = await readIndex({ indexPath: filePath });
+
+        if (index) {
+          for (const entry of index.entries) {
+            allGlobalIndices.push(entry.lineNumberGlobal);
+          }
+        }
+      }
+
+      // Verify we have all 10 indices
+      expect(allGlobalIndices.length).toBe(10);
+
+      // Verify they are sequential from 0 to 9
+      for (let i = 0; i < 10; i++) {
+        expect(allGlobalIndices[i]).toBe(BigInt(i));
+      }
+    });
+
+    it('should handle appending to existing file correctly', async () => {
       const storage = createPersistentStorage(tempDir);
 
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
-
+      // Write first record
       await storage.appendRecord({
-        record,
-        subIndexDir: 'nested/deep/path',
+        record: { timestamp: 1000, id: 1, data: 'First' },
+        subIndexDir: 'test',
       });
 
-      const filePath = join(tempDir, 'nested/deep/path', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content.trim());
+      // Write second record (should append to same file)
+      await storage.appendRecord({
+        record: { timestamp: 2000, id: 2, data: 'Second' },
+        subIndexDir: 'test',
+      });
 
-      expect(parsed).toEqual(record);
+      const filePath = join(tempDir, 'test', '00000000000000000000000000000000.jsonl');
+      const index = await readIndex({ indexPath: filePath });
+
+      expect(index?.entries.length).toBe(2);
+      expect(index?.entries[0]?.lineNumberLocal).toBe(0);
+      expect(index?.entries[1]?.lineNumberLocal).toBe(1);
+      expect(index?.entries[1]?.lineNumberGlobal).toBe(1n);
     });
   });
 
@@ -519,72 +563,6 @@ describe('createPersistentStorage', () => {
           subIndexDir: 'nonexistent',
         }),
       ).rejects.toThrow('Cannot replace last record in empty file');
-    });
-  });
-
-  describe('type inference', () => {
-    it('should properly type request and response based on endpoint definition', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { symbol: 'BTCUSDT', bidPrice: '50000', askPrice: '50001' },
-      };
-
-      await storage.writeRecord({
-        record,
-        subIndexDir: 'BTCUSDT',
-      });
-
-      const records = await storage.readRecords({
-        subIndexDir: 'BTCUSDT',
-        fileName: '00000000000000000000000000000000',
-      });
-
-      expect(records[0]).toEqual(record);
-    });
-  });
-
-  describe('file path generation', () => {
-    it('should append .jsonl extension to file paths', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
-
-      await storage.writeRecord({
-        record,
-        subIndexDir: 'BTCUSDT',
-      });
-
-      const filePath = join(tempDir, 'BTCUSDT', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-
-      expect(content).toBeTruthy();
-    });
-
-    it('should handle subdirectory paths correctly', async () => {
-      const storage = createPersistentStorage(tempDir);
-
-      const record = {
-        timestamp: Date.now(),
-        request: { query: { symbol: 'BTCUSDT' } },
-        response: { id: '123', value: 100 },
-      };
-
-      await storage.writeRecord({
-        record,
-        subIndexDir: 'a/b/c/d/e',
-      });
-
-      const filePath = join(tempDir, 'a/b/c/d/e', '00000000000000000000000000000000.jsonl');
-      const content = await readFile(filePath, 'utf-8');
-
-      expect(content).toBeTruthy();
     });
   });
 });

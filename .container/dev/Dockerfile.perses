@@ -1,0 +1,9 @@
+# Use official Perses image (distroless)
+# See: https://perses.dev/perses/docs/installation/in-a-container/
+FROM persesdev/perses:v0.50.0
+
+# Note: This is a distroless image with no shell
+# Data directories are created via volume mounts in docker-compose.yml
+# Port 8080 is already exposed in the base image
+
+

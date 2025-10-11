@@ -1,0 +1,43 @@
+# Exclude storage directory from Docker build context
+storage/
+
+# Exclude node_modules (will be installed in container)
+node_modules/
+**/node_modules/
+
+# Exclude build outputs
+dist/
+**/dist/
+
+# Exclude git
+.git/
+.gitignore
+
+# Exclude IDE files
+.vscode/
+.idea/
+.cursor/
+
+# Exclude logs
+*.log
+logs/
+
+# Exclude temp files
+tmp/
+*.tmp
+
+# Exclude container configurations (not needed in image)
+.container/
+
+# Exclude process manager configs (not needed in image)
+process-manager/
+
+# Exclude monitoring data
+apps/monitoring-perses/data/
+apps/monitoring-victoria-metrics/data/
+
+# Exclude documentation
+docs/
+*.md
+README.md
+

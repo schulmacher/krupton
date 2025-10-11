@@ -1,14 +1,48 @@
+/**
+ * Persistent Storage Index System
+ * 
+ * This module manages binary index files (.idx) that track line positions in JSONL data files.
+ * 
+ * ## File Naming (0-based indexing)
+ * Data files are named after their starting global line index:
+ * - `00000000000000000000000000000000.jsonl` - starts at global index 0 (first file)
+ * - `00000000000000000000000000082571.jsonl` - starts at global index 82571
+ * - `00000000000000000000000000184225.jsonl` - starts at global index 184225
+ * 
+ * ## Index Calculation
+ * - File with 10 lines starting at 0: contains indices 0-9, next file starts at 10
+ * - File with 5 lines starting at 10: contains indices 10-14, next file starts at 15
+ * 
+ * Formula: `nextFileName = currentFileName + lineCount`
+ */
 import { open, truncate, writeFile } from 'node:fs/promises';
 import { ensureDirForFile } from '../fs';
 
 export type TimeSource = 'created' | 'extracted';
 
+/**
+ * Index header stored at the beginning of each .idx file.
+ * 
+ * @property globalLineOffset - The global line index where this file starts (0-based).
+ *                               This value matches the filename (e.g., file "00...00082571.jsonl" has globalLineOffset = 82571).
+ */
 export type IndexHeader = {
   version: number;
   fileNumber: number;
   globalLineOffset: bigint;
 };
 
+/**
+ * Index entry for a single line in a data file.
+ * 
+ * All line numbers are 0-based:
+ * - First line in file: lineNumberLocal = 0, lineNumberGlobal = globalLineOffset + 0
+ * - Second line: lineNumberLocal = 1, lineNumberGlobal = globalLineOffset + 1
+ * - Nth line: lineNumberLocal = N-1, lineNumberGlobal = globalLineOffset + (N-1)
+ * 
+ * @property lineNumberLocal - 0-based line index within the file (0, 1, 2, ...)
+ * @property lineNumberGlobal - 0-based global line index across all files (calculated as globalLineOffset + lineNumberLocal)
+ */
 export type IndexEntry = {
   fileNumber: number;
   lineNumberLocal: number;
