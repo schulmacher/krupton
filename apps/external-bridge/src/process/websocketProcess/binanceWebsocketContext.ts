@@ -4,9 +4,13 @@ import {
 } from '@krupton/persistent-jsonl-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
+import { createBinanceAuthHeaders } from '../../../../../packages/api-client-node/dist/apiAuth.js';
+import { createApiClient } from '../../../../../packages/api-client-node/dist/apiClient.js';
+import { BinanceApi } from '@krupton/api-interface';
 
 export function createBinanceWebsocketContext() {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);
+  envContext.config.LOG_LEVEL = 'debug';
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
@@ -39,6 +43,19 @@ export function createBinanceWebsocketContext() {
     envContext.config.STORAGE_BASE_DIR,
   );
 
+  const binanceClient = createApiClient(
+    {
+      baseUrl: envContext.config.API_BASE_URL,
+      headers: envContext.config.API_KEY
+        ? createBinanceAuthHeaders(envContext.config.API_KEY)
+        : undefined,
+      validation: true,
+    },
+    {
+      getOrderBook: BinanceApi.GetOrderBookEndpoint,
+    },
+  );
+
   return {
     envContext,
     diagnosticContext,
@@ -46,6 +63,7 @@ export function createBinanceWebsocketContext() {
     processContext,
     websocketStorageRepository,
     endpointStorageRepository,
+    binanceClient,
   };
 }
 

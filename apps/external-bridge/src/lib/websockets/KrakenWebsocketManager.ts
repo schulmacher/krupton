@@ -1,13 +1,13 @@
 import {
-    createWSConsumer,
-    createWSHandlers,
-    StreamHandlersWithDefinitions,
-    WebSocketConsumer,
-    WebSocketStreamDefinition,
-    WebSocketValidationError,
+  createWSConsumer,
+  createWSHandlers,
+  StreamHandlersWithDefinitions,
+  WebSocketConsumer,
+  WebSocketStreamDefinition,
+  WebSocketValidationError,
 } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
-import { BinanceWebSocketServiceContext } from '../../process/websocketProcess/binanceWebsocketContext';
+import { KrakenWebSocketServiceContext } from '../../process/websocketProcess/krakenWebsocketContext';
 import { createPromiseLock, PromiseLock } from '../promise';
 
 const CommonDefinition = {
@@ -24,7 +24,7 @@ interface SubscriptionRequest {
 }
 
 function wrapHandlersWithMetrics<TDefinitions extends Record<string, WebSocketStreamDefinition>>(
-  serviceContext: BinanceWebSocketServiceContext,
+  serviceContext: KrakenWebSocketServiceContext,
   handlers: StreamHandlersWithDefinitions<TDefinitions>,
   platform: string,
 ): StreamHandlersWithDefinitions<TDefinitions> {
@@ -72,7 +72,7 @@ function wrapHandlersWithMetrics<TDefinitions extends Record<string, WebSocketSt
 export class KrakenWebsocketManager<
   TDefinitions extends Record<string, WebSocketStreamDefinition>,
 > {
-  #serviceContext: BinanceWebSocketServiceContext;
+  #serviceContext: KrakenWebSocketServiceContext;
   #consumer: WebSocketConsumer;
   #subscriptionRequests: SubscriptionRequest[];
   #pendingSubscriptions: Map<string, PromiseLock<KrakenWS.SubscriptionStatusStream>> = new Map();
@@ -84,7 +84,7 @@ export class KrakenWebsocketManager<
   #uptimeUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor(
-    serviceContext: BinanceWebSocketServiceContext,
+    serviceContext: KrakenWebSocketServiceContext,
     handlers: StreamHandlersWithDefinitions<TDefinitions>,
     subscriptionRequests: SubscriptionRequest[],
   ) {
@@ -145,7 +145,7 @@ export class KrakenWebsocketManager<
         }),
       },
       {
-        url: envContext.config.API_BASE_URL,
+        url: envContext.config.WSS_BASE_URL,
         validation: true,
       },
       {

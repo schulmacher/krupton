@@ -102,6 +102,9 @@ importers:
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@krupton/persistent-jsonl-storage-node':
+        specifier: workspace:*
+        version: link:../../packages/persistent-jsonl-storage-node
       '@krupton/service-framework-node':
         specifier: workspace:*
         version: link:../../packages/service-framework-node

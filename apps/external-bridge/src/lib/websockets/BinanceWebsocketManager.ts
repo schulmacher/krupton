@@ -69,6 +69,7 @@ export class BinanceWebsocketManager<
   #subscriptions: StreamSubscriptions<TDefinitions>;
   #pendingRequests: Map<number, PromiseLock<BinanceWS.CommonResponseStream>> = new Map();
   #requestIdCounter: number = 0;
+  #afterConnect?: (manager: BinanceWebsocketManager<TDefinitions>) => Promise<void>;
 
   // Binance requires a new connection every 24 hours
   #reconnectionTimer: NodeJS.Timeout | null = null;
@@ -80,12 +81,16 @@ export class BinanceWebsocketManager<
     serviceContext: BinanceWebSocketServiceContext,
     handlers: StreamHandlersWithDefinitions<TDefinitions>,
     subscriptions: StreamSubscriptions<TDefinitions>,
+    options?: {
+      afterConnect?: (manager: BinanceWebsocketManager<TDefinitions>) => Promise<void>;
+    },
   ) {
     const { envContext, metricsContext } = serviceContext;
     const platform = 'binance';
 
     this.#serviceContext = serviceContext;
     this.#subscriptions = subscriptions;
+    this.#afterConnect = options?.afterConnect;
 
     const wrappedHandlers = wrapHandlersWithMetrics(serviceContext, handlers, platform);
 
@@ -94,12 +99,26 @@ export class BinanceWebsocketManager<
         ...wrappedHandlers,
         ...createWSHandlers(CommonDefinition, {
           commonResponseStream: async (data) => {
+            serviceContext.diagnosticContext.logger.debug(
+              'commonResponseStream: received message',
+              {
+                responseId: data.id,
+                hasError: 'error' in data,
+                hasResult: 'result' in data,
+                pendingRequestsCount: this.#pendingRequests.size,
+                hasPendingRequest: this.#pendingRequests.has(data.id),
+                data,
+              },
+            );
+
             const pending = this.#pendingRequests.get(data.id);
 
             if (!pending) {
-              this.#serviceContext.diagnosticContext.logger.warn(
+              serviceContext.diagnosticContext.logger.warn(
                 'Received response for unknown request',
                 {
+                  responseId: data.id,
+                  pendingRequestIds: Array.from(this.#pendingRequests.keys()),
                   response: data,
                 },
               );
@@ -107,12 +126,16 @@ export class BinanceWebsocketManager<
               return;
             }
 
+            serviceContext.diagnosticContext.logger.debug('commonResponseStream: releasing lock', {
+              responseId: data.id,
+            });
+
             await pending.release(data);
           },
         }),
       },
       {
-        url: envContext.config.API_BASE_URL,
+        url: envContext.config.WSS_BASE_URL,
         validation: true,
       },
       {
@@ -132,12 +155,20 @@ export class BinanceWebsocketManager<
               error.getLogData(),
             );
           } else {
-            serviceContext.diagnosticContext.logger.error(
-              `WebSocket error: ${error.message}`,
-              // TODO change diagnostic logger to accept unknown/error
+            const errorMessage = error.message || String(error);
+            const isIdentificationError = errorMessage.includes('Unable to identify message type');
+            const isHandlerError = errorMessage.includes('No handler registered');
+
+            serviceContext.diagnosticContext.logger.error(`WebSocket error: ${errorMessage}`, {
+              errorType: error.constructor.name,
+              message: errorMessage,
+              isIdentificationError,
+              isHandlerError,
+              pendingRequestsCount: this.#pendingRequests.size,
+              pendingRequestIds: Array.from(this.#pendingRequests.keys()),
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              error as any,
-            );
+              fullError: error as any,
+            });
           }
         },
         onOpen: () => {
@@ -175,8 +206,7 @@ export class BinanceWebsocketManager<
   }
 
   async connect() {
-    const { diagnosticContext, metricsContext } = this.#serviceContext;
-    const platform = 'binance';
+    const { diagnosticContext } = this.#serviceContext;
 
     // Connect to the WebSocket
     this.#consumer.connect();
@@ -184,7 +214,23 @@ export class BinanceWebsocketManager<
     // Wait for connection to be established with timeout
     await Promise.race([this.#waitForConnection(), this.#connectionTimeout(10_000)]);
 
-    // Subscribe to streams and wait for confirmation
+    diagnosticContext.logger.info('BinanceWebsocketManager connected');
+
+    // Call afterConnect hook if provided
+    if (this.#afterConnect) {
+      diagnosticContext.logger.info('BinanceWebsocketManager calling afterConnect hook');
+      await this.#afterConnect(this);
+      diagnosticContext.logger.info('BinanceWebsocketManager afterConnect hook completed');
+    }
+
+    // Schedule reconnection before 24-hour limit
+    this.#scheduleReconnection();
+  }
+
+  async subscribe() {
+    const { diagnosticContext, metricsContext } = this.#serviceContext;
+    const platform = 'binance';
+
     const subscriptionRequest = this.#getSubscriptionParams();
 
     diagnosticContext.logger.info('BinanceWebsocketManager subscribing to streams', {
@@ -192,27 +238,26 @@ export class BinanceWebsocketManager<
       streams: subscriptionRequest.params,
     });
 
-    const response = await this.#sendRequestAndWaitForResponse(subscriptionRequest, 5_000);
+    const response = await this.sendRequestAndWaitForResponse(subscriptionRequest, 5_000);
 
     // Update active subscriptions metric
     const totalSubscriptions = subscriptionRequest.params.length;
     metricsContext.metrics.activeSubscriptions.set({ platform }, totalSubscriptions);
 
-    diagnosticContext.logger.info('BinanceWebsocketManager connected and subscribed', {
+    diagnosticContext.logger.info('BinanceWebsocketManager subscribed', {
       symbols: this.#subscriptions,
       streams: subscriptionRequest.params,
       responseId: response.id,
     });
 
-    // Schedule reconnection before 24-hour limit
-    this.#scheduleReconnection();
+    return response;
   }
 
   async unsubscribe() {
     const { diagnosticContext } = this.#serviceContext;
 
     const unsubscribeRequest = this.#getUnsubscribeParams();
-    const response = await this.#sendRequestAndWaitForResponse(unsubscribeRequest, 5_000);
+    const response = await this.sendRequestAndWaitForResponse(unsubscribeRequest, 5_000);
 
     diagnosticContext.logger.info('BinanceWebsocketManager unsubscribed from all streams', {
       symbols: this.#subscriptions,
@@ -250,28 +295,62 @@ export class BinanceWebsocketManager<
     });
   }
 
-  async #sendRequestAndWaitForResponse(
+  async sendRequestAndWaitForResponse(
     request:
       | BinanceWS.SubscribeRequest
       | BinanceWS.UnsubscribeRequest
       | BinanceWS.ListSubscriptionsRequest,
     timeoutMs: number,
   ): Promise<BinanceWS.CommonResponseStream> {
+    const { diagnosticContext } = this.#serviceContext;
     const lock = createPromiseLock<BinanceWS.CommonResponseStream>();
+
+    diagnosticContext.logger.debug('sendRequestAndWaitForResponse: preparing request', {
+      requestId: request.id,
+      method: request.method,
+      params: 'params' in request ? request.params : undefined,
+      timeoutMs,
+      isConnected: this.#consumer.isConnected(),
+      pendingRequestsCount: this.#pendingRequests.size,
+    });
 
     lock.lock();
 
     this.#pendingRequests.set(request.id, lock);
 
     try {
-      this.#consumer.send(JSON.stringify(request));
+      const requestString = JSON.stringify(request);
+      diagnosticContext.logger.debug('sendRequestAndWaitForResponse: sending request', {
+        requestId: request.id,
+        requestString,
+      });
+
+      this.#consumer.send(requestString);
+
+      diagnosticContext.logger.debug(
+        'sendRequestAndWaitForResponse: request sent, waiting for response',
+        {
+          requestId: request.id,
+        },
+      );
     } catch (error) {
+      diagnosticContext.logger.error('sendRequestAndWaitForResponse: failed to send request', {
+        requestId: request.id,
+        error,
+      });
       this.#pendingRequests.delete(request.id);
       throw error;
     }
 
     const response = await Promise.race([
-      lock.waitForRelease(),
+      lock.waitForRelease().then((res) => {
+        diagnosticContext.logger.debug('sendRequestAndWaitForResponse: received response', {
+          requestId: request.id,
+          hasError: 'error' in res,
+          response: res,
+        });
+        return res;
+      }),
       new Promise<BinanceWS.CommonResponseStream>((_, reject) =>
         setTimeout(() => {
           reject(new Error(`Request ${request.id} timed out after ${timeoutMs}ms`));
@@ -282,9 +361,22 @@ export class BinanceWebsocketManager<
       ),
     ]);
 
+    this.#pendingRequests.delete(request.id);
+
     if ('error' in response) {
-      throw new Error(`Failed to subscribe to streams: ${JSON.stringify(response.error)}`);
+      diagnosticContext.logger.error('sendRequestAndWaitForResponse: response contains error', {
+        requestId: request.id,
+        error: response.error,
+      });
+      throw new Error(`Request failed: ${JSON.stringify(response.error)}`);
     }
+
+    diagnosticContext.logger.debug(
+      'sendRequestAndWaitForResponse: request completed successfully',
+      {
+        requestId: request.id,
+      },
+    );
 
     return response;
   }
@@ -335,6 +427,9 @@ export class BinanceWebsocketManager<
 
       diagnosticContext.logger.info('BinanceWebsocketManager reconnecting');
       await this.connect();
+
+      diagnosticContext.logger.info('BinanceWebsocketManager resubscribing');
+      await this.subscribe();
 
       diagnosticContext.logger.info('BinanceWebsocketManager reconnection completed successfully');
     } catch (error) {

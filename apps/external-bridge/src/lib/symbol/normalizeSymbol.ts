@@ -69,6 +69,17 @@ export function unnormalizeToBinanceSymbol(symbol: string) {
     throw new Error(`Invalid symbol: ${symbol}`);
   }
 
+  const binanceExchangeInfo = getBinanceLatestExchangeInfo();
+  const assetInfo = binanceExchangeInfo.symbols.find(
+    (symbol) =>
+      symbol.baseAsset.toLowerCase() === base.toLowerCase() &&
+      symbol.quoteAsset.toLowerCase() === quote.toLowerCase(),
+  );
+
+  if (!assetInfo) {
+    throw new Error(`Binance exchange info not found for symbol: ${symbol}`);
+  }
+
   return `${base.toUpperCase()}${quote.toUpperCase()}`;
 }
 
@@ -84,7 +95,6 @@ export function unnormalizeToKrakenALTSymbol(symbol: string) {
   const assetPair = getKrakenAssetPair(symbol);
   return assetPair.altname;
 }
-
 
 function getKrakenAssetPair(symbol: string) {
   const [base, quote] = symbol.toUpperCase().split('_');
@@ -104,7 +114,6 @@ function getKrakenAssetPair(symbol: string) {
   const krakenQuote = getKrakenSymbolFromNormalSymbol(quote) ?? quote;
   const baseAsset = assets[krakenBase];
   const quoteAsset = assets[krakenQuote];
-
 
   if (!baseAsset) {
     throw new Error(`Kraken base asset info not found for ${krakenBase}`);

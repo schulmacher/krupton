@@ -1,7 +1,7 @@
 import { SF } from '@krupton/service-framework-node';
-import { createKrakenAssetInfoFetcherLoop } from '../../fetchers/createKrakenAssetInfoFetcherLoop.js';
-import { createKrakenAssetPairsFetcherLoop } from '../../fetchers/createKrakenAssetPairsFetcherLoop.js';
-import { createKrakenRecentTradesFetcherLoops } from '../../fetchers/createKrakenRecentTradesFetcherLoops.js';
+import { createKrakenAssetInfoFetcherLoop } from '../../fetchers/krakenAsset.js';
+import { createKrakenAssetPairsFetcherLoop } from '../../fetchers/krakenAssetPairs.js';
+import { createKrakenRecentTradesFetcherLoops } from '../../fetchers/krakenRecentTrades.js';
 import { initAndDownloadKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
 import { unnormalizeToKrakenALTSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import type { KrakenFetcherContext } from './krakenFetcherContext.js';

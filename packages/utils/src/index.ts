@@ -21,24 +21,25 @@ export async function tryHard<T>(
   }
 }
 
-export function createTryhardExponentialBackoff(
-  onRetryAttempt: (error: unknown) => void | Promise<void>,
-  options?: {
-    initialDelayMs?: number;
-    maxDelayMs?: number;
-    multiplier?: number;
-  },
-): (error: unknown) => Promise<number> {
-  const initialDelayMs = options?.initialDelayMs ?? 1000;
-  const maxDelayMs = options?.maxDelayMs ?? 60000;
-  const multiplier = options?.multiplier ?? 2;
+export function createTryhardExponentialBackoff(options: {
+  onRetryAttempt: (error: unknown, attempt: number) => void | Promise<void>;
+  initialDelayMs?: number;
+  maxDelayMs?: number;
+  multiplier?: number;
+  maxAttempts?: number;
+}): (error: unknown) => Promise<number> {
+  const { onRetryAttempt, initialDelayMs = 1000, maxDelayMs = 60000, multiplier = 2 } = options;
 
   let attemptCount = 0;
 
   return async (error: unknown): Promise<number> => {
-    await onRetryAttempt(error);
+    if (options?.maxAttempts && attemptCount >= options.maxAttempts) {
+      throw error;
+    }
 
     attemptCount++;
+
+    await onRetryAttempt(error, attemptCount);
 
     const delay = Math.min(initialDelayMs * Math.pow(multiplier, attemptCount - 1), maxDelayMs);
 

@@ -2,6 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { BinanceWS } from '@krupton/api-interface';
+import { saveBinanceOrderBookSnapshots } from '../../fetchers/binanceOrderBook.js';
 import { setBinanceLatestExchangeInfo } from '../../lib/symbol/binanceLatestExchangeInfoProvider.js';
 import { unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import { BinanceWebsocketManager } from '../../lib/websockets/BinanceWebsocketManager.js';
@@ -23,13 +24,21 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
 
   const httpServer = createHttpServerWithHealthChecks();
 
+  const exchangeInfo =
+    await context.endpointStorageRepository.binanceExchangeInfo.readLatestRecord();
+
+  if (!exchangeInfo) {
+    throw new Error('Exchange info not found for binance, this is required for symbol mapping');
+  }
+
+  setBinanceLatestExchangeInfo(exchangeInfo.response);
+
   const symbols = config.SYMBOLS.split(',')
     .map((s) => unnormalizeToBinanceSymbol(s).trim())
     .filter((s) => !!s);
 
   const BinanceWSDefinition = {
     tradeStream: BinanceWS.TradeStream,
-    partialBookDepthStream: BinanceWS.PartialBookDepthStream,
     diffDepthStream: BinanceWS.DiffDepthStream,
   };
   const websocketManager = new BinanceWebsocketManager(
@@ -37,11 +46,6 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     createWSHandlers(BinanceWSDefinition, {
       tradeStream: (message) => {
         context.websocketStorageRepository.binanceTrade.write({
-          message,
-        });
-      },
-      partialBookDepthStream: (message) => {
-        context.websocketStorageRepository.binancePartialDepth.write({
           message,
         });
       },
@@ -53,30 +57,13 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     }),
     {
       tradeStream: symbols.map((s) => BinanceWS.getTradeStreamSubscriptionName({ symbol: s })),
-      partialBookDepthStream: symbols.map((s) =>
-        BinanceWS.getPartialBookDepthStreamSubscriptionName({
-          symbol: s,
-          level: '5',
-          time: '100ms',
-        }),
-      ),
       diffDepthStream: symbols.map((s) =>
-        BinanceWS.getDiffDepthStreamSubscriptionName({ symbol: s, time: '100ms' }),
+        BinanceWS.getDiffDepthStreamSubscriptionName({ symbol: s, time: '1000ms' }),
       ),
     },
   );
 
-  const exchangeInfo =
-    await context.endpointStorageRepository.binanceExchangeInfo.readLatestRecord();
-
-  if (!exchangeInfo) {
-    throw new Error('Exchange info not found for binance, this is required for symbol mapping');
-  }
-
-  setBinanceLatestExchangeInfo(exchangeInfo.response);
-
   diagnosticContext.logger.info('Starting websocket manager', { symbols });
-  await websocketManager.connect();
 
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
@@ -86,7 +73,17 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
   };
 
   registerGracefulShutdownCallback();
-
   processContext.start();
+
+  await websocketManager.connect();
+  await websocketManager.subscribe();
+
+  await saveBinanceOrderBookSnapshots(
+    diagnosticContext,
+    symbols,
+    context.binanceClient.getOrderBook,
+    context.endpointStorageRepository.binanceOrderBook.write,
+  );
+
   await httpServer.startServer();
 }

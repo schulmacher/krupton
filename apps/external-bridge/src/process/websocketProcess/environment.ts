@@ -7,13 +7,29 @@ export const binanceWebSocketEnvSchema = TB.Object({
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3002 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
-  API_BASE_URL: TB.String({
+  WSS_BASE_URL: TB.String({
     description: 'Base URL for the websocket streams API',
     default: 'wss://stream.binance.com/stream',
   }),
+
+  API_BASE_URL: TB.String({
+    description: 'Base URL for the exchange API',
+    default: 'https://api1.binance.com',
+  }),
+  API_KEY: TB.Optional(
+    TB.String({
+      description: 'API key for authenticated endpoints (optional for public endpoints)',
+    }),
+  ),
+  API_SECRET: TB.Optional(
+    TB.String({
+      description: 'API secret for signing authenticated requests (optional for public endpoints)',
+    }),
+  ),
+  
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
-    default: 'btc_usdt,eth_usdt,kas_usdt,sol_usdt,trump_usdt,xrp_usdt,wlfi_usd',
+    default: 'btc_usdt,eth_usdt,sol_usdt,trump_usdt,xrp_usdt',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
@@ -28,7 +44,7 @@ export const krakenWebSocketEnvSchema = TB.Object({
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3003 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
-  API_BASE_URL: TB.String({
+  WSS_BASE_URL: TB.String({
     description: 'Base URL for the websocket streams API',
     default: 'wss://ws.kraken.com/v2',
   }),
