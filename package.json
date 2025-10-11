@@ -14,6 +14,7 @@
     "typecheck": "pnpm -r typecheck",
     "pm2:dev:packages": "cd process-manager/dev/packages && pm2 start ecosystem.config.js",
     "pm2:dev:eb": "cd process-manager/dev/external-bridge && pm2 start ecosystem.config.js",
+    "pm2:dev:coordinator": "cd process-manager/dev/coordinator && pm2 start ecosystem.config.js",
     "pm2:dev:monitoring": "cd process-manager/dev/monitoring && pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:restart": "pm2 restart all",

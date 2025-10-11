@@ -13,7 +13,7 @@ export const binanceWebSocketEnvSchema = TB.Object({
   }),
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
-    default: 'btc_usdt,eth_usdt',
+    default: 'btc_usdt,eth_usdt,kas_usdt,sol_usdt,trump_usdt,xrp_usdt,wlfi_usd',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
@@ -34,7 +34,7 @@ export const krakenWebSocketEnvSchema = TB.Object({
   }),
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
-    default: 'btc_usdt,eth_usdt',
+    default: 'btc_usdt,eth_usdt,kas_usdt,sol_usdt,trump_usdt,xrp_usdt,wlfi_usd',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',

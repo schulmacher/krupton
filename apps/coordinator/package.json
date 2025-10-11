@@ -1,0 +1,23 @@
+{
+  "name": "@krupton/coordinator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/coordinator.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@krupton/config": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
+    "zeromq": "^6.5.0"
+  },
+  "devDependencies": {
+    "@types/zeromq": "^6.0.0"
+  }
+}

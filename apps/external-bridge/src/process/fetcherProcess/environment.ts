@@ -35,7 +35,7 @@ export const binanceFetcherEnvSchema = TB.Object({
   // Symbol configuration
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
-    default: 'btc_usdt,eth_usdt',
+    default: 'btc_usdt,eth_usdt,sol_usdt,trump_usdt,xrp_usdt',
   }),
 
   // Fetch configuration
@@ -99,7 +99,7 @@ export const krakenFetcherEnvSchema = TB.Object({
   // Symbol configuration
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
-    default: 'btc_usdt,eth_usdt',
+    default: 'btc_usdt,eth_usdt,kas_usdt,sol_usdt,trump_usdt,xrp_usdt,wlfi_usd',
   }),
 
   // Fetch configuration

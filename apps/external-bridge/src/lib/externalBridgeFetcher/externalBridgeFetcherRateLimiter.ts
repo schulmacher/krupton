@@ -75,13 +75,13 @@ export function createExternalBridgeFetcherRateLimiter(
     const now = Date.now();
     const waitTime = calculateWaitTime(now);
 
-    if (isWindowExpired(now)) {
-      resetWindow(now);
-    }
-
     if (waitTime > 0) {
       diagnosticContext.logger.debug(`Waiting ${waitTime}ms before next request`);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+
+    if (isWindowExpired(now)) {
+      resetWindow(now);
     }
   };
 
@@ -89,7 +89,7 @@ export function createExternalBridgeFetcherRateLimiter(
     const now = Date.now();
     consecutiveErrors++;
     const backoffDelayMs = calculateBackoffMs();
-    backoffUntilMs = now + backoffDelayMs;
+    backoffUntilMs = Math.max(now + backoffDelayMs, backoffUntilMs);
 
     diagnosticContext.logger.warn('Rate limit reached, backing off', {
       consecutiveErrors,

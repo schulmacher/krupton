@@ -51,6 +51,7 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
     let startTime = Date.now();
 
     try {
+      await context.rateLimiter.throttle();
       prevParams = await buildRequestParams({ prevResponse, prevParams });
 
       diagnosticContext.logger.debug('Executing fetch', {
@@ -60,7 +61,6 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
         params: prevParams,
       });
 
-      await context.rateLimiter.throttle();
       startTime = Date.now();
       const response = await endpointFn(prevParams);
       context.rateLimiter.recordRequest();

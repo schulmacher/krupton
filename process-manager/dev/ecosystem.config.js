@@ -1,9 +1,14 @@
-const marketDataSimulator = require('./external-bridge/ecosystem.config');
+const coordinator = require('./coordinator/ecosystem.config');
+const externalBridge = require('./external-bridge/ecosystem.config');
 const packages = require('./packages/ecosystem.config');
-const victoriaMetrics = require('./victoria-metrics/ecosystem.config');
-const perses = require('./monitoring/ecosystem.config');
+const monitoring = require('./monitoring/ecosystem.config');
 
 module.exports = {
-  apps: [...packages.apps, ...victoriaMetrics.apps, ...perses.apps, ...marketDataSimulator.apps],
+  apps: [
+    ...packages.apps,
+    ...coordinator.apps,
+    ...monitoring.apps,
+    ...externalBridge.apps,
+  ],
 };
 

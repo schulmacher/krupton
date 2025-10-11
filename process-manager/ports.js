@@ -3,6 +3,9 @@
  */
 
 module.exports = {
+  // Coordinator Service
+  COORDINATOR: 3500,
+
   // External Bridge Services
   EXTERNAL_BRIDGE_FETCHER_BINANCE: 3000,
   EXTERNAL_BRIDGE_FETCHER_KRAKEN: 3001,

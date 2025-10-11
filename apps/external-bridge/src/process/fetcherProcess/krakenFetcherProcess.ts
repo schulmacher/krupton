@@ -1,7 +1,6 @@
 import { SF } from '@krupton/service-framework-node';
 import { createKrakenAssetInfoFetcherLoop } from '../../fetchers/createKrakenAssetInfoFetcherLoop.js';
 import { createKrakenAssetPairsFetcherLoop } from '../../fetchers/createKrakenAssetPairsFetcherLoop.js';
-import { createKrakenOrderBookFetcherLoops } from '../../fetchers/createKrakenOrderBookFetcherLoops.js';
 import { createKrakenRecentTradesFetcherLoops } from '../../fetchers/createKrakenRecentTradesFetcherLoops.js';
 import { initAndDownloadKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
 import { unnormalizeToKrakenALTSymbol } from '../../lib/symbol/normalizeSymbol.js';
@@ -43,7 +42,7 @@ export async function startKrakenFetcherService(context: KrakenFetcherContext): 
     await createKrakenAssetPairsFetcherLoop(context),
     await createKrakenAssetInfoFetcherLoop(context),
     ...(await createKrakenRecentTradesFetcherLoops(context, krakenSymbols)),
-    ...(await createKrakenOrderBookFetcherLoops(context, krakenSymbols)),
+    // ...(await createKrakenOrderBookFetcherLoops(context, krakenSymbols)),
   ];
 
   const registerGracefulShutdownCallback = () => {
