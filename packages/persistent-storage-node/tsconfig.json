@@ -1,0 +1,14 @@
+{
+  "extends": "@krupton/config/tsconfig.base.json",
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**", "test"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
+  }
+}

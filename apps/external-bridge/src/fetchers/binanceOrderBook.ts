@@ -1,6 +1,6 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
-import { BinanceOrderBookEntity } from '@krupton/persistent-jsonl-storage-node';
+import { BinanceOrderBookEntity } from '@krupton/persistent-storage-node';
 import { createTryhardExponentialBackoff, tryHard } from '@krupton/utils';
 import { DiagnosticContext } from '../../../../packages/service-framework-node/dist/sf';
 

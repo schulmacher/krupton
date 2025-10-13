@@ -1,4 +1,15 @@
-import { createEndpointStorageRepository, createWebsocketStorageRepository } from '@krupton/persistent-jsonl-storage-node';
+import {
+  createKrakenAssetInfoEntity,
+  createKrakenAssetInfoStorage,
+  createKrakenAssetPairsEntity,
+  createKrakenAssetPairsStorage,
+  createKrakenTickerWSEntity,
+  createKrakenTickerWSStorage,
+  createKrakenTradeWSEntity,
+  createKrakenTradeWSStorage,
+  createKrakenBookWSEntity,
+  createKrakenBookWSStorage,
+} from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
 
@@ -29,12 +40,22 @@ export function createKrakenWebsocketContext() {
     diagnosticContext,
   });
 
-  const websocketStorageRepository = createWebsocketStorageRepository(
-    envContext.config.STORAGE_BASE_DIR,
+  const krakenTicker = createKrakenTickerWSEntity(
+    createKrakenTickerWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+  const krakenTrade = createKrakenTradeWSEntity(
+    createKrakenTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+  const krakenBook = createKrakenBookWSEntity(
+    createKrakenBookWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
   );
 
-  const endpointStorageRepository = createEndpointStorageRepository(
-    envContext.config.STORAGE_BASE_DIR,
+  // Open endpoint storage in read-only mode to avoid file locks with fetcher process
+  const krakenAssetPairs = createKrakenAssetPairsEntity(
+    createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
+  );
+  const krakenAssetInfo = createKrakenAssetInfoEntity(
+    createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
   );
 
   return {
@@ -42,8 +63,11 @@ export function createKrakenWebsocketContext() {
     diagnosticContext,
     metricsContext,
     processContext,
-    websocketStorageRepository,
-    endpointStorageRepository,
+    krakenTicker,
+    krakenTrade,
+    krakenBook,
+    krakenAssetPairs,
+    krakenAssetInfo,
   };
 }
 

@@ -1,0 +1,7 @@
+{
+  "extends": "@krupton/config/tsconfig.base.json",
+  "include": ["src", "../../packages/persistent-storage-node/test/test-reindex-trades.ts"],
+  "compilerOptions": {
+    "outDir": "dist"
+  }
+}

@@ -24,8 +24,7 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  const exchangeInfo =
-    await context.endpointStorageRepository.binanceExchangeInfo.readLatestRecord();
+  const exchangeInfo = await context.binanceExchangeInfo.readLatestRecord();
 
   if (!exchangeInfo) {
     throw new Error('Exchange info not found for binance, this is required for symbol mapping');
@@ -45,12 +44,12 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     context,
     createWSHandlers(BinanceWSDefinition, {
       tradeStream: (message) => {
-        context.websocketStorageRepository.binanceTrade.write({
+        context.binanceTrade.write({
           message,
         });
       },
       diffDepthStream: (message) => {
-        context.websocketStorageRepository.binanceDiffDepth.write({
+        context.binanceDiffDepth.write({
           message,
         });
       },
@@ -82,7 +81,7 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     diagnosticContext,
     symbols,
     context.binanceClient.getOrderBook,
-    context.endpointStorageRepository.binanceOrderBook.write,
+    context.binanceOrderBook.write,
   );
 
   await httpServer.startServer();

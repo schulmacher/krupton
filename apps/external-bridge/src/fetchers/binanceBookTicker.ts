@@ -9,7 +9,7 @@ const handleBookTickerResponse = async (
   response: BinanceApi.GetBookTickerResponse,
   symbol: string,
 ): Promise<void> => {
-  const { diagnosticContext, endpointStorageRepository } = context;
+  const { diagnosticContext, binanceBookTicker } = context;
 
   const bookTickerData = Array.isArray(response) ? response : [response];
   const targetBookTicker = bookTickerData.find((ticker) => ticker.symbol === symbol);
@@ -21,7 +21,7 @@ const handleBookTickerResponse = async (
     return;
   }
 
-  await endpointStorageRepository.binanceBookTicker.write({
+  await binanceBookTicker.write({
     request: { query },
     response: targetBookTicker,
   });

@@ -1,7 +1,13 @@
 import {
-  createEndpointStorageRepository,
-  createWebsocketStorageRepository,
-} from '@krupton/persistent-jsonl-storage-node';
+  createBinanceExchangeInfoEntity,
+  createBinanceExchangeInfoStorage,
+  createBinanceOrderBookEntity,
+  createBinanceOrderBookStorage,
+  createBinanceTradeWSEntity,
+  createBinanceTradeWSStorage,
+  createBinanceDiffDepthWSEntity,
+  createBinanceDiffDepthWSStorage,
+} from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
 import { createBinanceAuthHeaders } from '../../../../../packages/api-client-node/dist/apiAuth.js';
@@ -36,11 +42,19 @@ export function createBinanceWebsocketContext() {
     diagnosticContext,
   });
 
-  const websocketStorageRepository = createWebsocketStorageRepository(
-    envContext.config.STORAGE_BASE_DIR,
+  const binanceTrade = createBinanceTradeWSEntity(
+    createBinanceTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
   );
-  const endpointStorageRepository = createEndpointStorageRepository(
-    envContext.config.STORAGE_BASE_DIR,
+  const binanceDiffDepth = createBinanceDiffDepthWSEntity(
+    createBinanceDiffDepthWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+
+  // Open endpoint storage in read-only mode to avoid file locks with fetcher process
+  const binanceExchangeInfo = createBinanceExchangeInfoEntity(
+    createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
+  );
+  const binanceOrderBook = createBinanceOrderBookEntity(
+    createBinanceOrderBookStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
   );
 
   const binanceClient = createApiClient(
@@ -61,8 +75,10 @@ export function createBinanceWebsocketContext() {
     diagnosticContext,
     metricsContext,
     processContext,
-    websocketStorageRepository,
-    endpointStorageRepository,
+    binanceTrade,
+    binanceDiffDepth,
+    binanceExchangeInfo,
+    binanceOrderBook,
     binanceClient,
   };
 }

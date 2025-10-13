@@ -11,9 +11,9 @@ const handleExchangeInfoResponse = async (
   query: BinanceApi.GetExchangeInfoQuery,
   response: BinanceApi.GetExchangeInfoResponse,
 ): Promise<void> => {
-  const { diagnosticContext, endpointStorageRepository } = context;
+  const { diagnosticContext, binanceExchangeInfo } = context;
 
-  await endpointStorageRepository.binanceExchangeInfo.write({
+  await binanceExchangeInfo.write({
     request: { query },
     response,
   });
@@ -26,7 +26,7 @@ const handleExchangeInfoResponse = async (
 export const createBinanceExchangeInfoFetcherLoop = async (
   context: BinanceFetcherContext,
 ): Promise<ExternalBridgeFetcherLoop> => {
-  const { diagnosticContext, envContext, binanceClient, endpointStorageRepository } = context;
+  const { diagnosticContext, envContext, binanceClient, binanceExchangeInfo } = context;
   const config = envContext.config;
   const endpoint = binanceClient.getExchangeInfo.definition.path;
   const platform = config.PLATFORM;
@@ -41,7 +41,7 @@ export const createBinanceExchangeInfoFetcherLoop = async (
     symbol: 'ALL',
     endpointFn: binanceClient.getExchangeInfo,
     buildRequestParams: async () => {
-      const latestRecord = await endpointStorageRepository.binanceExchangeInfo.readLatestRecord();
+      const latestRecord = await binanceExchangeInfo.readLatestRecord();
 
       if (latestRecord) {
         const timeSinceLastFetch = Date.now() - latestRecord.timestamp;

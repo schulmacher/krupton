@@ -1,0 +1,47 @@
+{
+  "name": "@krupton/persistent-storage-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./transformed": {
+      "types": "./dist/transformed/index.d.ts",
+      "source": "./src/transformed/index.ts",
+      "default": "./dist/transformed/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "test:reindex": "tsx test/test-reindex-trades.ts",
+    "typecheck": "tsc --noEmit",
+    "stream": "tsx scripts/stream-records.ts"
+  },
+  "dependencies": {
+    "@krupton/api-interface": "workspace:*",
+    "@krupton/config": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
+    "@krupton/utils": "workspace:*",
+    "better-sqlite3": "^12.4.1"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
+  }
+}

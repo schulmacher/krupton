@@ -9,9 +9,9 @@ async function handleOrderBookResponse(
   context: KrakenFetcherContext,
   symbol: string,
 ): Promise<void> {
-  const { diagnosticContext, endpointStorageRepository } = context;
+  const { diagnosticContext, krakenOrderBook } = context;
 
-  await endpointStorageRepository.krakenOrderBook.write({
+  await krakenOrderBook.write({
     request: { query },
     response,
   });

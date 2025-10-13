@@ -11,9 +11,9 @@ async function handleAssetInfoResponse(
   query: KrakenApi.GetAssetInfoQuery,
   response: KrakenApi.GetAssetInfoResponse,
 ): Promise<void> {
-  const { diagnosticContext, endpointStorageRepository } = context;
+  const { diagnosticContext, krakenAssetInfo } = context;
 
-  await endpointStorageRepository.krakenAssetInfo.write({
+  await krakenAssetInfo.write({
     request: { query },
     response,
   });
@@ -26,7 +26,7 @@ async function handleAssetInfoResponse(
 export async function createKrakenAssetInfoFetcherLoop(
   context: KrakenFetcherContext,
 ): Promise<ExternalBridgeFetcherLoop> {
-  const { diagnosticContext, envContext, krakenClient, endpointStorageRepository } = context;
+  const { diagnosticContext, envContext, krakenClient, krakenAssetInfo } = context;
   const config = envContext.config;
   const endpoint = krakenClient.getAssetInfo.definition.path;
   const platform = config.PLATFORM;
@@ -41,7 +41,7 @@ export async function createKrakenAssetInfoFetcherLoop(
     symbol: 'ALL',
     endpointFn: krakenClient.getAssetInfo,
     buildRequestParams: async () => {
-      const latestRecord = await endpointStorageRepository.krakenAssetInfo.readLatestRecord();
+      const latestRecord = await krakenAssetInfo.readLatestRecord();
 
       if (latestRecord) {
         const timeSinceLastFetch = Date.now() - latestRecord.timestamp;

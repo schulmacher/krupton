@@ -74,3 +74,7 @@ export function arrayToMultiMap<T, V = T>(
 
   return map;
 }
+
+export function notNil<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}

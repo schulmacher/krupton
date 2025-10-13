@@ -29,7 +29,7 @@ async function handleRecentTradesResponse(
   endpoint: string,
   symbol: string,
 ): Promise<void> {
-  const { diagnosticContext, envContext, endpointStorageRepository } = context;
+  const { diagnosticContext, envContext, krakenRecentTrades } = context;
   const config = envContext.config;
 
   if (!hasData(response)) {
@@ -44,7 +44,7 @@ async function handleRecentTradesResponse(
 
   const requestSince = query.since;
 
-  await endpointStorageRepository.krakenRecentTrades.write({
+  await krakenRecentTrades.write({
     request: { query },
     response,
   });
@@ -62,14 +62,13 @@ async function createKrakenRecentTradesFetcherLoopForSymbol(
   symbol: string,
   endpoint: string,
 ): Promise<ExternalBridgeFetcherLoop> {
-  const { krakenClient, endpointStorageRepository } = context;
+  const { krakenClient, krakenRecentTrades } = context;
 
   return createExternalBridgeFetcherLoop<typeof KrakenApi.GetRecentTradesEndpoint>(context, {
     symbol,
     endpointFn: krakenClient.getRecentTrades,
     buildRequestParams: async () => {
-      const latestRecord =
-        await endpointStorageRepository.krakenRecentTrades.readLatestRecord(symbol);
+      const latestRecord = await krakenRecentTrades.readLatestRecord(symbol);
       const latestRecordLastId = latestRecord
         ? extractLastTradeId(latestRecord.response)
         : undefined;

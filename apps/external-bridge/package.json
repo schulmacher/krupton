@@ -21,7 +21,7 @@
     "@krupton/api-client-ws-node": "workspace:*",
     "@krupton/config": "workspace:*",
     "@krupton/api-interface": "workspace:*",
-    "@krupton/persistent-jsonl-storage-node": "workspace:*",
+    "@krupton/persistent-storage-node": "workspace:*",
     "@krupton/service-framework-node": "workspace:*",
     "@krupton/utils": "workspace:*",
     "ws": "^8.18.0"

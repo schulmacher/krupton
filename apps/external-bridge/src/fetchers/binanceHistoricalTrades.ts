@@ -11,7 +11,7 @@ const handleHistoricalTradesResponse = async (
   endpoint: string,
   symbol: string,
 ): Promise<void> => {
-  const { diagnosticContext, processContext, envContext, endpointStorageRepository } = context;
+  const { diagnosticContext, processContext, envContext, binanceHistoricalTrade } = context;
   const config = envContext.config;
 
   if (!response || response.length === 0) {
@@ -25,8 +25,7 @@ const handleHistoricalTradesResponse = async (
   }
 
   const requestFromId = query.fromId;
-  const currentLatestRecord =
-    await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
+  const currentLatestRecord = await binanceHistoricalTrade.readLatestRecord(symbol);
 
   const latestStoredFromId = currentLatestRecord?.request.query?.fromId;
 
@@ -50,7 +49,7 @@ const handleHistoricalTradesResponse = async (
     return;
   }
 
-  await endpointStorageRepository.binanceHistoricalTrade.write({
+  await binanceHistoricalTrade.write({
     request: { query },
     response,
   });
@@ -69,14 +68,13 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
   symbol: string,
   endpoint: string,
 ): Promise<ExternalBridgeFetcherLoop> => {
-  const { binanceClient, endpointStorageRepository } = context;
+  const { binanceClient, binanceHistoricalTrade } = context;
 
   return createExternalBridgeFetcherLoop<typeof BinanceApi.GetHistoricalTradesEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getHistoricalTrades,
     buildRequestParams: async () => {
-      const latestRecord =
-        await endpointStorageRepository.binanceHistoricalTrade.readLatestRecord(symbol);
+      const latestRecord = await binanceHistoricalTrade.readLatestRecord(symbol);
       const latestRecordMaxId = latestRecord?.response?.reduce(
         (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
         0,

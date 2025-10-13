@@ -23,8 +23,8 @@ export async function startKrakenFetcherService(context: KrakenFetcherContext): 
   const httpServer = createHttpServerWithHealthChecks();
 
   await initAndDownloadKrakenLatestAssetPairsProvider(
-    context.endpointStorageRepository.krakenAssetPairs,
-    context.endpointStorageRepository.krakenAssetInfo,
+    context.krakenAssetPairs,
+    context.krakenAssetInfo,
     context.krakenClient.getAssetPairs,
     context.krakenClient.getAssetInfo,
   );

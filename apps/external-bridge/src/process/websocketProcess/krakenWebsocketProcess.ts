@@ -26,8 +26,8 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
   const httpServer = createHttpServerWithHealthChecks();
 
   await initKrakenLatestAssetPairsProvider(
-    context.endpointStorageRepository.krakenAssetPairs,
-    context.endpointStorageRepository.krakenAssetInfo,
+    context.krakenAssetPairs,
+    context.krakenAssetInfo,
   );
 
   const symbols = config.SYMBOLS.split(','  )
@@ -43,17 +43,17 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
     context,
     createWSHandlers(KrakenWSDefinition, {
       tickerStream: (message) => {
-        context.websocketStorageRepository.krakenTicker.write({
+        context.krakenTicker.write({
           message,
         });
       },
       tradeStream: (message) => {
-        context.websocketStorageRepository.krakenTrade.write({
+        context.krakenTrade.write({
           message,
         });
       },
       bookStream: (message) => {
-        context.websocketStorageRepository.krakenBook.write({
+        context.krakenBook.write({
           message,
         });
       },

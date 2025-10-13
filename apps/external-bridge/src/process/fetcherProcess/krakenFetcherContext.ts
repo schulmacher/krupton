@@ -1,7 +1,16 @@
 import { createApiClient } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
 import { SF } from '@krupton/service-framework-node';
-import { createEndpointStorageRepository } from '@krupton/persistent-jsonl-storage-node';
+import {
+  createKrakenAssetInfoEntity,
+  createKrakenAssetInfoStorage,
+  createKrakenAssetPairsEntity,
+  createKrakenAssetPairsStorage,
+  createKrakenOrderBookEntity,
+  createKrakenOrderBookStorage,
+  createKrakenRecentTradesEntity,
+  createKrakenRecentTradesStorage,
+} from '@krupton/persistent-storage-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';
@@ -49,8 +58,17 @@ export function createKrakenFetcherContext() {
     },
   );
 
-  const endpointStorageRepository = createEndpointStorageRepository(
-    envContext.config.STORAGE_BASE_DIR,
+  const krakenAssetPairs = createKrakenAssetPairsEntity(
+    createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+  const krakenAssetInfo = createKrakenAssetInfoEntity(
+    createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+  const krakenOrderBook = createKrakenOrderBookEntity(
+    createKrakenOrderBookStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+  );
+  const krakenRecentTrades = createKrakenRecentTradesEntity(
+    createKrakenRecentTradesStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
   );
 
   return {
@@ -60,7 +78,10 @@ export function createKrakenFetcherContext() {
     processContext,
     rateLimiter,
     krakenClient,
-    endpointStorageRepository,
+    krakenAssetPairs,
+    krakenAssetInfo,
+    krakenOrderBook,
+    krakenRecentTrades,
   };
 }
 
