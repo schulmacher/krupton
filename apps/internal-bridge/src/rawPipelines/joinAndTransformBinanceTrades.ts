@@ -1,7 +1,7 @@
 import { BinanceApi, BinanceWS } from '@krupton/api-interface';
 import {
-  EndpointStorageRecordWithIndex,
-  WebSocketStorageRecordWithIndex,
+  EndpointStorageRecord,
+  WebSocketStorageRecord,
 } from '@krupton/persistent-storage-node';
 import {
   createEntityReader,
@@ -14,11 +14,11 @@ import {
 import { TransformerContext } from '../process/transformer/transformerContext';
 
 type GeneratedWSTradeMessage = TaggedMessage<
-  WebSocketStorageRecordWithIndex<typeof BinanceWS.TradeStream>,
+  WebSocketStorageRecord<typeof BinanceWS.TradeStream>,
   'wsTrade'
 >;
 type GeneratedAPITradeMessage = TaggedMessage<
-  EndpointStorageRecordWithIndex<typeof BinanceApi.GetHistoricalTradesEndpoint>,
+  EndpointStorageRecord<typeof BinanceApi.GetHistoricalTradesEndpoint>,
   'apiTrade'
 >;
 
@@ -27,15 +27,15 @@ export async function startJoinAndTransformBinanceTradesPipeline(
   normalizedSymbol: string,
 ) {
   const start = Date.now();
-  const { binanceHistoricalTrade, binanceTrade, diagnosticContext, processContext } = context;
+  const { inputStorage, diagnosticContext, processContext } = context;
 
   const apiTradeStream = createEntityReader(
-    binanceHistoricalTrade.storage,
+    inputStorage.binanceHistoricalTrade,
     normalizedSymbol,
     { readBatchSize: 100, startGlobalIndex: 0, isStopped: () => processContext.isShuttingDown() },
   );
   const wsTradeStream = createEntityReader(
-    binanceTrade.storage,
+    inputStorage.binanceTrade,
     normalizedSymbol,
     { readBatchSize: 100, startGlobalIndex: 0, isStopped: () => processContext.isShuttingDown() },
   );

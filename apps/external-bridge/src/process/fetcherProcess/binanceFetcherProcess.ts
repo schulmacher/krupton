@@ -22,7 +22,7 @@ export async function startExternalBridgeFetcherService(
     });
 
   await initBinanceLatestExchangeInfoProvider(
-    context.binanceExchangeInfo,
+    context.storage.exchangeInfo,
     context.binanceClient.getExchangeInfo,
   );
 

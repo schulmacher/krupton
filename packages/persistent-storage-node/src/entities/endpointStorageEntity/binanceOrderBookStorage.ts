@@ -3,6 +3,7 @@ import { BinanceApi } from '@krupton/api-interface';
 import {
   createEndpointStorage,
   EndpointStorage,
+  EndpointStorageRecord,
 } from '../endpointStorage.js';
 
 export type BinanceOrderBookStorage = EndpointStorage<typeof BinanceApi.GetOrderBookEndpoint>;
@@ -15,3 +16,6 @@ export function createBinanceOrderBookStorage(
   return createEndpointStorage(baseDir, BinanceApi.GetOrderBookEndpoint, options);
 }
 
+export type BinanceOrderBookStorageRecord = EndpointStorageRecord<
+  typeof BinanceApi.GetOrderBookEndpoint
+>;

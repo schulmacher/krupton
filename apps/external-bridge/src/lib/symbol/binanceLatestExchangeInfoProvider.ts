@@ -1,6 +1,9 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
-import { BinanceExchangeInfoEntity } from '@krupton/persistent-storage-node';
+import {
+  BinanceExchangeInfoStorage,
+  SYMBOL_ALL
+} from '@krupton/persistent-storage-node';
 
 let latestBinanceExchangeInfo: BinanceApi.GetExchangeInfoResponse | null = null;
 
@@ -16,17 +19,24 @@ export function setBinanceLatestExchangeInfo(exchangeInfo: BinanceApi.GetExchang
 }
 
 export async function initBinanceLatestExchangeInfoProvider(
-  binanceExchangeInfoEntity: BinanceExchangeInfoEntity,
+  binanceExchangeInfoEntity: BinanceExchangeInfoStorage,
   getExchangeInfo: EndpointFunction<typeof BinanceApi.GetExchangeInfoEndpoint>,
 ) {
   latestBinanceExchangeInfo =
-    (await binanceExchangeInfoEntity.readLatestRecord().then((record) => record?.response)) ?? null;
+    (await binanceExchangeInfoEntity
+      .readLastRecord(SYMBOL_ALL)
+      .then((record) => record?.response)) ?? null;
 
   if (!latestBinanceExchangeInfo) {
     const result = await getExchangeInfo({ query: {} });
-    await binanceExchangeInfoEntity.write({
-      request: { query: {} },
-      response: result,
+    await binanceExchangeInfoEntity.appendRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        id: binanceExchangeInfoEntity.getNextId(SYMBOL_ALL),
+        timestamp: Date.now(),
+        request: { query: {} },
+        response: result,
+      },
     });
     latestBinanceExchangeInfo = result;
   }

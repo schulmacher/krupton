@@ -6,8 +6,7 @@ import { join } from 'path';
 import {
   createPersistentStorage,
   normalizeIndexDir,
-  StorageRecord,
-  StorageRecordWithIndex,
+  StorageRecord
 } from '../persistentStorage.js';
 
 function normalizeStreamName(name: string): string {
@@ -17,11 +16,6 @@ function normalizeStreamName(name: string): string {
 export type WebSocketStorageRecord<T extends WebSocketStreamDefinition> = StorageRecord<{
   message: ExtractWebSocketStreamMessage<T>;
 }>;
-
-export type WebSocketStorageRecordWithIndex<T extends WebSocketStreamDefinition> =
-  StorageRecordWithIndex<{
-    message: ExtractWebSocketStreamMessage<T>;
-  }>;
 
 export function createWebSocketStorage<T extends WebSocketStreamDefinition>(
   baseDir: string,
@@ -36,11 +30,7 @@ export function createWebSocketStorage<T extends WebSocketStreamDefinition>(
     options,
   );
 
-  return {
-    ...persistentStorage,
-    normalizedStreamName,
-    streamName,
-  };
+  return persistentStorage;
 }
 
 export type WebSocketStorage<T extends WebSocketStreamDefinition> = ReturnType<

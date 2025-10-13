@@ -1,4 +1,5 @@
 import { KrakenApi } from '@krupton/api-interface';
+import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
 import { sleep } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
@@ -11,11 +12,28 @@ async function handleAssetInfoResponse(
   query: KrakenApi.GetAssetInfoQuery,
   response: KrakenApi.GetAssetInfoResponse,
 ): Promise<void> {
-  const { diagnosticContext, krakenAssetInfo } = context;
+  const { diagnosticContext, storage } = context;
 
-  await krakenAssetInfo.write({
-    request: { query },
-    response,
+  const lastAssetInfo = await storage.assetInfo.readLastRecord(SYMBOL_ALL);
+
+  if (
+    lastAssetInfo &&
+    JSON.stringify(lastAssetInfo.response.result) === JSON.stringify(response.result)
+  ) {
+    diagnosticContext.logger.info('Asset info already in storage', {
+      assetCount: Object.keys(response.result).length,
+    });
+    return;
+  }
+
+  await storage.assetInfo.appendRecord({
+    subIndexDir: SYMBOL_ALL,
+    record: {
+      request: { query },
+      response,
+      timestamp: Date.now(),
+      id: storage.assetInfo.getNextId(SYMBOL_ALL),
+    },
   });
 
   diagnosticContext.logger.debug('Asset info saved to storage', {
@@ -26,7 +44,7 @@ async function handleAssetInfoResponse(
 export async function createKrakenAssetInfoFetcherLoop(
   context: KrakenFetcherContext,
 ): Promise<ExternalBridgeFetcherLoop> {
-  const { diagnosticContext, envContext, krakenClient, krakenAssetInfo } = context;
+  const { diagnosticContext, envContext, krakenClient, storage } = context;
   const config = envContext.config;
   const endpoint = krakenClient.getAssetInfo.definition.path;
   const platform = config.PLATFORM;
@@ -41,7 +59,7 @@ export async function createKrakenAssetInfoFetcherLoop(
     symbol: 'ALL',
     endpointFn: krakenClient.getAssetInfo,
     buildRequestParams: async () => {
-      const latestRecord = await krakenAssetInfo.readLatestRecord();
+      const latestRecord = await storage.assetInfo.readLastRecord(SYMBOL_ALL);
 
       if (latestRecord) {
         const timeSinceLastFetch = Date.now() - latestRecord.timestamp;
@@ -65,4 +83,3 @@ export async function createKrakenAssetInfoFetcherLoop(
     onSuccess: async ({ query, response }) => handleAssetInfoResponse(context, query, response),
   });
 }
-

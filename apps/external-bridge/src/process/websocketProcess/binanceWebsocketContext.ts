@@ -1,18 +1,15 @@
+import { BinanceApi } from '@krupton/api-interface';
+import { createZmqProducerRegistry } from '@krupton/messaging-node';
 import {
-  createBinanceExchangeInfoEntity,
-  createBinanceExchangeInfoStorage,
-  createBinanceOrderBookEntity,
-  createBinanceOrderBookStorage,
-  createBinanceTradeWSEntity,
-  createBinanceTradeWSStorage,
-  createBinanceDiffDepthWSEntity,
   createBinanceDiffDepthWSStorage,
+  createBinanceExchangeInfoStorage,
+  createBinanceOrderBookStorage,
+  createBinanceTradeWSStorage
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
 import { createBinanceAuthHeaders } from '../../../../../packages/api-client-node/dist/apiAuth.js';
 import { createApiClient } from '../../../../../packages/api-client-node/dist/apiClient.js';
-import { BinanceApi } from '@krupton/api-interface';
+import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
 
 export function createBinanceWebsocketContext() {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);
@@ -42,20 +39,18 @@ export function createBinanceWebsocketContext() {
     diagnosticContext,
   });
 
-  const binanceTrade = createBinanceTradeWSEntity(
-    createBinanceTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const binanceDiffDepth = createBinanceDiffDepthWSEntity(
-    createBinanceDiffDepthWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-
-  // Open endpoint storage in read-only mode to avoid file locks with fetcher process
-  const binanceExchangeInfo = createBinanceExchangeInfoEntity(
-    createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
-  );
-  const binanceOrderBook = createBinanceOrderBookEntity(
-    createBinanceOrderBookStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
+  const storage = {
+    trade: createBinanceTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    diffDepth: createBinanceDiffDepthWSStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: true,
+    }),
+    exchangeInfo: createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: false,
+    }),
+    orderBook: createBinanceOrderBookStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: true,
+    }),
+  };
 
   const binanceClient = createApiClient(
     {
@@ -70,16 +65,25 @@ export function createBinanceWebsocketContext() {
     },
   );
 
+  const producers = {
+    binanceTrade: createZmqProducerRegistry({
+      socketTemplate: (subIndex) =>
+        envContext.config.ZMQ_TRADE_SOCKET.replace('{symbol}', subIndex),
+    }),
+    binanceDiffDepth: createZmqProducerRegistry({
+      socketTemplate: (subIndex) =>
+        envContext.config.ZMQ_DIFF_DEPTH_SOCKET.replace('{symbol}', subIndex),
+    }),
+  };
+
   return {
     envContext,
     diagnosticContext,
     metricsContext,
     processContext,
-    binanceTrade,
-    binanceDiffDepth,
-    binanceExchangeInfo,
-    binanceOrderBook,
     binanceClient,
+    producers,
+    storage,
   };
 }
 

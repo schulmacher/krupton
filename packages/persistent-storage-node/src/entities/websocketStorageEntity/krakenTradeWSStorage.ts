@@ -1,11 +1,13 @@
-import { join } from 'node:path';
 import { KrakenWS } from '@krupton/api-interface';
+import { join } from 'node:path';
 import {
   createWebSocketStorage,
   WebSocketStorage,
+  WebSocketStorageRecord,
 } from '../websocketStorage.js';
 
 export type KrakenTradeWSStorage = WebSocketStorage<typeof KrakenWS.TradeStream>;
+export type KrakenTradeWSRecord = WebSocketStorageRecord<typeof KrakenWS.TradeStream>;
 
 export function createKrakenTradeWSStorage(
   storageBaseDir: string,
@@ -14,4 +16,3 @@ export function createKrakenTradeWSStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createWebSocketStorage(baseDir, KrakenWS.TradeStream, options);
 }
-

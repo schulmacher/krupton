@@ -9,11 +9,16 @@ async function handleOrderBookResponse(
   context: KrakenFetcherContext,
   symbol: string,
 ): Promise<void> {
-  const { diagnosticContext, krakenOrderBook } = context;
+  const { diagnosticContext, storage } = context;
 
-  await krakenOrderBook.write({
-    request: { query },
-    response,
+  await storage.orderBook.appendRecord({
+    subIndexDir: symbol,
+    record: {
+      request: { query },
+      response,
+      timestamp: Date.now(),
+      id: storage.orderBook.getNextId(symbol),
+    },
   });
 
   const pairKey = Object.keys(response.result)[0];

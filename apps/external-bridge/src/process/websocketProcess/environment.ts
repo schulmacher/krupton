@@ -26,6 +26,15 @@ export const binanceWebSocketEnvSchema = TB.Object({
       description: 'API secret for signing authenticated requests (optional for public endpoints)',
     }),
   ),
+
+  ZMQ_TRADE_SOCKET: TB.String({
+    description: 'ZMQ socket for trading data',
+    default: 'ipc:///tmp/zmq-trade-{symbol}.ipc',
+  }),
+  ZMQ_DIFF_DEPTH_SOCKET: TB.String({
+    description: 'ZMQ socket for diff depth data',
+    default: 'ipc:///tmp/zmq-diff-depth-{symbol}.ipc',
+  }),
   
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',

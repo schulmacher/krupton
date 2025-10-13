@@ -1,4 +1,4 @@
-import type { PersistentStorage, StorageRecordWithIndex } from '../persistentStorage.js';
+import type { PersistentStorage, StorageRecord } from '../persistentStorage.js';
 
 export type EntityPosition = {
   globalIndex: number;
@@ -15,7 +15,7 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
   storage: PersistentStorage<T>,
   subIndexDir: string,
   options: EntityReaderOptions,
-): AsyncGenerator<StorageRecordWithIndex<T>> {
+): AsyncGenerator<StorageRecord<T>> {
   const { readBatchSize, startGlobalIndex, isStopped } = options;
 
   let currentGlobalIndex = startGlobalIndex;

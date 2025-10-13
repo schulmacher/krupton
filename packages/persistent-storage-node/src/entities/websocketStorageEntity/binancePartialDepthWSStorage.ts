@@ -3,11 +3,13 @@ import { BinanceWS } from '@krupton/api-interface';
 import {
   createWebSocketStorage,
   WebSocketStorage,
+  WebSocketStorageRecord,
 } from '../websocketStorage.js';
 
 export type BinancePartialDepthWSStorage = WebSocketStorage<
   typeof BinanceWS.PartialBookDepthStream
 >;
+export type BinancePartialDepthWSRecord = WebSocketStorageRecord<typeof BinanceWS.PartialBookDepthStream>;
 
 export function createBinancePartialDepthWSStorage(
   storageBaseDir: string,

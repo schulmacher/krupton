@@ -3,6 +3,7 @@ import { sleep } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 import type { KrakenFetcherContext } from '../process/fetcherProcess/krakenFetcherContext.js';
+import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
 
 const FETCH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -11,11 +12,25 @@ async function handleAssetPairsResponse(
   query: KrakenApi.GetAssetPairsQuery,
   response: KrakenApi.GetAssetPairsResponse,
 ): Promise<void> {
-  const { diagnosticContext, krakenAssetPairs } = context;
+  const { diagnosticContext, storage } = context;
 
-  await krakenAssetPairs.write({
-    request: { query },
-    response,
+  const lastAssetPairs = await storage.assetPairs.readLastRecord(SYMBOL_ALL);
+
+  if (lastAssetPairs && JSON.stringify(lastAssetPairs.response.result) === JSON.stringify(response.result)) {
+    diagnosticContext.logger.info('Asset pairs already in storage', {
+      pairCount: Object.keys(response.result).length,
+    });
+    return;
+  }
+
+  await storage.assetPairs.appendRecord({
+    subIndexDir: SYMBOL_ALL,
+    record: {
+      request: { query },
+      response,
+      timestamp: Date.now(),
+      id: storage.assetPairs.getNextId(SYMBOL_ALL),
+    },
   });
 
   diagnosticContext.logger.debug('Asset pairs saved to storage', {
@@ -26,7 +41,7 @@ async function handleAssetPairsResponse(
 export async function createKrakenAssetPairsFetcherLoop(
   context: KrakenFetcherContext,
 ): Promise<ExternalBridgeFetcherLoop> {
-  const { diagnosticContext, envContext, krakenClient, krakenAssetPairs } = context;
+  const { diagnosticContext, envContext, krakenClient, storage } = context;
   const config = envContext.config;
   const endpoint = krakenClient.getAssetPairs.definition.path;
   const platform = config.PLATFORM;
@@ -41,7 +56,7 @@ export async function createKrakenAssetPairsFetcherLoop(
     symbol: 'ALL',
     endpointFn: krakenClient.getAssetPairs,
     buildRequestParams: async () => {
-      const latestRecord = await krakenAssetPairs.readLatestRecord();
+      const latestRecord = await storage.assetPairs.readLastRecord(SYMBOL_ALL);
 
       if (latestRecord) {
         const timeSinceLastFetch = Date.now() - latestRecord.timestamp;

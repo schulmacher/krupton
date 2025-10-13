@@ -1,6 +1,8 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
-import { BinanceOrderBookEntity } from '@krupton/persistent-storage-node';
+import {
+  BinanceOrderBookStorage
+} from '@krupton/persistent-storage-node';
 import { createTryhardExponentialBackoff, tryHard } from '@krupton/utils';
 import { DiagnosticContext } from '../../../../packages/service-framework-node/dist/sf';
 
@@ -8,7 +10,7 @@ export async function saveBinanceOrderBookSnapshots(
   diagnosticContext: DiagnosticContext,
   binanceSymbols: string[],
   getOrderBook: EndpointFunction<typeof BinanceApi.GetOrderBookEndpoint>,
-  saveToStorage: BinanceOrderBookEntity['write'],
+  orderBookStorage: BinanceOrderBookStorage,
 ) {
   diagnosticContext.logger.info('Fetching initial order book for binance symbols', {
     symbols: binanceSymbols,
@@ -27,11 +29,14 @@ export async function saveBinanceOrderBookSnapshots(
           query,
         });
 
-        await saveToStorage({
-          request: {
-            query,
+        await orderBookStorage.appendRecord({
+          subIndexDir: symbol,
+          record: {
+            request: { query },
+            response,
+            timestamp: Date.now(),
+            id: orderBookStorage.getNextId(symbol),
           },
-          response,
         });
       },
       createTryhardExponentialBackoff({

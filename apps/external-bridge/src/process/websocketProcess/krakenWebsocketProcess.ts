@@ -2,12 +2,11 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
-import {
-  unnormalizeToKrakenWSSymbol
-} from '../../lib/symbol/normalizeSymbol.js';
+import { arrayToMultiMap } from '@krupton/utils';
+import { initKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
+import { unnormalizeToKrakenWSSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import { KrakenWebsocketManager } from '../../lib/websockets/KrakenWebsocketManager.js';
 import type { KrakenWebSocketContext } from './krakenWebsocketContext.js';
-import { initKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
 
 export async function startWebsocketService(context: KrakenWebSocketContext): Promise<void> {
   const { diagnosticContext, processContext, envContext } = context;
@@ -25,12 +24,9 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  await initKrakenLatestAssetPairsProvider(
-    context.krakenAssetPairs,
-    context.krakenAssetInfo,
-  );
+  await initKrakenLatestAssetPairsProvider(context.storage.assetPairs, context.storage.assetInfo);
 
-  const symbols = config.SYMBOLS.split(','  )
+  const symbols = config.SYMBOLS.split(',')
     .map((s) => s.trim())
     .map((s) => unnormalizeToKrakenWSSymbol(s).trim());
 
@@ -43,19 +39,55 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
     context,
     createWSHandlers(KrakenWSDefinition, {
       tickerStream: (message) => {
-        context.krakenTicker.write({
-          message,
-        });
+        const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
+        for (const [symbol, messages] of messagesBySymbol.entries()) {
+          context.storage.ticker.appendRecord({
+            subIndexDir: symbol,
+            record: {
+              id: context.storage.ticker.getNextId(symbol),
+              timestamp: new Date().getTime(),
+              message: {
+                channel: 'ticker',
+                type: message.type,
+                data: messages,
+              },
+            },
+          });
+        } 
       },
       tradeStream: (message) => {
-        context.krakenTrade.write({
-          message,
-        });
+        const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
+        for (const [symbol, messages] of messagesBySymbol.entries()) {
+          context.storage.trade.appendRecord({
+            subIndexDir: symbol,
+            record: {
+              id: context.storage.trade.getNextId(symbol),
+              timestamp: new Date().getTime(),
+              message: {
+                channel: 'trade',
+                type: message.type,
+                data: messages,
+              },
+            },
+          });
+        }
       },
       bookStream: (message) => {
-        context.krakenBook.write({
-          message,
-        });
+        const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
+        for (const [symbol, messages] of messagesBySymbol.entries()) {
+          context.storage.book.appendRecord({
+            subIndexDir: symbol,
+            record: {
+              id: context.storage.book.getNextId(symbol),
+              timestamp: new Date().getTime(),
+              message: {
+                channel: 'book',
+                type: message.type,
+                data: messages,
+              },
+            },
+          });
+        }
       },
     }),
     [

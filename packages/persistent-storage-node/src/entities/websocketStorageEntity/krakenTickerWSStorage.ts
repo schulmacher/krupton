@@ -3,9 +3,11 @@ import { KrakenWS } from '@krupton/api-interface';
 import {
   createWebSocketStorage,
   WebSocketStorage,
+  WebSocketStorageRecord,
 } from '../websocketStorage.js';
 
 export type KrakenTickerWSStorage = WebSocketStorage<typeof KrakenWS.TickerStream>;
+export type KrakenTickerWSRecord = WebSocketStorageRecord<typeof KrakenWS.TickerStream>;
 
 export function createKrakenTickerWSStorage(
   storageBaseDir: string,

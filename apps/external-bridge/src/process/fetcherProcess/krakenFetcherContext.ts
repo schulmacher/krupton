@@ -1,16 +1,12 @@
 import { createApiClient } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
-import { SF } from '@krupton/service-framework-node';
 import {
-  createKrakenAssetInfoEntity,
   createKrakenAssetInfoStorage,
-  createKrakenAssetPairsEntity,
   createKrakenAssetPairsStorage,
-  createKrakenOrderBookEntity,
   createKrakenOrderBookStorage,
-  createKrakenRecentTradesEntity,
-  createKrakenRecentTradesStorage,
+  createKrakenRecentTradesStorage
 } from '@krupton/persistent-storage-node';
+import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';
@@ -58,18 +54,16 @@ export function createKrakenFetcherContext() {
     },
   );
 
-  const krakenAssetPairs = createKrakenAssetPairsEntity(
-    createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const krakenAssetInfo = createKrakenAssetInfoEntity(
-    createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const krakenOrderBook = createKrakenOrderBookEntity(
-    createKrakenOrderBookStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const krakenRecentTrades = createKrakenRecentTradesEntity(
-    createKrakenRecentTradesStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
+  const storage = {
+    assetPairs: createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: true,
+    }),
+    assetInfo: createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    orderBook: createKrakenOrderBookStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    recentTrades: createKrakenRecentTradesStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: true,
+    }),
+  };
 
   return {
     envContext,
@@ -78,10 +72,7 @@ export function createKrakenFetcherContext() {
     processContext,
     rateLimiter,
     krakenClient,
-    krakenAssetPairs,
-    krakenAssetInfo,
-    krakenOrderBook,
-    krakenRecentTrades,
+    storage,
   };
 }
 
@@ -89,7 +80,4 @@ export type KrakenFetcherContext = ReturnType<typeof createKrakenFetcherContext>
 
 export type KrakenFetcherMetrics = SF.RegisteredMetrics<KrakenFetcherContext>;
 
-export type KrakenFetcherServiceContext = SF.ServiceContext<
-  KrakenFetcherEnv,
-  KrakenFetcherMetrics
->;
+export type KrakenFetcherServiceContext = SF.ServiceContext<KrakenFetcherEnv, KrakenFetcherMetrics>;

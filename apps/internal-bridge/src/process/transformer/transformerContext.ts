@@ -1,11 +1,7 @@
 import {
-  createBinanceHistoricalTradeEntity,
   createBinanceHistoricalTradeStorage,
-  createBinanceOrderBookEntity,
   createBinanceOrderBookStorage,
-  createBinanceTradeWSEntity,
   createBinanceTradeWSStorage,
-  createBinanceDiffDepthWSEntity,
   createBinanceDiffDepthWSStorage,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
@@ -33,28 +29,19 @@ export function createTransformerContext() {
 
   const storageBaseDir = envContext.config.EXTERNAL_BRIDGE_STORAGE_BASE_DIR;
 
-  const binanceHistoricalTrade = createBinanceHistoricalTradeEntity(
-    createBinanceHistoricalTradeStorage(storageBaseDir, { writable: false }),
-  );
-  const binanceOrderBook = createBinanceOrderBookEntity(
-    createBinanceOrderBookStorage(storageBaseDir, { writable: false }),
-  );
-  const binanceTrade = createBinanceTradeWSEntity(
-    createBinanceTradeWSStorage(storageBaseDir, { writable: false }),
-  );
-  const binanceDiffDepth = createBinanceDiffDepthWSEntity(
-    createBinanceDiffDepthWSStorage(storageBaseDir, { writable: false }),
-  );
+  const inputStorage = {
+    binanceHistoricalTrade: createBinanceHistoricalTradeStorage(storageBaseDir, { writable: false }),
+    binanceOrderBook: createBinanceOrderBookStorage(storageBaseDir, { writable: false }),
+    binanceTrade: createBinanceTradeWSStorage(storageBaseDir, { writable: false }),
+    binanceDiffDepth: createBinanceDiffDepthWSStorage(storageBaseDir, { writable: false }),
+  }
 
   return {
     envContext,
     diagnosticContext,
     metricsContext,
     processContext,
-    binanceHistoricalTrade,
-    binanceOrderBook,
-    binanceTrade,
-    binanceDiffDepth,
+    inputStorage,
   };
 }
 

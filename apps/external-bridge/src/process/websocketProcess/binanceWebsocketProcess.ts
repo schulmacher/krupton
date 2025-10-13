@@ -2,6 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { BinanceWS } from '@krupton/api-interface';
+import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
 import { saveBinanceOrderBookSnapshots } from '../../fetchers/binanceOrderBook.js';
 import { setBinanceLatestExchangeInfo } from '../../lib/symbol/binanceLatestExchangeInfoProvider.js';
 import { unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
@@ -24,7 +25,7 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
 
   const httpServer = createHttpServerWithHealthChecks();
 
-  const exchangeInfo = await context.binanceExchangeInfo.readLatestRecord();
+  const exchangeInfo = await context.storage.exchangeInfo.readLastRecord(SYMBOL_ALL);
 
   if (!exchangeInfo) {
     throw new Error('Exchange info not found for binance, this is required for symbol mapping');
@@ -44,13 +45,25 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     context,
     createWSHandlers(BinanceWSDefinition, {
       tradeStream: (message) => {
-        context.binanceTrade.write({
+        const record = {
+          id: context.storage.trade.getNextId(message.data.s),
+          timestamp: Date.now(),
           message,
+        };
+        context.storage.trade.appendRecord({
+          subIndexDir: message.data.s,
+          record,
         });
       },
       diffDepthStream: (message) => {
-        context.binanceDiffDepth.write({
+        const record = {
+          id: context.storage.diffDepth.getNextId(message.data.s),
+          timestamp: new Date().getTime(),
           message,
+        };
+        context.storage.diffDepth.appendRecord({
+          subIndexDir: message.data.s,
+          record,
         });
       },
     }),
@@ -68,11 +81,16 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     processContext.onShutdown(async () => {
       diagnosticContext.logger.info('Shutting down websocket services');
       await websocketManager.disconnect();
+      await context.producers.binanceTrade.close();
+      await context.producers.binanceDiffDepth.close();
     });
   };
 
   registerGracefulShutdownCallback();
   processContext.start();
+
+  await context.producers.binanceTrade.connect(symbols);
+  await context.producers.binanceDiffDepth.connect(symbols);
 
   await websocketManager.connect();
   await websocketManager.subscribe();
@@ -81,7 +99,7 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     diagnosticContext,
     symbols,
     context.binanceClient.getOrderBook,
-    context.binanceOrderBook.write,
+    context.storage.orderBook,
   );
 
   await httpServer.startServer();

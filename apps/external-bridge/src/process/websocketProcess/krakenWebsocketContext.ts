@@ -1,14 +1,9 @@
 import {
-  createKrakenAssetInfoEntity,
   createKrakenAssetInfoStorage,
-  createKrakenAssetPairsEntity,
   createKrakenAssetPairsStorage,
-  createKrakenTickerWSEntity,
-  createKrakenTickerWSStorage,
-  createKrakenTradeWSEntity,
-  createKrakenTradeWSStorage,
-  createKrakenBookWSEntity,
   createKrakenBookWSStorage,
+  createKrakenTickerWSStorage,
+  createKrakenTradeWSStorage
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
@@ -40,34 +35,24 @@ export function createKrakenWebsocketContext() {
     diagnosticContext,
   });
 
-  const krakenTicker = createKrakenTickerWSEntity(
-    createKrakenTickerWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const krakenTrade = createKrakenTradeWSEntity(
-    createKrakenTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const krakenBook = createKrakenBookWSEntity(
-    createKrakenBookWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-
-  // Open endpoint storage in read-only mode to avoid file locks with fetcher process
-  const krakenAssetPairs = createKrakenAssetPairsEntity(
-    createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
-  );
-  const krakenAssetInfo = createKrakenAssetInfoEntity(
-    createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
-  );
+  const storage = {
+    ticker: createKrakenTickerWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    trade: createKrakenTradeWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    book: createKrakenBookWSStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
+    assetPairs: createKrakenAssetPairsStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: false,
+    }),
+    assetInfo: createKrakenAssetInfoStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: false,
+    }),
+  };
 
   return {
     envContext,
     diagnosticContext,
     metricsContext,
     processContext,
-    krakenTicker,
-    krakenTrade,
-    krakenBook,
-    krakenAssetPairs,
-    krakenAssetInfo,
+    storage,
   };
 }
 

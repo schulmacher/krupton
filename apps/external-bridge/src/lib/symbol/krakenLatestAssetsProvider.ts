@@ -1,7 +1,10 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
-import { KrakenAssetInfoEntity } from '@krupton/persistent-storage-node';
-import { KrakenAssetPairsEntity } from '@krupton/persistent-storage-node';
+import {
+  KrakenAssetInfoStorage,
+  KrakenAssetPairsStorage,
+  SYMBOL_ALL
+} from '@krupton/persistent-storage-node';
 
 let assetPairs: KrakenApi.GetAssetPairsResponse | null = null;
 let assetInfo: KrakenApi.GetAssetInfoResponse | null = null;
@@ -29,18 +32,20 @@ export function setKrakenLatestAssetInfo(data: KrakenApi.GetAssetInfoResponse) {
 }
 
 export async function initKrakenLatestAssetPairsProvider(
-  krakenAssetPairsEntity: KrakenAssetPairsEntity,
-  krakenAssetInfoEntity: KrakenAssetInfoEntity,
+  krakenAssetPairsEntity: KrakenAssetPairsStorage,
+  krakenAssetInfoEntity: KrakenAssetInfoStorage,
 ) {
   assetPairs =
-    (await krakenAssetPairsEntity.readLatestRecord().then((record) => record?.response)) ?? null;
+    (await krakenAssetPairsEntity.readLastRecord(SYMBOL_ALL).then((record) => record?.response)) ??
+    null;
   assetInfo =
-    (await krakenAssetInfoEntity.readLatestRecord().then((record) => record?.response)) ?? null;
+    (await krakenAssetInfoEntity.readLastRecord(SYMBOL_ALL).then((record) => record?.response)) ??
+    null;
 }
 
 export async function initAndDownloadKrakenLatestAssetPairsProvider(
-  krakenAssetPairsEntity: KrakenAssetPairsEntity,
-  krakenAssetInfoEntity: KrakenAssetInfoEntity,
+  krakenAssetPairsEntity: KrakenAssetPairsStorage,
+  krakenAssetInfoEntity: KrakenAssetInfoStorage,
   getExchangeInfo: EndpointFunction<typeof KrakenApi.GetAssetPairsEndpoint>,
   getAssetInfo: EndpointFunction<typeof KrakenApi.GetAssetInfoEndpoint>,
 ) {
@@ -48,18 +53,28 @@ export async function initAndDownloadKrakenLatestAssetPairsProvider(
 
   if (!assetPairs) {
     const result = await getExchangeInfo({ query: {} });
-    await krakenAssetPairsEntity.write({
-      request: { query: {} },
-      response: result,
+    await krakenAssetPairsEntity.appendRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        id: krakenAssetPairsEntity.getNextId(SYMBOL_ALL),
+        timestamp: Date.now(),
+        request: { query: {} },
+        response: result,
+      },
     });
     assetPairs = result;
   }
 
   if (!assetInfo) {
     const result = await getAssetInfo({ query: {} });
-    await krakenAssetInfoEntity.write({
-      request: { query: {} },
-      response: result,
+    await krakenAssetInfoEntity.appendRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        id: krakenAssetInfoEntity.getNextId(SYMBOL_ALL),
+        timestamp: Date.now(),
+        request: { query: {} },
+        response: result,
+      },
     });
     assetInfo = result;
   }

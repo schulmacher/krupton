@@ -1,12 +1,8 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
 import {
-  createBinanceBookTickerEntity,
-  createBinanceBookTickerStorage,
-  createBinanceExchangeInfoEntity,
   createBinanceExchangeInfoStorage,
-  createBinanceHistoricalTradeEntity,
-  createBinanceHistoricalTradeStorage,
+  createBinanceHistoricalTradeStorage
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
@@ -59,15 +55,14 @@ export function createBinanceFetcherContext() {
     },
   );
 
-  const binanceBookTicker = createBinanceBookTickerEntity(
-    createBinanceBookTickerStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
-  const binanceExchangeInfo = createBinanceExchangeInfoEntity(
-    createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, { writable: false }),
-  );
-  const binanceHistoricalTrade = createBinanceHistoricalTradeEntity(
-    createBinanceHistoricalTradeStorage(envContext.config.STORAGE_BASE_DIR, { writable: true }),
-  );
+  const storage = {
+    exchangeInfo: createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: false,
+    }),
+    historicalTrade: createBinanceHistoricalTradeStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: true,
+    }),
+  };
 
   return {
     envContext,
@@ -76,9 +71,7 @@ export function createBinanceFetcherContext() {
     processContext,
     rateLimiter,
     binanceClient,
-    binanceBookTicker,
-    binanceExchangeInfo,
-    binanceHistoricalTrade,
+    storage,
   };
 }
 

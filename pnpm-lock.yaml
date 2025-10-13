@@ -75,6 +75,9 @@ importers:
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@krupton/messaging-node':
+        specifier: workspace:*
+        version: link:../../packages/messaging-node
       '@krupton/persistent-storage-node':
         specifier: workspace:*
         version: link:../../packages/persistent-storage-node
@@ -214,6 +217,34 @@ importers:
       vitest:
         specifier: ^2.1.3
         version: 2.1.9(@types/node@22.18.6)
+
+  packages/messaging-node:
+    dependencies:
+      '@krupton/api-interface':
+        specifier: workspace:*
+        version: link:../api-interface
+      '@krupton/config':
+        specifier: workspace:*
+        version: link:../config
+      '@krupton/persistent-storage-node':
+        specifier: workspace:*
+        version: link:../persistent-storage-node
+      '@krupton/service-framework-node':
+        specifier: workspace:*
+        version: link:../service-framework-node
+      '@krupton/utils':
+        specifier: workspace:*
+        version: link:../utils
+      typescript:
+        specifier: '>=5.0.0'
+        version: 5.9.2
+      zeromq:
+        specifier: ^6.5.0
+        version: 6.5.0
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
 
   packages/persistent-storage-node:
     dependencies:

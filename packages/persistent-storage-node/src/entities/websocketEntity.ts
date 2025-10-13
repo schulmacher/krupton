@@ -4,7 +4,7 @@ import {
 import { WebSocketStorage, WebSocketStorageRecord } from './websocketStorage.js';
 
 
-export type WebsocketEntityInput<T extends WebSocketStreamDefinition> = Pick<WebSocketStorageRecord<T>, 'message'>;
+export type WebsocketEntityInput<T extends WebSocketStreamDefinition> = WebSocketStorageRecord<T>;
 
 export type WebSocketEntity<T extends WebSocketStreamDefinition, TInput = WebsocketEntityInput<T>> = {
   storage: WebSocketStorage<T>;

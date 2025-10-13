@@ -23,6 +23,7 @@
     "@krupton/api-interface": "workspace:*",
     "@krupton/persistent-storage-node": "workspace:*",
     "@krupton/service-framework-node": "workspace:*",
+    "@krupton/messaging-node": "workspace:*",
     "@krupton/utils": "workspace:*",
     "ws": "^8.18.0"
   }

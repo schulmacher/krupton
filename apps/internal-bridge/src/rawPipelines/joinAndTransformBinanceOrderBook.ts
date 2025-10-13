@@ -1,7 +1,7 @@
 import { BinanceApi, BinanceWS } from '@krupton/api-interface';
 import {
-    EndpointStorageRecordWithIndex,
-    WebSocketStorageRecordWithIndex,
+    EndpointStorageRecord,
+    WebSocketStorageRecord,
 } from '@krupton/persistent-storage-node';
 import {
     createEntityReader,
@@ -14,11 +14,11 @@ import {
 import { TransformerContext } from '../process/transformer/transformerContext';
 
 type GeneraredDiffDepthMessage = TaggedMessage<
-  WebSocketStorageRecordWithIndex<typeof BinanceWS.DiffDepthStream>,
+  WebSocketStorageRecord<typeof BinanceWS.DiffDepthStream>,
   'diffDepth'
 >;
 type GeneraredOrderBookMessage = TaggedMessage<
-  EndpointStorageRecordWithIndex<typeof BinanceApi.GetOrderBookEndpoint>,
+  EndpointStorageRecord<typeof BinanceApi.GetOrderBookEndpoint>,
   'orderBook'
 >;
 
@@ -27,15 +27,15 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
   normalizedSymbol: string,
 ) {
   const start = Date.now();
-  const { binanceOrderBook, binanceDiffDepth, diagnosticContext, processContext } = context;
+  const { inputStorage, diagnosticContext, processContext } = context;
 
   const orderBookStream = createEntityReader(
-    binanceOrderBook.storage,
+    inputStorage.binanceOrderBook,
     normalizedSymbol,
     { readBatchSize: 100, startGlobalIndex: 0, isStopped: () => processContext.isShuttingDown() },
   );
   const diffDepthStream = createEntityReader(
-    binanceDiffDepth.storage,
+    inputStorage.binanceDiffDepth,
     normalizedSymbol,
     { readBatchSize: 100, startGlobalIndex: 0, isStopped: () => processContext.isShuttingDown() },
   );

@@ -3,6 +3,7 @@ import { KrakenApi } from '@krupton/api-interface';
 import {
   createEndpointStorage,
   EndpointStorage,
+  EndpointStorageRecord,
 } from '../endpointStorage.js';
 
 export type KrakenAssetInfoStorage = EndpointStorage<typeof KrakenApi.GetAssetInfoEndpoint>;
@@ -15,3 +16,4 @@ export function createKrakenAssetInfoStorage(
   return createEndpointStorage(baseDir, KrakenApi.GetAssetInfoEndpoint, options);
 }
 
+export type KrakenAssetInfoRecord = EndpointStorageRecord<typeof KrakenApi.GetAssetInfoEndpoint>;

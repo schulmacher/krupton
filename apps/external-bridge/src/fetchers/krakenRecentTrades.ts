@@ -29,7 +29,7 @@ async function handleRecentTradesResponse(
   endpoint: string,
   symbol: string,
 ): Promise<void> {
-  const { diagnosticContext, envContext, krakenRecentTrades } = context;
+  const { diagnosticContext, envContext, storage } = context;
   const config = envContext.config;
 
   if (!hasData(response)) {
@@ -44,9 +44,14 @@ async function handleRecentTradesResponse(
 
   const requestSince = query.since;
 
-  await krakenRecentTrades.write({
-    request: { query },
-    response,
+  await storage.recentTrades.appendRecord({
+    subIndexDir: symbol,
+    record: {
+      request: { query },
+      response,
+      timestamp: Date.now(),
+      id: storage.recentTrades.getNextId(symbol),
+    },
   });
 
   diagnosticContext.logger.debug('Response saved to storage', {
@@ -62,13 +67,13 @@ async function createKrakenRecentTradesFetcherLoopForSymbol(
   symbol: string,
   endpoint: string,
 ): Promise<ExternalBridgeFetcherLoop> {
-  const { krakenClient, krakenRecentTrades } = context;
+  const { krakenClient, storage } = context;
 
   return createExternalBridgeFetcherLoop<typeof KrakenApi.GetRecentTradesEndpoint>(context, {
     symbol,
     endpointFn: krakenClient.getRecentTrades,
     buildRequestParams: async () => {
-      const latestRecord = await krakenRecentTrades.readLatestRecord(symbol);
+      const latestRecord = await storage.recentTrades.readLastRecord(symbol);
       const latestRecordLastId = latestRecord
         ? extractLastTradeId(latestRecord.response)
         : undefined;
