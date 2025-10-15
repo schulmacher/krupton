@@ -365,7 +365,7 @@ function createServiceContext() {
   const metricsContext = createMetricsRegistry({
     diagnosticContext
   });
-  const processContext = createProcessLifecycle({
+  const processContext = startProcessLifecycle({
     diagnosticContext
   });
 

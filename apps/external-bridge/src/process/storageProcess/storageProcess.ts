@@ -36,7 +36,6 @@ export async function startStorageService(context: StorageContext): Promise<void
 
   registerGracefulShutdownCallback();
 
-  processContext.start();
   await httpServer.startServer();
   await storageStatsReporter.start();
   await storageBackupScheduler.start();

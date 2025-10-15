@@ -4,14 +4,14 @@ import {
   createKrakenAssetInfoStorage,
   createKrakenAssetPairsStorage,
   createKrakenOrderBookStorage,
-  createKrakenRecentTradesStorage
+  createKrakenRecentTradesStorage,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';
 
-export function createKrakenFetcherContext() {
+export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -30,10 +30,6 @@ export function createKrakenFetcherContext() {
       totalFetchesGauge: SF.externalBridgeFetcherMetrics.totalFetchesGauge,
       totalErrorsGauge: SF.externalBridgeFetcherMetrics.totalErrorsGauge,
     },
-  });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
   });
 
   const rateLimiter = createExternalBridgeFetcherRateLimiter(diagnosticContext, {

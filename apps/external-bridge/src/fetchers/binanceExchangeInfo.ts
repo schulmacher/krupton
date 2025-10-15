@@ -19,6 +19,14 @@ const handleExchangeInfoResponse = async (
     diagnosticContext.logger.info('Exchange info already in storage', {
       symbolCount: response.symbols.length,
     });
+    await storage.exchangeInfo.replaceOrInsertLastRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        request: { query },
+        response,
+        timestamp: Date.now(),
+      },
+    });
     return;
   }
 

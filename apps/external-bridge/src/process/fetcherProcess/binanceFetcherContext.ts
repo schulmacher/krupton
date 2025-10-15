@@ -2,14 +2,16 @@ import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-n
 import { BinanceApi } from '@krupton/api-interface';
 import {
   createBinanceExchangeInfoStorage,
-  createBinanceHistoricalTradeStorage
+  createBinanceHistoricalTradeStorage,
+  createBinanceTradeWSStorage
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { BinanceFetcherEnv } from './environment.js';
 import { binanceFetcherEnvSchema } from './environment.js';
+import { createZmqProducerRegistry, zmqSocketTempalates } from '@krupton/messaging-node';
 
-export function createBinanceFetcherContext() {
+export function createBinanceFetcherContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceFetcherEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -28,10 +30,6 @@ export function createBinanceFetcherContext() {
       totalFetchesGauge: SF.externalBridgeFetcherMetrics.totalFetchesGauge,
       totalErrorsGauge: SF.externalBridgeFetcherMetrics.totalErrorsGauge,
     },
-  });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
   });
 
   const rateLimiter = createExternalBridgeFetcherRateLimiter(diagnosticContext, {
@@ -57,12 +55,23 @@ export function createBinanceFetcherContext() {
 
   const storage = {
     exchangeInfo: createBinanceExchangeInfoStorage(envContext.config.STORAGE_BASE_DIR, {
-      writable: false,
+      writable: true,
     }),
     historicalTrade: createBinanceHistoricalTradeStorage(envContext.config.STORAGE_BASE_DIR, {
       writable: true,
     }),
+    wsTrade: createBinanceTradeWSStorage(envContext.config.STORAGE_BASE_DIR, {
+      writable: false,
+    }),
   };
+
+
+  const producers = {
+    binanceTrade: createZmqProducerRegistry({
+      socketTemplate: zmqSocketTempalates.binanceTradeApi,
+    }),
+  };
+
 
   return {
     envContext,
@@ -72,6 +81,7 @@ export function createBinanceFetcherContext() {
     rateLimiter,
     binanceClient,
     storage,
+    producers,
   };
 }
 

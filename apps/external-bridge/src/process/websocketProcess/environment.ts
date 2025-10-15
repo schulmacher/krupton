@@ -27,24 +27,16 @@ export const binanceWebSocketEnvSchema = TB.Object({
     }),
   ),
 
-  ZMQ_TRADE_SOCKET: TB.String({
-    description: 'ZMQ socket for trading data',
-    default: 'ipc:///tmp/zmq-trade-{symbol}.ipc',
-  }),
-  ZMQ_DIFF_DEPTH_SOCKET: TB.String({
-    description: 'ZMQ socket for diff depth data',
-    default: 'ipc:///tmp/zmq-diff-depth-{symbol}.ipc',
-  }),
-  
   SYMBOLS: TB.String({
     description: 'Comma-separated list of trading pairs (e.g., btc_usdt,eth_usdt)',
     default: 'btc_usdt,eth_usdt,sol_usdt,trump_usdt,xrp_usdt',
+    // default: 'btc_usdt',
   }),
   STORAGE_BASE_DIR: TB.String({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
-}) satisfies SF.DefaultEnvSchema;
+}) satisfies SF.DefaultEnvSchemaType;
 
 export type BinanceWebSocketEnv = TB.Static<typeof binanceWebSocketEnvSchema>;
 
@@ -65,6 +57,6 @@ export const krakenWebSocketEnvSchema = TB.Object({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
-}) satisfies SF.DefaultEnvSchema;
+}) satisfies SF.DefaultEnvSchemaType;
 
 export type KrakenWebSocketEnv = TB.Static<typeof krakenWebSocketEnvSchema>;

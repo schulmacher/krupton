@@ -15,6 +15,11 @@
       "types": "./dist/typebox.d.ts",
       "source": "./src/typebox.ts",
       "default": "./dist/typebox.js"
+    },
+    "./test": {
+      "types": "./dist/test/index.d.ts",
+      "source": "./src/test/index.ts",
+      "default": "./dist/test/index.js"
     }
   },
   "files": [

@@ -1,13 +1,11 @@
+import { SF } from '@krupton/service-framework-node';
 import { exec } from 'child_process';
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import {
-  createStorageContext,
-  StorageContext,
-} from '../../process/storageProcess/context.js';
+import { createStorageContext, StorageContext } from '../../process/storageProcess/context.js';
 import { ensureDir, ensureDirForFile } from '../fs.js';
 
 const execAsync = promisify(exec);
@@ -212,9 +210,7 @@ export async function removeHistoricalBackups(
   }
 }
 
-export async function removeDuplicateBackupsForLatestDate(
-  context: StorageContext,
-): Promise<void> {
+export async function removeDuplicateBackupsForLatestDate(context: StorageContext): Promise<void> {
   const { diagnosticContext } = context;
 
   try {
@@ -261,14 +257,11 @@ export async function removeDuplicateBackupsForLatestDate(
 }
 
 async function main() {
-  const context = createStorageContext();
-  const { diagnosticContext, envContext, processContext } = context;
+  await SF.startProcessLifecycle(async (processContext) => {
+    const serviceContext = createStorageContext(processContext);
+    const { diagnosticContext } = serviceContext;
 
-  try {
-    diagnosticContext.logger.info('Starting backup script');
-    diagnosticContext.logger.info(`Storage directory: ${envContext.config.STORAGE_BASE_DIR}`);
-
-    const result = await doStorageBackup(context);
+    const result = await doStorageBackup(serviceContext);
 
     diagnosticContext.logger.info('Backup completed successfully', {
       backupPath: result.backupPath,
@@ -279,16 +272,16 @@ async function main() {
     });
 
     diagnosticContext.logger.info('Backups list', {
-      backups: await listBackups(context),
+      backups: await listBackups(serviceContext),
     });
 
-    await processContext.shutdown();
-    process.exit(0);
-  } catch (error) {
-    diagnosticContext.logger.error('Backup script failed', { error });
-    await processContext.shutdown();
-    process.exit(1);
-  }
+    processContext.shutdown();
+
+    return {
+      diagnosticContext: serviceContext.diagnosticContext,
+      envContext: serviceContext.envContext,
+    };
+  });
 }
 
 // Run main if this file is executed directly

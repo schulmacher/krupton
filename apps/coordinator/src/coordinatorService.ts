@@ -30,11 +30,9 @@ export async function startCoordinatorService(context: CoordinatorContext): Prom
 
   registerGracefulShutdownCallback();
 
-  processContext.start();
   await httpServer.startServer();
-  
+
   // Start the shard coordinator after HTTP server is ready
   // await shardCoordinator.start();
   logger.info('Shard coordinator started successfully');
-
 }

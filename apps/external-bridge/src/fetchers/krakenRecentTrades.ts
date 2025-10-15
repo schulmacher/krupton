@@ -3,6 +3,7 @@ import { sleep } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 import type { KrakenFetcherContext } from '../process/fetcherProcess/krakenFetcherContext.js';
+import { normalizeSymbol } from '../lib/symbol/normalizeSymbol.js';
 
 function extractLastTradeId(response: KrakenApi.GetRecentTradesResponse): string | undefined {
   return response.result.last;
@@ -42,21 +43,22 @@ async function handleRecentTradesResponse(
     return;
   }
 
+  const normalizedSymbol = normalizeSymbol('kraken', symbol);
   const requestSince = query.since;
 
   await storage.recentTrades.appendRecord({
-    subIndexDir: symbol,
+    subIndexDir: normalizedSymbol,
     record: {
       request: { query },
       response,
       timestamp: Date.now(),
-      id: storage.recentTrades.getNextId(symbol),
+      id: storage.recentTrades.getNextId(normalizedSymbol),
     },
   });
 
   diagnosticContext.logger.debug('Response saved to storage', {
     platform: config.PLATFORM,
-    symbol,
+    symbol: normalizedSymbol,
     endpoint,
     requestSince,
   });
@@ -73,7 +75,8 @@ async function createKrakenRecentTradesFetcherLoopForSymbol(
     symbol,
     endpointFn: krakenClient.getRecentTrades,
     buildRequestParams: async () => {
-      const latestRecord = await storage.recentTrades.readLastRecord(symbol);
+      const normalizedSymbol = normalizeSymbol('kraken', symbol);
+      const latestRecord = await storage.recentTrades.readLastRecord(normalizedSymbol);
       const latestRecordLastId = latestRecord
         ? extractLastTradeId(latestRecord.response)
         : undefined;

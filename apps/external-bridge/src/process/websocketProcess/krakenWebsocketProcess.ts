@@ -4,7 +4,7 @@ import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
 import { arrayToMultiMap } from '@krupton/utils';
 import { initKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
-import { unnormalizeToKrakenWSSymbol } from '../../lib/symbol/normalizeSymbol.js';
+import { normalizeSymbol, unnormalizeToKrakenWSSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import { KrakenWebsocketManager } from '../../lib/websockets/KrakenWebsocketManager.js';
 import type { KrakenWebSocketContext } from './krakenWebsocketContext.js';
 
@@ -41,10 +41,11 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
       tickerStream: (message) => {
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
+          const normalizedSymbol = normalizeSymbol('kraken', symbol);
           context.storage.ticker.appendRecord({
-            subIndexDir: symbol,
+            subIndexDir: normalizedSymbol,
             record: {
-              id: context.storage.ticker.getNextId(symbol),
+              id: context.storage.ticker.getNextId(normalizedSymbol),
               timestamp: new Date().getTime(),
               message: {
                 channel: 'ticker',
@@ -58,10 +59,11 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
       tradeStream: (message) => {
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
+          const normalizedSymbol = normalizeSymbol('kraken', symbol);
           context.storage.trade.appendRecord({
-            subIndexDir: symbol,
+            subIndexDir: normalizedSymbol,
             record: {
-              id: context.storage.trade.getNextId(symbol),
+              id: context.storage.trade.getNextId(normalizedSymbol),
               timestamp: new Date().getTime(),
               message: {
                 channel: 'trade',
@@ -75,10 +77,11 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
       bookStream: (message) => {
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
+          const normalizedSymbol = normalizeSymbol('kraken', symbol);
           context.storage.book.appendRecord({
-            subIndexDir: symbol,
+            subIndexDir: normalizedSymbol,
             record: {
-              id: context.storage.book.getNextId(symbol),
+              id: context.storage.book.getNextId(normalizedSymbol),
               timestamp: new Date().getTime(),
               message: {
                 channel: 'book',
@@ -109,6 +112,5 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
 
   registerGracefulShutdownCallback();
 
-  processContext.start();
   await httpServer.startServer();
 }

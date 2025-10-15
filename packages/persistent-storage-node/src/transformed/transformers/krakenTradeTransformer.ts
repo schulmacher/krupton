@@ -13,8 +13,9 @@ export function transformKrakenTradeWSToUnified(
     symbol: trade.symbol,
     price: String(trade.price),
     quantity: String(trade.qty),
-    timestamp: new Date(trade.timestamp).getTime(),
-    tradeId: trade.trade_id,
+    time: new Date(trade.timestamp).getTime(),
+    platformTradeId: trade.trade_id,
+    platform: 'kraken',
     side: trade.side === 'sell' ? 1 : 0, // 0 = buy, 1 = sell
     orderType: trade.ord_type === 'limit' ? 1 : 0, // 0 = market, 1 = limit
   }));
@@ -38,8 +39,9 @@ export function transformKrakenRecentTradeToUnified(
         symbol: pairKey,
         price,
         quantity: volume,
-        timestamp: timestampMs,
-        tradeId,
+        time: timestampMs,
+        platform: 'kraken',
+        platformTradeId: tradeId,
         side: side === 's' ? 1 : 0, // 0 = buy, 1 = sell
         orderType: orderType === 'l' ? 1 : 0, // 0 = market, 1 = limit
         misc,

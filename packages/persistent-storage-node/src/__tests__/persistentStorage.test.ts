@@ -283,7 +283,7 @@ describe('createPersistentStorage', () => {
     });
   });
 
-  describe('replaceLastRecord', () => {
+  describe('replaceOrInsertLastRecord', () => {
     it('should replace the last record in storage', async () => {
       const storage = createPersistentStorage(tempDir);
 
@@ -318,7 +318,7 @@ describe('createPersistentStorage', () => {
         response: { id: '4', value: 400 },
       };
 
-      await storage.replaceLastRecord({
+      await storage.replaceOrInsertLastRecord({
         record: newLastRecord,
         subIndexDir: 'BTCUSDT',
       });
@@ -354,7 +354,7 @@ describe('createPersistentStorage', () => {
         response: { id: '2', value: 200 },
       };
 
-      await storage.replaceLastRecord({
+      await storage.replaceOrInsertLastRecord({
         record: newRecord,
         subIndexDir: 'BTCUSDT',
       });
@@ -372,7 +372,7 @@ describe('createPersistentStorage', () => {
       const storage = createPersistentStorage(tempDir);
 
       await expect(
-        storage.replaceLastRecord({
+        storage.replaceOrInsertLastRecord({
           record: {
             timestamp: 1000,
             request: { query: { symbol: 'BTCUSDT' } },
@@ -561,7 +561,7 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
       subIndexDir: 'test-data',
     });
 
-    await storage.replaceLastRecord({
+    await storage.replaceOrInsertLastRecord({
       record: record2,
       subIndexDir: 'TEST/DATA',
     });

@@ -5,6 +5,7 @@ export {
   DefaultEnv,
   DefaultEnvContext,
   DefaultEnvSchema,
+  DefaultEnvSchemaType,
   EnvContext,
   EnvParserConfig,
 } from './environment/types.js';
@@ -23,7 +24,7 @@ export {
   MetricsContext,
   RegisteredMetrics,
 } from './metrics/types.js';
-export { createProcessLifecycle } from './processLifecycle/processLifecycle.js';
+export { startProcessLifecycle } from './processLifecycle/processLifecycle.js';
 export {
   ProcessLifecycleConfig,
   ProcessLifecycleContext,

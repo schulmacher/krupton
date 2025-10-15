@@ -8,7 +8,7 @@ import {
 import { SF } from '@krupton/service-framework-node';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
 
-export function createKrakenWebsocketContext() {
+export function createKrakenWebsocketContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenWebSocketEnvSchema);
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -29,10 +29,6 @@ export function createKrakenWebsocketContext() {
       connectionUptime: SF.externalBridgeWebsocketsMetrics.connectionUptime,
       lastMessageTimestamp: SF.externalBridgeWebsocketsMetrics.lastMessageTimestamp,
     },
-  });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
   });
 
   const storage = {

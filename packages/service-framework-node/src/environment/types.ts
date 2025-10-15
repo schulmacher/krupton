@@ -1,4 +1,4 @@
-import type { TSchema, Static } from '@sinclair/typebox';
+import { type TSchema, type Static, Type } from '@sinclair/typebox';
 
 export interface ParsedEnv<T> {
   readonly config: T;
@@ -27,22 +27,20 @@ export interface EnvParser {
   ): ParsedEnv<Static<T>>;
 }
 
-export interface EnvContext<T = Record<string, unknown>> {
+export interface EnvContext<T = DefaultEnvSchema> {
   readonly config: T;
   readonly nodeEnv: string;
 }
 
 export type EnvSource = Record<string, string | undefined>;
 
-export type DefaultEnvSchema = {
-  properties: {
-    PROCESS_NAME: TSchema;
-    [key: string]: TSchema;
-  };
-};
-
 export interface DefaultEnv {
   PROCESS_NAME: string;
 }
+export const DefaultEnvSchemaType = Type.Object({
+  PROCESS_NAME: Type.String({ minLength: 1 }),
+});
+export type DefaultEnvSchema = Static<typeof DefaultEnvSchemaType>;
+export type DefaultEnvSchemaType = typeof DefaultEnvSchemaType;
 
 export type DefaultEnvContext = EnvContext<DefaultEnv>;

@@ -1,9 +1,12 @@
-import type { Logger } from '../diagnostics/types.js';
+import type { DiagnosticContext, Logger } from '../diagnostics/types.js';
+import { DefaultEnvSchemaType } from '../environment/types.js';
+import { createDiagnosticContext, createEnvContext } from '../sf.js';
 import type {
-  ShutdownCallback,
-  ShutdownConfiguration,
   ProcessLifecycleConfig,
   ProcessLifecycleContext,
+  ProcessStartFn,
+  ShutdownCallback,
+  ShutdownConfiguration,
 } from './types.js';
 
 const defaultShutdownConfiguration: ShutdownConfiguration = {
@@ -11,12 +14,74 @@ const defaultShutdownConfiguration: ShutdownConfiguration = {
   totalTimeout: 30000,
 };
 
-export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessLifecycleContext {
-  const shutdownConfig = config.shutdownConfiguration ?? defaultShutdownConfiguration;
+export function startProcessLifecycle(
+  startFn: ProcessStartFn,
+  config?: ProcessLifecycleConfig,
+): Promise<void> {
+  let baseEnv = createEnvContext(DefaultEnvSchemaType);
+  let diagnosticContext = createDiagnosticContext(baseEnv);
+
+  const start: () => Promise<void> = async (): Promise<void> => {
+    let context = startProcessLifecycleContext(diagnosticContext, config);
+    let unregisterSignalHandlers = context.registerSignalHandlers();
+
+    const wrappedStartFn = async (context: ProcessLifecycleContext) => {
+      const result = await startFn(context);
+      diagnosticContext = result.diagnosticContext;
+      baseEnv = result.envContext;
+
+      return result;
+    };
+
+    let restart = async () => {
+      if (context.isShuttingDown()) {
+        diagnosticContext.logger.warn('Attempted to restart while shutting down');
+        return;
+      }
+
+      await context.stopProcess('CUSTOM_RESTART');
+      unregisterSignalHandlers();
+
+      context = startProcessLifecycleContext(diagnosticContext, config);
+      unregisterSignalHandlers = context.registerSignalHandlers();
+
+      await wrappedStartFn({
+        shutdown: context.shutdown,
+        isShuttingDown: context.isShuttingDown,
+        onShutdown: context.onShutdown,
+        restart,
+      }).catch((error) => {
+        diagnosticContext.logger.error('Error starting process, restarting.', { error, ...baseEnv.config });
+        setTimeout(() => {
+          void restart();
+        }, 1000);
+      });
+    };
+
+    await wrappedStartFn({
+      shutdown: context.shutdown,
+      isShuttingDown: context.isShuttingDown,
+      onShutdown: context.onShutdown,
+      restart,
+    });
+
+    diagnosticContext.logger.info('Process lifecycle signal handlers registered');
+  };
+
+  return start();
+}
+
+function startProcessLifecycleContext(
+  diagnosticContext: DiagnosticContext,
+  { shutdownConfiguration }: ProcessLifecycleConfig = { shutdownConfiguration: defaultShutdownConfiguration },
+): Omit<ProcessLifecycleContext, 'restart'> & {
+  registerSignalHandlers(): () => void;
+  stopProcess(signal: string): Promise<void>;
+} {
+  const shutdownConfig = shutdownConfiguration ?? defaultShutdownConfiguration;
 
   const callbacks: ShutdownCallback[] = [];
   let shuttingDown = false;
-  let started = false;
 
   const executeCallbackWithTimeout = async (
     callback: ShutdownCallback,
@@ -44,27 +109,31 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
     }
   };
 
-  const initiateShutdown = async (signal: string): Promise<void> => {
+  const stopProcess = async (signal: string): Promise<void> => {
     if (shuttingDown) {
       return;
     }
 
     shuttingDown = true;
 
-    config.diagnosticContext.logger.info('Graceful shutdown initiated', { signal });
+    diagnosticContext.logger.info('Graceful shutdown initiated', { signal });
 
     const forceExitTimeout = setTimeout(() => {
-      config.diagnosticContext.logger.fatal('Shutdown timeout exceeded, forcing exit', {
+      diagnosticContext.logger.fatal('Shutdown timeout exceeded, forcing exit', {
         totalTimeout: shutdownConfig.totalTimeout,
       });
       process.exit(1);
     }, shutdownConfig.totalTimeout);
 
-    await executeAllCallbacks(config.diagnosticContext.logger);
+    await executeAllCallbacks(diagnosticContext.logger);
 
     clearTimeout(forceExitTimeout);
 
-    config.diagnosticContext.logger.info('Graceful shutdown completed');
+    diagnosticContext.logger.info('Graceful shutdown completed');
+  };
+
+  const initiateShutdown = async (signal: string): Promise<void> => {
+    stopProcess(signal);
     process.exit(0);
   };
 
@@ -73,7 +142,7 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
   };
 
   const handleUnhandledRejection = (reason: unknown, promise: Promise<unknown>): void => {
-    config.diagnosticContext.logger.fatal('Unhandled promise rejection detected', {
+    diagnosticContext.logger.fatal('Unhandled promise rejection detected', {
       reason: String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,
       promise: promise.toString(),
@@ -83,7 +152,7 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
   };
 
   const handleUncaughtException = (error: Error): void => {
-    config.diagnosticContext.logger.fatal('Uncaught exception detected', {
+    diagnosticContext.logger.fatal('Uncaught exception detected', {
       message: error.message,
       stack: error.stack,
       name: error.name,
@@ -93,7 +162,7 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
   };
 
   const handleWarning = (warning: Error): void => {
-    config.diagnosticContext.logger.warn('Process warning emitted', {
+    diagnosticContext.logger.warn('Process warning emitted', {
       name: warning.name,
       message: warning.message,
       stack: warning.stack,
@@ -104,23 +173,27 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
     callbacks.push(callback);
   };
 
-  const start = (): void => {
-    if (started) {
-      config.diagnosticContext.logger.warn('Process lifecycle already started');
-      return;
-    }
+  function registerSignalHandlers() {
+    const sigTermHandler = () => handleSignal('SIGTERM');
+    const sigIntHandler = () => handleSignal('SIGINT');
+    const sigUsr2Handler = () => handleSignal('SIGUSR2');
 
-    started = true;
-
-    process.on('SIGTERM', () => handleSignal('SIGTERM'));
-    process.on('SIGINT', () => handleSignal('SIGINT'));
-    process.on('SIGUSR2', () => handleSignal('SIGUSR2'));
+    process.on('SIGTERM', sigTermHandler);
+    process.on('SIGINT', sigIntHandler);
+    process.on('SIGUSR2', sigUsr2Handler);
     process.on('unhandledRejection', handleUnhandledRejection);
     process.on('uncaughtException', handleUncaughtException);
     process.on('warning', handleWarning);
 
-    config.diagnosticContext.logger.info('Process lifecycle signal handlers registered');
-  };
+    return () => {
+      process.removeListener('SIGTERM', sigTermHandler);
+      process.removeListener('SIGINT', sigIntHandler);
+      process.removeListener('SIGUSR2', sigUsr2Handler);
+      process.removeListener('unhandledRejection', handleUnhandledRejection);
+      process.removeListener('uncaughtException', handleUncaughtException);
+      process.removeListener('warning', handleWarning);
+    };
+  }
 
   const shutdown = async (): Promise<void> => {
     await initiateShutdown('manual');
@@ -132,8 +205,9 @@ export function createProcessLifecycle(config: ProcessLifecycleConfig): ProcessL
 
   return {
     onShutdown,
-    start,
     shutdown,
     isShuttingDown,
+    stopProcess,
+    registerSignalHandlers,
   };
 }

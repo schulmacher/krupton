@@ -1,13 +1,13 @@
 import { Value } from '@sinclair/typebox/value';
 import { TB } from '../typebox.js';
 import type {
-  DefaultEnvSchema,
+  DefaultEnvSchemaType,
   EnvContext,
   EnvParser,
   EnvParserConfig,
   EnvSource,
   EnvValidationError,
-  ParsedEnv,
+  ParsedEnv
 } from './types.js';
 
 const SENSITIVE_PATTERNS = [/password/i, /secret/i, /key/i, /token/i, /credential/i, /auth/i];
@@ -172,7 +172,7 @@ export function createEnvParser(): EnvParser {
   };
 }
 
-export function createEnvContext<T extends TB.TSchema & DefaultEnvSchema>(
+export function createEnvContext<T extends DefaultEnvSchemaType>(
   schema: T,
   config?: EnvParserConfig,
 ): EnvContext<TB.Static<T>> {

@@ -2,6 +2,7 @@
 
 import { readdir, appendFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { spawn } from 'node:child_process';
 import Database from 'better-sqlite3';
 import * as readline from 'node:readline/promises';
 
@@ -67,6 +68,33 @@ function generateOutputFilename(
   // Remove .db extension from database name
   const symbol = dbName.replace('.db', '');
   return `${exchange}_${endpointType}_${symbol}.jsonl`;
+}
+
+async function openDatabaseClient(dbPath: string): Promise<void> {
+  console.error(`\nOpening database with sqlite3 client: ${dbPath}\n`);
+  console.error('Tips:');
+  console.error('  .tables           - List all tables');
+  console.error('  .schema records   - Show table schema');
+  console.error('  SELECT * FROM records LIMIT 10;');
+  console.error('  .quit             - Exit\n');
+
+  const sqlite3 = spawn('sqlite3', [dbPath], {
+    stdio: 'inherit',
+  });
+
+  return new Promise((resolve, reject) => {
+    sqlite3.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`sqlite3 exited with code ${code}`));
+      }
+    });
+
+    sqlite3.on('error', (error) => {
+      reject(error);
+    });
+  });
 }
 
 async function streamRecords(
@@ -148,6 +176,8 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const followMode = args.includes('--follow') || args.includes('-f');
   const saveMode = args.includes('--save') || args.includes('-s');
+  const queryMode = args.includes('--query') || args.includes('-q');
+  const helpMode = args.includes('--help') || args.includes('-h');
 
   console.error('Storage Record Streamer');
   console.error('=======================\n');
@@ -159,6 +189,19 @@ async function main(): Promise<void> {
   if (saveMode) {
     console.error('Mode: Save to file\n');
   }
+
+  if (helpMode) {
+    console.error('Mode: Help\n');
+    console.error('Usage: stream-records [options]');
+    console.error('Options:');
+    console.error('  --follow, -f  - Follow mode (live streaming)');
+    console.error('  --save, -s    - Save to file');
+    console.error('  --query, -q    - SQL Query (sqlite3 client)');
+    console.error('  --help, -h    - Show help');
+    return;
+  }
+
+
 
   // Step 1: Select exchange
   const exchanges = await listDirectories(STORAGE_BASE);
@@ -177,7 +220,15 @@ async function main(): Promise<void> {
   const database = await selectFromList('Select Database:', databases);
   if (!database) return;
 
-  // Step 4: Prepare output path if saving to file
+  const dbPath = join(endpointPath, database);
+
+  // Step 4: Execute based on mode
+  if (queryMode) {
+    await openDatabaseClient(dbPath);
+    return;
+  }
+
+  // Step 5: Prepare output path if saving to file
   let outputPath: string | undefined;
   if (saveMode) {
     const filename = generateOutputFilename(exchange, endpointType, database);
@@ -185,8 +236,7 @@ async function main(): Promise<void> {
     console.error(`Output file: ${outputPath}\n`);
   }
 
-  // Step 5: Stream records
-  const dbPath = join(endpointPath, database);
+  // Step 6: Stream records
   console.error(`\nStreaming from: ${dbPath}\n`);
 
   await streamRecords(dbPath, followMode, saveMode, outputPath);

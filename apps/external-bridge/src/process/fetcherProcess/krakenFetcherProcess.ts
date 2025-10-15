@@ -53,7 +53,6 @@ export async function startKrakenFetcherService(context: KrakenFetcherContext): 
   };
   registerGracefulShutdownCallback();
 
-  processContext.start();
   await httpServer.startServer();
   await Promise.all(fetcherLoops.map((service) => service.start()));
 }

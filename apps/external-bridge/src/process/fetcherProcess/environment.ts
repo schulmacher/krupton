@@ -4,7 +4,7 @@ import { getMonorepoRootDir } from '../../lib/fs.js';
 
 export const binanceFetcherEnvSchema = TB.Object({
   // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher-binance' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3000 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
@@ -62,13 +62,13 @@ export const binanceFetcherEnvSchema = TB.Object({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
-}) satisfies SF.DefaultEnvSchema;
+}) satisfies SF.DefaultEnvSchemaType;
 
 export type BinanceFetcherEnv = TB.Static<typeof binanceFetcherEnvSchema>;
 
 export const krakenFetcherEnvSchema = TB.Object({
   // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher-kraken' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3000 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
@@ -127,6 +127,6 @@ export const krakenFetcherEnvSchema = TB.Object({
     description: 'Base directory for storing fetched data',
     default: getMonorepoRootDir('storage', 'external-bridge'),
   }),
-}) satisfies SF.DefaultEnvSchema;
+}) satisfies SF.DefaultEnvSchemaType;
 
 export type KrakenFetcherEnv = TB.Static<typeof krakenFetcherEnvSchema>;

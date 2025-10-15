@@ -2,7 +2,10 @@ import { SF } from '@krupton/service-framework-node';
 import type { StorageEnv } from './environment.js';
 import { storageEnvSchema } from './environment.js';
 
-export function createStorageContext(customEnv?: Record<string, string | undefined>) {
+export function createStorageContext(
+  processContext: SF.ProcessLifecycleContext,
+  customEnv?: Record<string, string | undefined>,
+) {
   const envContext = SF.createEnvContext(storageEnvSchema, { source: customEnv });
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -22,11 +25,6 @@ export function createStorageContext(customEnv?: Record<string, string | undefin
       backupSize: SF.storageMetrics.backupSize,
     },
   });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
-  });
-
   return {
     envContext,
     diagnosticContext,

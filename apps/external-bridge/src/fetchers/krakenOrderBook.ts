@@ -2,6 +2,7 @@ import { KrakenApi } from '@krupton/api-interface';
 import type { KrakenFetcherContext } from '../process/fetcherProcess/krakenFetcherContext.js';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
+import { normalizeSymbol } from '../lib/symbol/normalizeSymbol.js';
 
 async function handleOrderBookResponse(
   query: KrakenApi.GetOrderBookQuery,
@@ -11,13 +12,15 @@ async function handleOrderBookResponse(
 ): Promise<void> {
   const { diagnosticContext, storage } = context;
 
+  const normalizedSymbol = normalizeSymbol('kraken', symbol);
+
   await storage.orderBook.appendRecord({
-    subIndexDir: symbol,
+    subIndexDir: normalizedSymbol,
     record: {
       request: { query },
       response,
       timestamp: Date.now(),
-      id: storage.orderBook.getNextId(symbol),
+      id: storage.orderBook.getNextId(normalizedSymbol),
     },
   });
 
@@ -25,7 +28,7 @@ async function handleOrderBookResponse(
   const orderBookData = response.result[pairKey];
 
   diagnosticContext.logger.debug('Order book saved to storage', {
-    symbol,
+    symbol: normalizedSymbol,
     bidsCount: orderBookData?.bids?.length ?? 0,
     asksCount: orderBookData?.asks?.length ?? 0,
   });

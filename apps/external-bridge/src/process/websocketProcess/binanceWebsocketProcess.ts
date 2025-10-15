@@ -5,7 +5,7 @@ import { BinanceWS } from '@krupton/api-interface';
 import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
 import { saveBinanceOrderBookSnapshots } from '../../fetchers/binanceOrderBook.js';
 import { setBinanceLatestExchangeInfo } from '../../lib/symbol/binanceLatestExchangeInfoProvider.js';
-import { unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
+import { normalizeSymbol, unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import { BinanceWebsocketManager } from '../../lib/websockets/BinanceWebsocketManager.js';
 import type { BinanceWebSocketContext } from './binanceWebsocketContext.js';
 
@@ -36,6 +36,7 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
   const symbols = config.SYMBOLS.split(',')
     .map((s) => unnormalizeToBinanceSymbol(s).trim())
     .filter((s) => !!s);
+  const normalizedSymbols = symbols.map((s) => normalizeSymbol('binance', s));
 
   const BinanceWSDefinition = {
     tradeStream: BinanceWS.TradeStream,
@@ -44,25 +45,29 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
   const websocketManager = new BinanceWebsocketManager(
     context,
     createWSHandlers(BinanceWSDefinition, {
-      tradeStream: (message) => {
+      tradeStream: async (message) => {
+        const normalizedSymbol = normalizeSymbol('binance', message.data.s);
         const record = {
-          id: context.storage.trade.getNextId(message.data.s),
+          id: context.storage.trade.getNextId(normalizedSymbol),
           timestamp: Date.now(),
           message,
         };
+        await context.producers.binanceTrade.send(normalizedSymbol, record);
         context.storage.trade.appendRecord({
-          subIndexDir: message.data.s,
+          subIndexDir: normalizedSymbol,
           record,
         });
       },
-      diffDepthStream: (message) => {
+      diffDepthStream: async (message) => {
+        const normalizedSymbol = normalizeSymbol('binance', message.data.s);
         const record = {
-          id: context.storage.diffDepth.getNextId(message.data.s),
+          id: context.storage.diffDepth.getNextId(normalizedSymbol),
           timestamp: new Date().getTime(),
           message,
         };
+        await context.producers.binanceDiffDepth.send(normalizedSymbol, record);
         context.storage.diffDepth.appendRecord({
-          subIndexDir: message.data.s,
+          subIndexDir: normalizedSymbol,
           record,
         });
       },
@@ -87,10 +92,9 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
   };
 
   registerGracefulShutdownCallback();
-  processContext.start();
 
-  await context.producers.binanceTrade.connect(symbols);
-  await context.producers.binanceDiffDepth.connect(symbols);
+  await context.producers.binanceTrade.connect(normalizedSymbols);
+  await context.producers.binanceDiffDepth.connect(normalizedSymbols);
 
   await websocketManager.connect();
   await websocketManager.subscribe();

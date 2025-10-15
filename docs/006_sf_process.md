@@ -299,7 +299,7 @@ function createServiceContext(schema: ValidationSchema) {
   const metricsContext = createMetricsRegistry({
     diagnosticContext
   });
-  const processContext = createProcessLifecycle({
+  const processContext = startProcessLifecycle({
     diagnosticContext
   });
 

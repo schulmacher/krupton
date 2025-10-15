@@ -1,22 +1,19 @@
 #!/usr/bin/env node
+import { SF } from '@krupton/service-framework-node';
 import { createBinanceFetcherContext } from './process/fetcherProcess/binanceFetcherContext.js';
 import { startExternalBridgeFetcherService } from './process/fetcherProcess/binanceFetcherProcess.js';
 
 async function bootstrap(): Promise<void> {
-  try {
-    const context = createBinanceFetcherContext();
+  await SF.startProcessLifecycle(async (processContext) => {
+    const serviceContext = createBinanceFetcherContext(processContext);
 
-    context.diagnosticContext.logger.info('Bootstrapping externalBridgeFetcher service', {
-      processName: context.envContext.config.PROCESS_NAME,
-      nodeEnv: context.envContext.nodeEnv,
-      platform: context.envContext.config.PLATFORM,
-    });
+    await startExternalBridgeFetcherService(serviceContext);
 
-    await startExternalBridgeFetcherService(context);
-  } catch (error) {
-    console.error('Failed to bootstrap externalBridgeFetcher service:', error);
-    process.exit(1);
-  }
+    return {
+      diagnosticContext: serviceContext.diagnosticContext,
+      envContext: serviceContext.envContext,
+    };
+  });
 }
 
 void bootstrap();

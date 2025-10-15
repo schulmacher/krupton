@@ -37,6 +37,6 @@ export const storageEnvSchema = TB.Object({
     description: 'Enable cloud backup synchronization',
     default: true,
   }),
-}) satisfies SF.DefaultEnvSchema;
+}) satisfies SF.DefaultEnvSchemaType;
 
 export type StorageEnv = TB.Static<typeof storageEnvSchema>;

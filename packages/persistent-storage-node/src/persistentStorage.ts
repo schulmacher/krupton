@@ -20,6 +20,11 @@ type WriteRecordParams<T extends Record<string, unknown>> = {
   subIndexDir: string;
 };
 
+type WriteRecordsParams<T extends Record<string, unknown>> = {
+  records: StorageRecord<T>[];
+  subIndexDir: string;
+};
+
 type ReplaceLastRecordParams<T extends Record<string, unknown>> = {
   record: Omit<StorageRecord<T>, 'id'>;
   subIndexDir: string;
@@ -33,7 +38,7 @@ type ReadFullPageParams = {
 type ReadIndexRangeParams = {
   subIndexDir: string;
   fromIndex: number;
-  count?: number;
+  count: number;
 };
 
 type CreatePersistentStorageOptions = {
@@ -67,7 +72,7 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
       // Directory might already exist
     }
 
-    const db = new Database(dbPath);
+    const db = new Database(dbPath, { readonly: !options?.writable });
 
     // Configure WAL mode
     db.pragma('journal_mode = WAL');
@@ -81,14 +86,14 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
         timestamp INTEGER NOT NULL,
         data TEXT NOT NULL
       );
-      CREATE INDEX IF NOT EXISTS idx_timestamp ON records(timestamp);
     `);
 
     // Initialize next ID cache
     const lastIdRow = db.prepare('SELECT MAX(id) as maxId FROM records').get() as
       | { maxId: number | null }
       | undefined;
-    const nextId = lastIdRow?.maxId !== null && lastIdRow?.maxId !== undefined ? lastIdRow.maxId + 1 : 1;
+    const nextId =
+      lastIdRow?.maxId !== null && lastIdRow?.maxId !== undefined ? lastIdRow.maxId + 1 : 1;
     nextIdCache.set(subIndexDir, nextId);
 
     dbCache.set(subIndexDir, db);
@@ -97,15 +102,15 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
 
   const getNextId = (subIndexDir: string): number => {
     const normalizedDir = normalizeIndexDir(subIndexDir);
-    
+
     // Ensure DB is initialized (this will initialize the cache too)
     getOrCreateDb(normalizedDir);
-    
+
     const currentId = nextIdCache.get(normalizedDir);
     if (currentId === undefined) {
       throw new Error(`Next ID not initialized for ${normalizedDir}`);
     }
-    
+
     nextIdCache.set(normalizedDir, currentId + 1);
     return currentId;
   };
@@ -130,6 +135,19 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
       insert.run(record.id, record.timestamp, JSON.stringify(record));
     },
 
+    async appendRecords(params: WriteRecordsParams<T>): Promise<void> {
+      const { records, subIndexDir: rawSubIndexDir } = params;
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
+
+      const db = getOrCreateDb(subIndexDir);
+      const insert = db.prepare(
+        `INSERT INTO records (id, timestamp, data) VALUES ${records.map(() => '(?, ?, ?)').join(',')}`,
+      );
+      insert.run(
+        records.map((record) => [record.id, record.timestamp, JSON.stringify(record)]).flat(),
+      );
+    },
+
     async readFullPage(params: ReadFullPageParams): Promise<StorageRecord<T>[]> {
       const { subIndexDir: rawSubIndexDir } = params;
       const subIndexDir = normalizeIndexDir(rawSubIndexDir);
@@ -146,19 +164,14 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
 
       const db = getOrCreateDb(subIndexDir);
 
-      let query = 'SELECT id, data FROM records WHERE id >= ? ORDER BY id';
-      const queryParams: number[] = [fromIndex + 1]; // SQLite IDs are 1-based, but we use 0-based indexing
-
-      if (count !== undefined) {
-        query += ' LIMIT ?';
-        queryParams.push(count);
-      }
-
-      const rows = db.prepare(query).all(...queryParams) as { id: number; data: string }[];
+      const rows = db
+        .prepare('SELECT * FROM records WHERE id > ? ORDER BY id LIMIT ?')
+        .all(fromIndex, count) as { id: number; timestamp: number; data: string }[];
 
       return rows.map((row) => ({
         ...JSON.parse(row.data),
-        index: row.id - 1, // Convert back to 0-based indexing
+        id: row.id,
+        timestamp: row.timestamp,
       })) as StorageRecord<T>[];
     },
 
@@ -177,7 +190,7 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
       return JSON.parse(row.data) as StorageRecord<T>;
     },
 
-    async replaceLastRecord(params: ReplaceLastRecordParams<T>): Promise<void> {
+    async replaceOrInsertLastRecord(params: ReplaceLastRecordParams<T>): Promise<void> {
       const { record, subIndexDir: rawSubIndexDir } = params;
       const subIndexDir = normalizeIndexDir(rawSubIndexDir);
 
@@ -189,7 +202,9 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
         | undefined;
 
       if (!lastRow) {
-        throw new Error('Cannot replace last record: no records exist');
+        const insert = db.prepare('INSERT INTO records (id, timestamp, data) VALUES (?, ?, ?)');
+        insert.run(getNextId(subIndexDir), record.timestamp, JSON.stringify(record));
+        return;
       }
 
       // Update the last record
@@ -198,6 +213,16 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
         JSON.stringify(record),
         lastRow.id,
       );
+    },
+
+    async count(rawSubIndexDir: string): Promise<number> {
+      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
+      const db = getOrCreateDb(subIndexDir);
+      const row = db.prepare('SELECT COUNT(*) as count FROM records').get() as
+        | { count: number }
+        | undefined;
+
+      return row?.count ?? 0;
     },
 
     close(): void {

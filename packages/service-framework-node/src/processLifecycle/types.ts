@@ -1,4 +1,5 @@
 import type { DiagnosticContext } from '../diagnostics/types.js';
+import { EnvContext } from '../environment/types.js';
 
 export type ShutdownCallback = () => Promise<void> | void;
 
@@ -14,13 +15,14 @@ export interface ShutdownConfiguration {
 }
 
 export interface ProcessLifecycleConfig {
-  diagnosticContext: DiagnosticContext;
   shutdownConfiguration?: ShutdownConfiguration;
 }
 
+export type ProcessStartFn = (context: ProcessLifecycleContext) => Promise<{ diagnosticContext: DiagnosticContext, envContext: EnvContext }>;
+
 export interface ProcessLifecycleContext {
   onShutdown(callback: ShutdownCallback): void;
-  start(): void;
   shutdown(): Promise<void>;
   isShuttingDown(): boolean;
+  restart(): Promise<void>
 }

@@ -23,6 +23,14 @@ async function handleAssetInfoResponse(
     diagnosticContext.logger.info('Asset info already in storage', {
       assetCount: Object.keys(response.result).length,
     });
+    await storage.assetInfo.replaceOrInsertLastRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        request: { query },
+        response,
+        timestamp: Date.now(),
+      },
+    });
     return;
   }
 

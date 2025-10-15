@@ -1,17 +1,17 @@
 import { BinanceApi } from '@krupton/api-interface';
-import { createZmqProducerRegistry } from '@krupton/messaging-node';
+import { createZmqProducerRegistry, zmqSocketTempalates } from '@krupton/messaging-node';
 import {
   createBinanceDiffDepthWSStorage,
   createBinanceExchangeInfoStorage,
   createBinanceOrderBookStorage,
-  createBinanceTradeWSStorage
+  createBinanceTradeWSStorage,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createBinanceAuthHeaders } from '../../../../../packages/api-client-node/dist/apiAuth.js';
 import { createApiClient } from '../../../../../packages/api-client-node/dist/apiClient.js';
 import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
 
-export function createBinanceWebsocketContext() {
+export function createBinanceWebsocketContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);
   envContext.config.LOG_LEVEL = 'debug';
 
@@ -33,10 +33,6 @@ export function createBinanceWebsocketContext() {
       connectionUptime: SF.externalBridgeWebsocketsMetrics.connectionUptime,
       lastMessageTimestamp: SF.externalBridgeWebsocketsMetrics.lastMessageTimestamp,
     },
-  });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
   });
 
   const storage = {
@@ -67,12 +63,10 @@ export function createBinanceWebsocketContext() {
 
   const producers = {
     binanceTrade: createZmqProducerRegistry({
-      socketTemplate: (subIndex) =>
-        envContext.config.ZMQ_TRADE_SOCKET.replace('{symbol}', subIndex),
+      socketTemplate: zmqSocketTempalates.binanceTradeWs,
     }),
     binanceDiffDepth: createZmqProducerRegistry({
-      socketTemplate: (subIndex) =>
-        envContext.config.ZMQ_DIFF_DEPTH_SOCKET.replace('{symbol}', subIndex),
+      socketTemplate: zmqSocketTempalates.binanceDiffDepth,
     }),
   };
 

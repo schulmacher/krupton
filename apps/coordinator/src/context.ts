@@ -2,7 +2,7 @@ import { SF } from '@krupton/service-framework-node';
 import type { CoordinatorEnv } from './environment.js';
 import { coordinatorEnvSchema } from './environment.js';
 
-export function createCoordinatorContext(customEnv?: Record<string, string | undefined>) {
+export function createCoordinatorContext(processContext: SF.ProcessLifecycleContext, customEnv?: Record<string, string | undefined>) {
   const envContext = SF.createEnvContext(coordinatorEnvSchema, { source: customEnv });
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
@@ -13,10 +13,6 @@ export function createCoordinatorContext(customEnv?: Record<string, string | und
     envContext,
     enableDefaultMetrics: true,
     metrics: {},
-  });
-
-  const processContext = SF.createProcessLifecycle({
-    diagnosticContext,
   });
 
   return {

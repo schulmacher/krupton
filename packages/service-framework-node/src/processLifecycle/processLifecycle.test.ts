@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi, MockInstance } from 'vitest';
 import { createDiagnosticContext } from '../diagnostics/diagnostics.js';
 import type { DefaultEnvContext } from '../environment/types.js';
-import { createProcessLifecycle } from './processLifecycle.js';
-import type { ProcessLifecycleConfig } from './types.js';
+import { startProcessLifecycle } from './processLifecycle.js';
+import type { ProcessLifecycleConfig, ProcessLifecycleContext } from './types.js';
 
 function createTestEnvContext(): DefaultEnvContext {
   return {
@@ -11,17 +11,20 @@ function createTestEnvContext(): DefaultEnvContext {
   };
 }
 
-describe('createProcessLifecycle', () => {
+describe('startProcessLifecycle', () => {
   let processExitSpy: MockInstance<typeof process.exit>;
   let processOnSpy: MockInstance<typeof process.on>;
   let consoleLogSpy: MockInstance<typeof console.log>;
   let consoleErrorSpy: MockInstance<typeof vi.fn>;
+  let originalProcessName: string | undefined;
 
   beforeEach(() => {
     processExitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
     processOnSpy = vi.spyOn(process, 'on');
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    originalProcessName = process.env.PROCESS_NAME;
+    process.env.PROCESS_NAME = 'test-service';
     vi.useFakeTimers();
   });
 
@@ -30,51 +33,84 @@ describe('createProcessLifecycle', () => {
     processOnSpy.mockRestore();
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
+    if (originalProcessName === undefined) {
+      delete process.env.PROCESS_NAME;
+    } else {
+      process.env.PROCESS_NAME = originalProcessName;
+    }
     vi.useRealTimers();
   });
 
   describe('initialization', () => {
-    it('creates process lifecycle context with default configuration', () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+    it('creates process lifecycle context with default configuration', async () => {
+      let capturedContext: ProcessLifecycleContext | undefined;
 
-      const config: ProcessLifecycleConfig = {
-        diagnosticContext,
-      };
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
 
-      const context = createProcessLifecycle(config);
+        return { envContext, diagnosticContext };
+      });
 
-      expect(context.onShutdown).toBeDefined();
-      expect(context.start).toBeDefined();
-      expect(context.shutdown).toBeDefined();
-      expect(context.isShuttingDown).toBeDefined();
+      await vi.runAllTimersAsync();
+
+      expect(capturedContext).toBeDefined();
+      expect(capturedContext?.onShutdown).toBeDefined();
+      expect(capturedContext?.shutdown).toBeDefined();
+      expect(capturedContext?.isShuttingDown).toBeDefined();
+      expect(capturedContext?.restart).toBeDefined();
+
+      // Cleanup
+      if (capturedContext) {
+        void capturedContext.shutdown();
+        await vi.runAllTimersAsync();
+      }
     });
 
-    it('creates process lifecycle context with custom configuration', () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+    it('creates process lifecycle context with custom configuration', async () => {
+      let capturedContext: ProcessLifecycleContext | undefined;
 
       const config: ProcessLifecycleConfig = {
-        diagnosticContext,
         shutdownConfiguration: {
           callbackTimeout: 5000,
           totalTimeout: 15000,
         },
       };
 
-      const context = createProcessLifecycle(config);
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
 
-      expect(context).toBeDefined();
+        return { envContext, diagnosticContext };
+      }, config);
+
+      await vi.runAllTimersAsync();
+
+      expect(capturedContext).toBeDefined();
+
+      // Cleanup
+      if (capturedContext) {
+        void capturedContext.shutdown();
+        await vi.runAllTimersAsync();
+      }
     });
   });
 
   describe('signal handler registration', () => {
-    it('registers signal handlers when start is called', () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+    it('registers signal handlers when process starts', async () => {
+      let capturedContext: ProcessLifecycleContext | undefined;
 
-      const context = createProcessLifecycle({ diagnosticContext });
-      context.start();
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
+      });
+
+      await vi.runAllTimersAsync();
 
       expect(processOnSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
       expect(processOnSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
@@ -82,47 +118,44 @@ describe('createProcessLifecycle', () => {
       expect(processOnSpy).toHaveBeenCalledWith('unhandledRejection', expect.any(Function));
       expect(processOnSpy).toHaveBeenCalledWith('uncaughtException', expect.any(Function));
       expect(processOnSpy).toHaveBeenCalledWith('warning', expect.any(Function));
-    });
 
-    it('logs warning when start is called multiple times', () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-      context.start();
-      context.start();
-
-      const logCalls = consoleLogSpy.mock.calls.map((call) => call[0] as string);
-      const warningLogs = logCalls.filter((log) =>
-        log.includes('Process lifecycle already started'),
-      );
-
-      expect(warningLogs).toHaveLength(1);
+      // Cleanup
+      if (capturedContext) {
+        void capturedContext.shutdown();
+        await vi.runAllTimersAsync();
+      }
     });
   });
 
   describe('shutdown callback registration and execution', () => {
     it('executes registered callbacks in order', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
+      let capturedContext: ProcessLifecycleContext | undefined;
       const executionOrder: number[] = [];
 
-      context.onShutdown(() => {
-        executionOrder.push(1);
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+
+        context.onShutdown(() => {
+          executionOrder.push(1);
+        });
+
+        context.onShutdown(() => {
+          executionOrder.push(2);
+        });
+
+        context.onShutdown(() => {
+          executionOrder.push(3);
+        });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      context.onShutdown(() => {
-        executionOrder.push(2);
-      });
+      await vi.runAllTimersAsync();
 
-      context.onShutdown(() => {
-        executionOrder.push(3);
-      });
-
-      const shutdownPromise = context.shutdown();
+      const shutdownPromise = capturedContext!.shutdown();
       await vi.runAllTimersAsync();
       await shutdownPromise;
 
@@ -131,23 +164,30 @@ describe('createProcessLifecycle', () => {
     });
 
     it('executes async callbacks', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
+      let capturedContext: ProcessLifecycleContext | undefined;
       let asyncCallbackExecuted = false;
 
-      context.onShutdown(async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            asyncCallbackExecuted = true;
-            resolve();
-          }, 100);
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+
+        context.onShutdown(async () => {
+          await new Promise<void>((resolve) => {
+            setTimeout(() => {
+              asyncCallbackExecuted = true;
+              resolve();
+            }, 100);
+          });
         });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      const shutdownPromise = context.shutdown();
+      await vi.runAllTimersAsync();
+
+      const shutdownPromise = capturedContext!.shutdown();
       await vi.runAllTimersAsync();
       await shutdownPromise;
 
@@ -156,22 +196,29 @@ describe('createProcessLifecycle', () => {
     });
 
     it('handles callback errors without stopping execution', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
+      let capturedContext: ProcessLifecycleContext | undefined;
       let secondCallbackExecuted = false;
 
-      context.onShutdown(() => {
-        throw new Error('Callback error');
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+
+        context.onShutdown(() => {
+          throw new Error('Callback error');
+        });
+
+        context.onShutdown(() => {
+          secondCallbackExecuted = true;
+        });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      context.onShutdown(() => {
-        secondCallbackExecuted = true;
-      });
+      await vi.runAllTimersAsync();
 
-      const shutdownPromise = context.shutdown();
+      const shutdownPromise = capturedContext!.shutdown();
       await vi.runAllTimersAsync();
       await shutdownPromise;
 
@@ -180,30 +227,38 @@ describe('createProcessLifecycle', () => {
     });
 
     it('enforces per-callback timeout', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+      let capturedContext: ProcessLifecycleContext | undefined;
+      let secondCallbackExecuted = false;
 
-      const context = createProcessLifecycle({
-        diagnosticContext,
+      const config: ProcessLifecycleConfig = {
         shutdownConfiguration: {
           callbackTimeout: 1000,
           totalTimeout: 5000,
         },
-      });
+      };
 
-      let secondCallbackExecuted = false;
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
 
-      context.onShutdown(async () => {
-        await new Promise<void>(() => {
-          // Never resolves - will timeout
+        context.onShutdown(async () => {
+          await new Promise<void>(() => {
+            // Never resolves - will timeout
+          });
         });
-      });
 
-      context.onShutdown(() => {
-        secondCallbackExecuted = true;
-      });
+        context.onShutdown(() => {
+          secondCallbackExecuted = true;
+        });
 
-      const shutdownPromise = context.shutdown();
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
+      }, config);
+
+      await vi.runAllTimersAsync();
+
+      const shutdownPromise = capturedContext!.shutdown();
       await vi.runAllTimersAsync();
       await shutdownPromise;
 
@@ -214,18 +269,20 @@ describe('createProcessLifecycle', () => {
 
   describe('signal handling', () => {
     it('handles SIGTERM signal', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
       let callbackExecuted = false;
 
-      context.onShutdown(() => {
-        callbackExecuted = true;
+      void startProcessLifecycle(async (context) => {
+        context.onShutdown(() => {
+          callbackExecuted = true;
+        });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      context.start();
+      await vi.runAllTimersAsync();
 
       const sigtermHandler = processOnSpy.mock.calls.find(
         (call) => call[0] === 'SIGTERM',
@@ -242,18 +299,20 @@ describe('createProcessLifecycle', () => {
     });
 
     it('handles SIGINT signal', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
       let callbackExecuted = false;
 
-      context.onShutdown(() => {
-        callbackExecuted = true;
+      void startProcessLifecycle(async (context) => {
+        context.onShutdown(() => {
+          callbackExecuted = true;
+        });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      context.start();
+      await vi.runAllTimersAsync();
 
       const sigintHandler = processOnSpy.mock.calls.find(
         (call) => call[0] === 'SIGINT',
@@ -272,11 +331,14 @@ describe('createProcessLifecycle', () => {
 
   describe('unhandled rejection handling', () => {
     it('handles unhandled promise rejection', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+      void startProcessLifecycle(async () => {
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
 
-      const context = createProcessLifecycle({ diagnosticContext });
-      context.start();
+        return { envContext, diagnosticContext };
+      });
+
+      await vi.runAllTimersAsync();
 
       const rejectionHandler = processOnSpy.mock.calls.find(
         (call) => call[0] === 'unhandledRejection',
@@ -303,11 +365,14 @@ describe('createProcessLifecycle', () => {
 
   describe('uncaught exception handling', () => {
     it('handles uncaught exception', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+      void startProcessLifecycle(async () => {
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
 
-      const context = createProcessLifecycle({ diagnosticContext });
-      context.start();
+        return { envContext, diagnosticContext };
+      });
+
+      await vi.runAllTimersAsync();
 
       const exceptionHandler = processOnSpy.mock.calls.find(
         (call) => call[0] === 'uncaughtException',
@@ -330,12 +395,18 @@ describe('createProcessLifecycle', () => {
   });
 
   describe('warning handling', () => {
-    it('logs process warnings without shutting down', () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+    it('logs process warnings without shutting down', async () => {
+      let capturedContext: ProcessLifecycleContext | undefined;
 
-      const context = createProcessLifecycle({ diagnosticContext });
-      context.start();
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
+      });
+
+      await vi.runAllTimersAsync();
 
       const warningHandler = processOnSpy.mock.calls.find((call) => call[0] === 'warning')?.[1] as (
         warning: Error,
@@ -353,42 +424,62 @@ describe('createProcessLifecycle', () => {
       const logCalls = consoleLogSpy.mock.calls.map((call) => call[0] as string);
       const warningLog = logCalls.find((log) => log.includes('Process warning emitted'));
       expect(warningLog).toBeDefined();
+
+      // Cleanup
+      if (capturedContext) {
+        void capturedContext.shutdown();
+        await vi.runAllTimersAsync();
+      }
     });
   });
 
   describe('shutdown state management', () => {
     it('reports shutting down state', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+      let capturedContext: ProcessLifecycleContext | undefined;
 
-      const context = createProcessLifecycle({ diagnosticContext });
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
 
-      expect(context.isShuttingDown()).toBe(false);
+        return { envContext, diagnosticContext };
+      });
 
-      const shutdownPromise = context.shutdown();
+      await vi.runAllTimersAsync();
 
-      expect(context.isShuttingDown()).toBe(true);
+      expect(capturedContext!.isShuttingDown()).toBe(false);
+
+      const shutdownPromise = capturedContext!.shutdown();
+
+      expect(capturedContext!.isShuttingDown()).toBe(true);
 
       await vi.runAllTimersAsync();
       await shutdownPromise;
 
-      expect(context.isShuttingDown()).toBe(true);
+      expect(capturedContext!.isShuttingDown()).toBe(true);
     });
 
     it('prevents duplicate shutdown execution', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
-
-      const context = createProcessLifecycle({ diagnosticContext });
-
+      let capturedContext: ProcessLifecycleContext | undefined;
       let callbackExecutionCount = 0;
 
-      context.onShutdown(() => {
-        callbackExecutionCount++;
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+
+        context.onShutdown(() => {
+          callbackExecutionCount++;
+        });
+
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
       });
 
-      const shutdownPromise1 = context.shutdown();
-      const shutdownPromise2 = context.shutdown();
+      await vi.runAllTimersAsync();
+
+      const shutdownPromise1 = capturedContext!.shutdown();
+      const shutdownPromise2 = capturedContext!.shutdown();
 
       await vi.runAllTimersAsync();
       await Promise.all([shutdownPromise1, shutdownPromise2]);
@@ -400,24 +491,33 @@ describe('createProcessLifecycle', () => {
 
   describe('forced termination', () => {
     it('forces exit when total timeout is exceeded', async () => {
-      const envContext = createTestEnvContext();
-      const diagnosticContext = createDiagnosticContext(envContext);
+      let capturedContext: ProcessLifecycleContext | undefined;
 
-      const context = createProcessLifecycle({
-        diagnosticContext,
+      const config: ProcessLifecycleConfig = {
         shutdownConfiguration: {
           callbackTimeout: 5000,
           totalTimeout: 1000,
         },
-      });
+      };
 
-      context.onShutdown(async () => {
-        await new Promise<void>(() => {
-          // Never resolves - will trigger total timeout
+      void startProcessLifecycle(async (context) => {
+        capturedContext = context;
+
+        context.onShutdown(async () => {
+          await new Promise<void>(() => {
+            // Never resolves - will trigger total timeout
+          });
         });
-      });
 
-      const shutdownPromise = context.shutdown();
+        const envContext = createTestEnvContext();
+        const diagnosticContext = createDiagnosticContext(envContext);
+
+        return { envContext, diagnosticContext };
+      }, config);
+
+      await vi.runAllTimersAsync();
+
+      const shutdownPromise = capturedContext!.shutdown();
       await vi.runAllTimersAsync();
       await shutdownPromise;
 

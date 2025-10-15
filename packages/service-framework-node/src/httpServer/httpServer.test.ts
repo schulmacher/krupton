@@ -64,11 +64,11 @@ function createTestServiceContext(): ServiceContext<{
       onShutdown: vi.fn((callback) => {
         shutdownCallbacks.push(callback);
       }),
-      start: vi.fn(),
       shutdown: vi.fn(async () => {
         await Promise.all(shutdownCallbacks.map((cb) => cb()));
       }),
       isShuttingDown: vi.fn().mockReturnValue(false),
+      restart: vi.fn(),
     },
   };
 }

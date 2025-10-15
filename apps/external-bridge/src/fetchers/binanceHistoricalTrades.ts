@@ -1,8 +1,14 @@
 import { BinanceApi } from '@krupton/api-interface';
+import {
+  BinanceHistoricalTradeRecord,
+  BinanceTradeWSRecord,
+} from '@krupton/persistent-storage-node';
+import { createEntityReader } from '@krupton/persistent-storage-node/transformed';
 import { sleep } from '@krupton/utils';
-import type { BinanceFetcherContext } from '../process/fetcherProcess/binanceFetcherContext.js';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
+import { normalizeSymbol } from '../lib/symbol/normalizeSymbol.js';
+import type { BinanceFetcherContext } from '../process/fetcherProcess/binanceFetcherContext.js';
 
 const handleHistoricalTradesResponse = async (
   context: BinanceFetcherContext,
@@ -11,7 +17,7 @@ const handleHistoricalTradesResponse = async (
   endpoint: string,
   symbol: string,
 ): Promise<void> => {
-  const { diagnosticContext, processContext, envContext, storage } = context;
+  const { diagnosticContext, envContext, storage, producers } = context;
   const config = envContext.config;
 
   if (!response || response.length === 0) {
@@ -20,78 +26,170 @@ const handleHistoricalTradesResponse = async (
       symbol,
       endpoint,
     });
-    await sleep(1000);
     return;
   }
 
-  const requestFromId = query.fromId;
-  const currentLatestRecord = await storage.historicalTrade.readLastRecord(symbol);
+  const normalizedSymbol = normalizeSymbol('binance', symbol);
 
-  const latestStoredFromId = currentLatestRecord?.request.query?.fromId;
+  const latestStoredRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
 
   if (
-    requestFromId !== undefined &&
-    latestStoredFromId !== undefined &&
-    requestFromId <= latestStoredFromId
+    latestStoredRecord &&
+    query.fromId &&
+    query.fromId <= latestStoredRecord.request.query.fromId!
   ) {
-    diagnosticContext.logger.warn(
-      'Skipping duplicate request - already in storage, shotting down process',
-      {
-        platform: config.PLATFORM,
-        symbol,
-        endpoint,
-        requestFromId,
-        latestStoredFromId,
-      },
-    );
-    // TODO implement restart logic, handled by PM2 naturally?
-    await processContext.shutdown();
+    diagnosticContext.logger.warn('Skipping historic records', {
+      platform: config.PLATFORM,
+      symbol: normalizedSymbol,
+      endpoint,
+    });
     return;
   }
 
-  await storage.historicalTrade.appendRecord({
-    subIndexDir: symbol,
-    record: {
-      id: storage.historicalTrade.getNextId(symbol),
-      timestamp: Date.now(),
-      request: { query },
-      response,
-    },
-  });
+  const record = {
+    id: storage.historicalTrade.getNextId(normalizedSymbol),
+    timestamp: Date.now(),
+    request: { query },
+    response,
+  };
+
+  await Promise.all([
+    storage.historicalTrade.appendRecord({
+      subIndexDir: normalizedSymbol,
+      record,
+    }),
+    producers.binanceTrade.send(normalizedSymbol, record),
+  ]);
 
   diagnosticContext.logger.debug('Response saved to storage', {
     platform: config.PLATFORM,
-    symbol,
+    symbol: normalizedSymbol,
     endpoint,
-    requestFromId,
+    query,
     recordCount: response.length,
   });
 };
+
+type WsTradeHoleRange = {
+  gapStart?: BinanceTradeWSRecord;
+  gapEnd?: BinanceTradeWSRecord;
+  totalRows?: number;
+  lastApiRecord?: BinanceHistoricalTradeRecord;
+};
+
+async function seekWsTradeHoleRange(
+  context: BinanceFetcherContext,
+  normalizedSymbol: string,
+  prevHole: WsTradeHoleRange | undefined,
+): Promise<WsTradeHoleRange> {
+  const { storage } = context;
+  const lastApiRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
+  const lastApiId = lastApiRecord?.response?.at(-1)?.id;
+  const CHUNK_SIZE = 100;
+
+  let gapStart: BinanceTradeWSRecord | undefined = prevHole?.gapStart;
+  let gapEnd: BinanceTradeWSRecord | undefined = undefined;
+
+  for await (const records of createEntityReader(storage.wsTrade, normalizedSymbol, {
+    readBatchSize: CHUNK_SIZE,
+    startGlobalIndex: Math.min(prevHole?.gapStart?.id ? prevHole.gapStart.id - CHUNK_SIZE : 0, 0),
+    isStopped: () => context.processContext.isShuttingDown(),
+  })) {
+    for (const record of records) {
+      const wsTradeId = record.message.data.t;
+
+      if (lastApiId && wsTradeId < lastApiId) {
+        gapStart = record;
+        continue;
+      }
+
+      if (gapStart && wsTradeId - 1 !== gapStart.message.data.t) {
+        if (!lastApiId || wsTradeId !== lastApiId + 1) {
+          gapEnd = record;
+          break;
+        }
+      }
+
+      gapStart = record;
+    }
+
+    if (gapEnd) {
+      break;
+    }
+  }
+
+  if (gapEnd === undefined || gapStart === undefined) {
+    return {
+      gapStart,
+      totalRows: await storage.wsTrade.count(normalizedSymbol),
+      lastApiRecord: lastApiRecord ?? undefined,
+    };
+  }
+
+  return {
+    gapStart,
+    gapEnd,
+    totalRows: await storage.wsTrade.count(normalizedSymbol),
+    lastApiRecord: lastApiRecord ?? undefined,
+  };
+}
 
 const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
   context: BinanceFetcherContext,
   symbol: string,
   endpoint: string,
 ): Promise<ExternalBridgeFetcherLoop> => {
-  const { binanceClient, storage } = context;
+  const { binanceClient, diagnosticContext } = context;
+  const normalizedSymbol = normalizeSymbol('binance', symbol);
+  let wsHole: WsTradeHoleRange | undefined = undefined;
 
   return createExternalBridgeFetcherLoop<typeof BinanceApi.GetHistoricalTradesEndpoint>(context, {
     symbol,
     endpointFn: binanceClient.getHistoricalTrades,
     buildRequestParams: async () => {
-      const latestRecord = await storage.historicalTrade.readLastRecord(symbol);
-      const latestRecordMaxId = latestRecord?.response?.reduce(
-        (acc: number, curr: { id: number }) => Math.max(acc, curr.id),
-        0,
-      );
+      do {
+        wsHole = await seekWsTradeHoleRange(context, normalizedSymbol, wsHole);
 
-      const queryFromId = latestRecordMaxId ? latestRecordMaxId + 1 : 1;
+        if (!wsHole?.gapEnd) {
+          diagnosticContext.logger.info('No holes found, sleeping for 10 seconds', {
+            symbol: normalizedSymbol,
+            totalRows: wsHole?.totalRows,
+            gapStart: wsHole?.gapStart,
+          });
+          await sleep(1e4);
+        }
+      } while (!wsHole?.gapStart || !wsHole?.gapEnd);
+
+      const lastApiId = wsHole.lastApiRecord?.response?.at(-1)?.id;
+      const fromId = Math.max(lastApiId ? lastApiId + 1 : 0, wsHole.gapStart.message.data.t + 1);
+      const limit = Math.min(1000, wsHole.gapEnd.message.data.t - fromId);
+
+      if (process.env.DEBUG === 'true') {
+        console.log('\n');
+        console.log('='.repeat(12), normalizedSymbol, '='.repeat(12));
+        console.log('lastApiId', lastApiId);
+        console.log('gapStart', wsHole.gapStart.id);
+        console.log('gapStart', wsHole.gapStart.message.data.t);
+        console.log('gapEnd', wsHole.gapEnd.id);
+        console.log('gapEnd', wsHole.gapEnd.message.data.t);
+        console.log('fromId', fromId);
+        console.log('gapSize', wsHole.gapEnd.message.data.t - fromId);
+        console.log('limit', limit);
+        console.log('totalRows', wsHole.totalRows);
+        console.log('\n');
+
+        console.log({
+          symbol,
+          fromId,
+          limit,
+        });
+      }
 
       return {
         query: {
           symbol,
-          limit: 100,
-          fromId: queryFromId,
+          fromId,
+          limit,
         },
       };
     },

@@ -5,6 +5,7 @@ import {
 } from '@krupton/persistent-storage-node';
 import { createTryhardExponentialBackoff, tryHard } from '@krupton/utils';
 import { DiagnosticContext } from '../../../../packages/service-framework-node/dist/sf';
+import { normalizeSymbol } from '../lib/symbol/normalizeSymbol';
 
 export async function saveBinanceOrderBookSnapshots(
   diagnosticContext: DiagnosticContext,
@@ -16,6 +17,7 @@ export async function saveBinanceOrderBookSnapshots(
     symbols: binanceSymbols,
   });
   for (const symbol of binanceSymbols) {
+    const normalizedSymbol = normalizeSymbol('binance', symbol);
     diagnosticContext.logger.debug('Fetching initial order book for binance symbol', {
       symbol,
     });
@@ -30,12 +32,12 @@ export async function saveBinanceOrderBookSnapshots(
         });
 
         await orderBookStorage.appendRecord({
-          subIndexDir: symbol,
+          subIndexDir: normalizedSymbol,
           record: {
             request: { query },
             response,
             timestamp: Date.now(),
-            id: orderBookStorage.getNextId(symbol),
+            id: orderBookStorage.getNextId(normalizedSymbol),
           },
         });
       },

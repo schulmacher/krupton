@@ -5,7 +5,8 @@ export const UnifiedOrderBookSnapshot = TB.Object({
   symbol: TB.String(),
   bids: TB.Array(TB.Tuple([TB.String(), TB.String()])),
   asks: TB.Array(TB.Tuple([TB.String(), TB.String()])),
-  timestamp: TB.Number(),
+  time: TB.Number(),
+  platform: TB.String(),
 });
 
 export const UnifiedOrderBookUpdate = TB.Object({
@@ -13,7 +14,8 @@ export const UnifiedOrderBookUpdate = TB.Object({
   symbol: TB.String(),
   bids: TB.Array(TB.Tuple([TB.String(), TB.String()])),
   asks: TB.Array(TB.Tuple([TB.String(), TB.String()])),
-  timestamp: TB.Number(),
+  time: TB.Number(),
+  platform: TB.String(),
 });
 
 export const UnifiedOrderBook = TB.Union([UnifiedOrderBookSnapshot, UnifiedOrderBookUpdate]);

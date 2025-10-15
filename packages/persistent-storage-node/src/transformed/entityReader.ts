@@ -15,7 +15,7 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
   storage: PersistentStorage<T>,
   subIndexDir: string,
   options: EntityReaderOptions,
-): AsyncGenerator<StorageRecord<T>> {
+): AsyncGenerator<StorageRecord<T>[], undefined> {
   const { readBatchSize, startGlobalIndex, isStopped } = options;
 
   let currentGlobalIndex = startGlobalIndex;
@@ -32,16 +32,17 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
       break;
     }
 
-    for (const record of records) {
-      yield record;
-    }
-
-    // Move to the next batch
-    currentGlobalIndex += records.length;
+    yield records;
 
     // If we got fewer records than requested, we've reached the end
     if (records.length < readBatchSize) {
       break;
     }
+
+    // Move to the next batch
+    // TODO TEST THIS!!
+    currentGlobalIndex = records[records.length - 1].id;
   }
+
+  console.log('entityReader stopped');
 }

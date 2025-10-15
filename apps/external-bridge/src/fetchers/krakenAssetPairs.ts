@@ -20,6 +20,14 @@ async function handleAssetPairsResponse(
     diagnosticContext.logger.info('Asset pairs already in storage', {
       pairCount: Object.keys(response.result).length,
     });
+    await storage.assetPairs.replaceOrInsertLastRecord({
+      subIndexDir: SYMBOL_ALL,
+      record: {
+        request: { query },
+        response,
+        timestamp: Date.now(),
+      },
+    });
     return;
   }
 

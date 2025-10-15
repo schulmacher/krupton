@@ -6,14 +6,14 @@ export type TaggedMessage<Value, StreamName extends string = string> = {
 };
 
 // Helper type to extract the yielded value type from an AsyncGenerator
-type ExtractGeneratorValue<G> =
-  G extends AsyncGenerator<infer V, unknown, unknown>
-    ? V
-    : never;
+type ExtractGeneratorValue<G> = G extends AsyncGenerator<infer V, unknown, unknown> ? V : never;
+
+// Helper type to flatten array types
+type FlattenIfArray<T> = T extends (infer U)[] ? U : T;
 
 // Create a discriminated union where each stream name is paired with its specific value type
 type TaggedMessagesUnion<T extends Record<string, AsyncGenerator<unknown>>> = {
-  [K in keyof T]: TaggedMessage<ExtractGeneratorValue<T[K]>, K & string>;
+  [K in keyof T]: TaggedMessage<FlattenIfArray<ExtractGeneratorValue<T[K]>>, K & string>;
 }[keyof T];
 
 // Create a discriminated union for control results
@@ -26,7 +26,7 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
   streams: T,
   options: {
     isStopped?: () => boolean;
-  }
+  },
 ): AsyncGenerator<
   TaggedMessagesUnion<T>[],
   TaggedMessagesUnion<T>[],
@@ -66,11 +66,19 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
         if (!result.done && result.value) {
           const messageEntry = streamMessages.find((s) => s.streamName === streamName);
           if (messageEntry) {
-            // Generator yields an array of values
-            messageEntry.messages.push({
-              value: result.value,
-              streamName,
-            } as TaggedMessagesUnion<T>);
+            if (Array.isArray(result.value)) {
+              for (const item of result.value) {
+                messageEntry.messages.push({
+                  value: item,
+                  streamName,
+                } as TaggedMessagesUnion<T>);
+              }
+            } else {
+              messageEntry.messages.push({
+                value: result.value,
+                streamName,
+              } as TaggedMessagesUnion<T>);
+            }
           }
           return true;
         } else {
@@ -129,9 +137,6 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
     control = yield currentMessages;
   } while (activeStreams.length > 0 && control && !options.isStopped?.());
 
-  console.log('activeStreams', activeStreams);
-  console.log('control', control);
-
   return [];
 }
 
@@ -143,7 +148,6 @@ function removeCachedMessagesByStream<T extends Record<string, AsyncGenerator<un
     const messageEntry = streamMessages.find((s) => s.streamName === streamName);
 
     if (messageEntry) {
-      // Filter out skipped messages
       messageEntry.messages = messageEntry.messages.filter((m) => !messagesToSkip.includes(m));
     }
   }
