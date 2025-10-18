@@ -4,7 +4,7 @@ const { DEV_LOG_LEVEL } = require('../const.js');
 module.exports = {
   apps: [
     {
-      name: 'external-bridge-fetcher-binance',
+      name: 'external-bridge-binance-fetcher',
       script: 'pnpm',
       args: '--filter external-bridge dev:fetcher-binance',
       cwd: '../../../',
@@ -12,7 +12,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
-        PROCESS_NAME: 'external-bridge-fetcher-binance',
+        PROCESS_NAME: 'external-bridge-binance-fetcher',
         PLATFORM: 'binance',
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_FETCHER_BINANCE,
@@ -23,7 +23,7 @@ module.exports = {
       },
     },
     {
-      name: 'external-bridge-fetcher-kraken',
+      name: 'external-bridge-kraken-fetcher',
       script: 'pnpm',
       args: '--filter external-bridge dev:fetcher-kraken',
       cwd: '../../../',
@@ -31,7 +31,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
-        PROCESS_NAME: 'external-bridge-fetcher-kraken',
+        PROCESS_NAME: 'external-bridge-kraken-fetcher',
         PLATFORM: 'kraken',
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_FETCHER_KRAKEN,
@@ -42,7 +42,7 @@ module.exports = {
       },
     },
     {
-      name: 'external-bridge-websocket-binance',
+      name: 'external-bridge-binance-websocket',
       script: 'pnpm',
       args: '--filter external-bridge dev:websocket-binance',
       cwd: '../../../',
@@ -50,13 +50,13 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
-        PROCESS_NAME: 'external-bridge-websocket-binance',
+        PROCESS_NAME: 'external-bridge-binance-websocket',
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_BINANCE,
       },
     },
     {
-      name: 'external-bridge-websocket-kraken',
+      name: 'external-bridge-kraken-websocket',
       script: 'pnpm',
       args: '--filter external-bridge dev:websocket-kraken',
       cwd: '../../../',
@@ -64,7 +64,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
-        PROCESS_NAME: 'external-bridge-websocket-kraken',
+        PROCESS_NAME: 'external-bridge-kraken-websocket',
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_KRAKEN,
       },

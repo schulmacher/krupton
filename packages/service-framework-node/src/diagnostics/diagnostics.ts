@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { DefaultEnvContext } from '../environment/types.js';
 import type {
-  Logger,
-  LogSeverity,
-  LogEntry,
-  LogOutputFormat,
   CorrelationIdGenerator,
   DiagnosticConfig,
   DiagnosticContext,
+  LogEntry,
+  Logger,
+  LogOutputFormat,
+  LogSeverity,
 } from './types.js';
 
 const severityLevels: Record<LogSeverity, number> = {
@@ -16,6 +16,19 @@ const severityLevels: Record<LogSeverity, number> = {
   warn: 2,
   error: 3,
   fatal: 4,
+};
+
+const resetColor = '\x1b[0m';
+const msgColor = '\x1b[34m';
+const debugColor = '\x1b[36m';
+const infoColor = '\x1b[32m';
+
+const severityColors: Record<LogSeverity, string> = {
+  debug: debugColor,
+  info: infoColor,
+  warn: '\x1b[33m',
+  error: '\x1b[31m',
+  fatal: '\x1b[35m',
 };
 
 const scopeDelimiter = '.';
@@ -45,30 +58,34 @@ function formatAsJson(entry: LogEntry): string {
 }
 
 function formatAsHumanReadable(entry: LogEntry): string {
-  const severityColors: Record<LogSeverity, string> = {
-    debug: '\x1b[36m',
-    info: '\x1b[32m',
-    warn: '\x1b[33m',
-    error: '\x1b[31m',
-    fatal: '\x1b[35m',
-  };
-
-  const resetColor = '\x1b[0m';
   const severityColor = severityColors[entry.severity];
-  const severityText = entry.severity.toUpperCase().padEnd(5);
 
-  const correlationPart = entry.correlationId ? ` [${entry.correlationId}]` : '';
+  const parts: string[] = [
+    `${severityColor}${entry.severity}${resetColor}`,
+    `process=${msgColor}${entry.serviceName}${resetColor}`,
+    `ts=${msgColor}${entry.timestamp}${resetColor}`,
+    `msg="${severityColor}${entry.message}${resetColor}"`,
+  ];
 
-  const fieldsPart = entry.fields ? ` ${JSON.stringify(entry.fields)}` : '';
+  if (entry.fields) {
+    for (const [key, value] of Object.entries(entry.fields)) {
+      const serializedValue = typeof value === 'object' ? JSON.stringify(value) : `"${value}"`;
+      parts.push(`${key}=${severityColor}${serializedValue}${resetColor}`);
+    }
+  }
 
-  return `${entry.timestamp} ${severityColor}${severityText}${resetColor} [${entry.serviceName}]${correlationPart} ${entry.message}${fieldsPart}`;
+  // if (entry.correlationId) {
+  //   parts.push(`corr_id=${entry.correlationId}`);
+  // }
+
+  return parts.join(' ');
 }
 
 function formatAsStructuredText(entry: LogEntry): string {
   const parts: string[] = [
     `timestamp=${entry.timestamp}`,
-    `severity=${entry.severity}`,
     `service_name=${entry.serviceName}`,
+    `severity=${entry.severity}`,
     `message="${entry.message}"`,
   ];
 
@@ -116,7 +133,7 @@ export function createLogger(
   const minimumSeverityLevel = config.minimumSeverity
     ? severityLevels[config.minimumSeverity]
     : severityLevels.info;
-  const outputFormat = config.outputFormat ?? 'json';
+  const outputFormat = config.outputFormat ?? 'human';
 
   function log(severity: LogSeverity, message: string, fields?: Record<string, unknown>): void {
     if (severityLevels[severity] < minimumSeverityLevel) {
@@ -129,7 +146,10 @@ export function createLogger(
       message,
       serviceName,
       correlationId,
-      fields,
+      fields: {
+        ...config.defaultLoggerArgs,
+        ...fields,
+      },
     };
 
     const formattedOutput = formatLogEntry(logEntry, outputFormat);
@@ -139,6 +159,22 @@ export function createLogger(
     } else {
       console.log(formattedOutput);
     }
+  }
+
+  function formatErrorAsParams(error: unknown): Record<string, unknown> | undefined {
+    if (error instanceof Error) {
+      return {
+        ...(error.name !== 'Error' ? { name: error.name } : {}),
+        stack: error.stack,
+        ...('toErrorPlainObject' in error && typeof error.toErrorPlainObject === 'function'
+          ? error.toErrorPlainObject()
+          : {}),
+      };
+    }
+
+    return {
+      error: String(error),
+    };
   }
 
   return {
@@ -154,12 +190,38 @@ export function createLogger(
       log('warn', message, fields);
     },
 
-    error(message: string, fields?: Record<string, unknown>): void {
-      log('error', message, fields);
+    error(
+      error: unknown,
+      message: string | Record<string, unknown>,
+      fields?: Record<string, unknown>,
+    ): void {
+      const additionalFields = typeof message === 'string' ? fields : message;
+      const additionalMessage = typeof message === 'string' ? message : undefined;
+      const errorMessage = error instanceof Error ? error.message : undefined;
+
+      log('error', errorMessage ?? additionalMessage ?? String(error), {
+        ...formatErrorAsParams(error),
+        ...additionalFields,
+        ...fields,
+        ...(additionalMessage ? { additionalMessage } : {}),
+      });
     },
 
-    fatal(message: string, fields?: Record<string, unknown>): void {
-      log('fatal', message, fields);
+    fatal(
+      error: unknown,
+      message: string | Record<string, unknown>,
+      fields?: Record<string, unknown>,
+    ): void {
+      const additionalFields = typeof message === 'string' ? fields : message;
+      const additionalMessage = typeof message === 'string' ? message : undefined;
+      const errorMessage = error instanceof Error ? error.message : undefined;
+
+      log('fatal', errorMessage ?? additionalMessage ?? String(error), {
+        ...formatErrorAsParams(error),
+        ...additionalFields,
+        ...fields,
+        ...(additionalMessage ? { additionalMessage } : {}),
+      });
     },
 
     createChild(scopeId: string): Logger {
@@ -179,7 +241,7 @@ export function createDiagnosticContext(
 ): DiagnosticContext {
   const correlationIdGenerator = createCorrelationIdGenerator();
   const serviceName = envContext.config.PROCESS_NAME;
-  const rootId = correlationIdGenerator.generateRootId();
+  const rootId = config.correlationId ?? correlationIdGenerator.generateRootId();
   const rootLogger = createLogger(serviceName, rootId, config);
 
   return {
@@ -187,6 +249,16 @@ export function createDiagnosticContext(
     logger: rootLogger,
     createChildLogger: (correlationId: string) => {
       return createLogger(serviceName, correlationId, config);
+    },
+    getChildDiagnosticContext: (defaultLoggerArgs?: Record<string, unknown>, scopeId?: string) => {
+      return createDiagnosticContext(envContext, {
+        ...config,
+        correlationId: scopeId ? scopeId + '::' + rootId : rootId,
+        defaultLoggerArgs: {
+          ...config.defaultLoggerArgs,
+          ...defaultLoggerArgs,
+        },
+      });
     },
   };
 }

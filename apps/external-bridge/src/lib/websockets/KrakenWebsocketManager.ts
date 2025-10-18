@@ -137,7 +137,7 @@ export class KrakenWebsocketManager<
             } else if ('error' in data) {
               // Handle error response
               this.#serviceContext.diagnosticContext.logger.error(
-                'Subscription error received',
+                new Error('Subscription error received'),
                 data,
               );
             }
@@ -161,15 +161,13 @@ export class KrakenWebsocketManager<
               stream_type: error.streamType || 'unknown',
             });
             serviceContext.diagnosticContext.logger.error(
+              error,
               `WebSocket validation error for stream "${error.streamType}"`,
-              error.getLogData(),
             );
           } else {
             serviceContext.diagnosticContext.logger.error(
+              error,
               `WebSocket error: ${error.message}`,
-              // TODO change diagnostic logger to accept unknown/error
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              error as any,
             );
           }
         },
@@ -178,6 +176,7 @@ export class KrakenWebsocketManager<
           this.#connectionStartTime = Date.now();
           this.#startUptimeTracking();
           serviceContext.diagnosticContext.logger.info('WebSocket opened');
+          void this.#subscribe();
         },
         onReconnect: (attempt) => {
           metricsContext.metrics.reconnectionAttempts.inc({ platform });
@@ -218,14 +217,18 @@ export class KrakenWebsocketManager<
   }
 
   async connect() {
-    const { diagnosticContext, metricsContext } = this.#serviceContext;
-    const platform = 'kraken';
-
     // Connect to the WebSocket
     this.#consumer.connect();
 
     // Wait for connection to be established with timeout
-    await Promise.race([this.#waitForConnection(), this.#connectionTimeout(10_000)]);
+    await this.#waitForConnection();
+
+    // Kraken doesn't require periodic reconnection like Binance
+  }
+
+  async #subscribe() {
+    const { diagnosticContext, metricsContext } = this.#serviceContext;
+    const platform = 'kraken';
 
     // Subscribe to each channel
     const subscriptionPromises = this.#subscriptionRequests.map(async (request) => {
@@ -263,8 +266,6 @@ export class KrakenWebsocketManager<
     diagnosticContext.logger.info(
       'KrakenWebsocketManager connected and subscribed to all channels',
     );
-
-    // Kraken doesn't require periodic reconnection like Binance
   }
 
   async unsubscribe() {
@@ -296,7 +297,6 @@ export class KrakenWebsocketManager<
     const { diagnosticContext, metricsContext } = this.#serviceContext;
     const platform = 'kraken';
 
-    this.#clearReconnectionTimer();
     this.#stopUptimeTracking();
     this.#consumer.disconnect();
 
@@ -311,14 +311,6 @@ export class KrakenWebsocketManager<
     while (!this.#consumer.isConnected()) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-  }
-
-  async #connectionTimeout(ms: number): Promise<void> {
-    await new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`WebSocket connection timeout after ${ms}ms`));
-      }, ms);
-    });
   }
 
   async #sendRequestAndWaitForResponse(
@@ -353,73 +345,21 @@ export class KrakenWebsocketManager<
           this.#expectedAcknowledgments.delete(key);
         }, timeoutMs),
       ),
-    ]);
+    ]).catch((error) => {
+      this.#serviceContext.diagnosticContext.logger.error(error, {
+        request,
+        expectedAcknowledgments,
+        timeoutMs,
+      });
+      this.#serviceContext.processContext.restart();
+      throw error;
+    });
 
     if ('error' in response) {
       throw new Error(`Failed to ${request.method} to channel: ${response.error}`);
     }
 
     return response;
-  }
-
-  #scheduleReconnection() {
-    const { diagnosticContext } = this.#serviceContext;
-    const TWENTY_THREE_HOURS_MS = 23 * 60 * 60 * 1000;
-
-    this.#clearReconnectionTimer();
-
-    this.#reconnectionTimer = setTimeout(() => {
-      diagnosticContext.logger.info(
-        'KrakenWebsocketManager initiating scheduled reconnection after 23 hours',
-      );
-
-      this.#performReconnection().catch((error) => {
-        diagnosticContext.logger.error(
-          'KrakenWebsocketManager failed to reconnect',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          error as any,
-        );
-      });
-    }, TWENTY_THREE_HOURS_MS);
-
-    diagnosticContext.logger.info('KrakenWebsocketManager scheduled reconnection in 23 hours');
-  }
-
-  #clearReconnectionTimer() {
-    if (this.#reconnectionTimer) {
-      clearTimeout(this.#reconnectionTimer);
-      this.#reconnectionTimer = null;
-    }
-  }
-
-  async #performReconnection() {
-    const { diagnosticContext } = this.#serviceContext;
-
-    if (this.#isReconnecting) {
-      diagnosticContext.logger.warn('KrakenWebsocketManager reconnection already in progress');
-      return;
-    }
-
-    this.#isReconnecting = true;
-
-    try {
-      diagnosticContext.logger.info('KrakenWebsocketManager disconnecting');
-      await this.disconnect();
-
-      diagnosticContext.logger.info('KrakenWebsocketManager reconnecting');
-      await this.connect();
-
-      diagnosticContext.logger.info('KrakenWebsocketManager reconnection completed successfully');
-    } catch (error) {
-      diagnosticContext.logger.error(
-        'KrakenWebsocketManager reconnection failed',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        error as any,
-      );
-      throw error;
-    } finally {
-      this.#isReconnecting = false;
-    }
   }
 
   #startUptimeTracking() {

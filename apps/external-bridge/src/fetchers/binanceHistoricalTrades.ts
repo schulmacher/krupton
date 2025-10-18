@@ -158,40 +158,42 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
           });
           await sleep(1e4);
         }
-      } while (!wsHole?.gapStart || !wsHole?.gapEnd);
 
-      const lastApiId = wsHole.lastApiRecord?.response?.at(-1)?.id;
-      const fromId = Math.max(lastApiId ? lastApiId + 1 : 0, wsHole.gapStart.message.data.t + 1);
-      const limit = Math.min(1000, wsHole.gapEnd.message.data.t - fromId);
 
-      if (process.env.DEBUG === 'true') {
-        console.log('\n');
-        console.log('='.repeat(12), normalizedSymbol, '='.repeat(12));
-        console.log('lastApiId', lastApiId);
-        console.log('gapStart', wsHole.gapStart.id);
-        console.log('gapStart', wsHole.gapStart.message.data.t);
-        console.log('gapEnd', wsHole.gapEnd.id);
-        console.log('gapEnd', wsHole.gapEnd.message.data.t);
-        console.log('fromId', fromId);
-        console.log('gapSize', wsHole.gapEnd.message.data.t - fromId);
-        console.log('limit', limit);
-        console.log('totalRows', wsHole.totalRows);
-        console.log('\n');
+        if (!wsHole?.gapStart || !wsHole?.gapEnd) {
+          continue;
+        }
 
-        console.log({
-          symbol,
-          fromId,
-          limit,
-        });
-      }
+        const lastApiId = wsHole.lastApiRecord?.response?.at(-1)?.id;
+        const fromId = Math.max(lastApiId ? lastApiId + 1 : 0, wsHole.gapStart.message.data.t + 1);
+        const limit = Math.min(1000, wsHole.gapEnd.message.data.t - fromId);
 
-      return {
-        query: {
-          symbol,
-          fromId,
-          limit,
-        },
-      };
+        if (limit < 1) {
+          continue;
+        }
+
+        if (process.env.DEBUG !== 'true') {
+          context.diagnosticContext.logger.debug('Debugging binance historical trades', {
+            symbol: normalizedSymbol,
+            lastApiId,
+            gapStartId: wsHole.gapStart.id,
+            gapStartTradeId: wsHole.gapStart.message.data.t,
+            gapEndId: wsHole.gapEnd.id,
+            gapEndTradeId: wsHole.gapEnd.message.data.t,
+            fromId,
+            limit,
+            totalRows: wsHole.totalRows,
+          });
+        }
+
+        return {
+          query: {
+            symbol,
+            fromId,
+            limit,
+          },
+        };
+      } while (true);
     },
     onSuccess: async ({ query, response }) =>
       handleHistoricalTradesResponse(context, query, response, endpoint, symbol),

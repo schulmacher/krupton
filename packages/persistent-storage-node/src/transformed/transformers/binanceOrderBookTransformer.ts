@@ -4,6 +4,7 @@ import type { UnifiedOrderBookSnapshot } from '../unifiedOrderBook.js';
 
 export function transformBinanceOrderBookToUnified(
   record: EndpointStorageRecord<typeof BinanceApi.GetOrderBookEndpoint>,
+  normalizedSymbol: string,
 ): UnifiedOrderBookSnapshot {
   const { response, timestamp } = record;
   const symbol = record.request.query?.symbol ?? '';
@@ -14,9 +15,10 @@ export function transformBinanceOrderBookToUnified(
 
   return {
     type: 'snapshot',
-    symbol,
+    symbol: normalizedSymbol,
     bids: response.bids,
     asks: response.asks,
-    timestamp,
+    time: timestamp,
+    platform: 'binance',
   };
 }

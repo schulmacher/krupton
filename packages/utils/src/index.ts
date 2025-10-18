@@ -3,14 +3,17 @@ export async function sleep(ms: number) {
 }
 
 export async function tryHard<T>(
-  fn: () => Promise<T>,
-  onRetryAttempt: (error: unknown) => number | null | Promise<number | null>,
+  fn: (attempt: number) => Promise<T>,
+  onRetryAttempt: (error: unknown, attempt: number) => number | null | Promise<number | null>,
 ): Promise<T> {
+  let attemptCount = 0;
+
   while (true) {
     try {
-      return await fn();
+      return await fn(attemptCount);
     } catch (error) {
-      const waitMs = await onRetryAttempt(error);
+      attemptCount++;
+      const waitMs = await onRetryAttempt(error, attemptCount);
 
       if (waitMs === null) {
         throw error;
@@ -27,17 +30,13 @@ export function createTryhardExponentialBackoff(options: {
   maxDelayMs?: number;
   multiplier?: number;
   maxAttempts?: number;
-}): (error: unknown) => Promise<number> {
+}): (error: unknown, attemptCount: number) => Promise<number> {
   const { onRetryAttempt, initialDelayMs = 1000, maxDelayMs = 60000, multiplier = 2 } = options;
 
-  let attemptCount = 0;
-
-  return async (error: unknown): Promise<number> => {
+  return async (error: unknown, attemptCount: number): Promise<number> => {
     if (options?.maxAttempts && attemptCount >= options.maxAttempts) {
       throw error;
     }
-
-    attemptCount++;
 
     await onRetryAttempt(error, attemptCount);
 
@@ -77,4 +76,13 @@ export function arrayToMultiMap<T, V = T>(
 
 export function notNil<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
+}
+
+export function stringifyJSONSafe(value: unknown): unknown | undefined {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return JSON.stringify(value as any);
+  } catch {
+    return;
+  }
 }

@@ -3,7 +3,7 @@ import { createKrakenAssetInfoFetcherLoop } from '../../fetchers/krakenAsset.js'
 import { createKrakenAssetPairsFetcherLoop } from '../../fetchers/krakenAssetPairs.js';
 import { createKrakenRecentTradesFetcherLoops } from '../../fetchers/krakenRecentTrades.js';
 import { initAndDownloadKrakenLatestAssetPairsProvider } from '../../lib/symbol/krakenLatestAssetsProvider.js';
-import { unnormalizeToKrakenALTSymbol } from '../../lib/symbol/normalizeSymbol.js';
+import { normalizeSymbol, unnormalizeToKrakenALTSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import type { KrakenFetcherContext } from './krakenFetcherContext.js';
 
 export async function startKrakenFetcherService(context: KrakenFetcherContext): Promise<void> {
@@ -45,10 +45,17 @@ export async function startKrakenFetcherService(context: KrakenFetcherContext): 
     // ...(await createKrakenOrderBookFetcherLoops(context, krakenSymbols)),
   ];
 
+  for (const producer of Object.values(context.producers)) {
+    await producer.connect(krakenSymbols.map((s) => normalizeSymbol('kraken', s)));
+  }
+
   const registerGracefulShutdownCallback = () => {
     processContext.onShutdown(async () => {
       diagnosticContext.logger.info('Shutting down fetcher services');
       await Promise.all(fetcherLoops.map((service) => service.stop()));
+      for (const producer of Object.values(context.producers)) {
+        await producer.close();
+      }
     });
   };
   registerGracefulShutdownCallback();

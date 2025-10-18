@@ -535,5 +535,90 @@ describe('createWSConsumer', () => {
       consumer.send('test message');
     }).toThrow('WebSocket is not connected');
   });
+
+  it('should terminate connection and attempt reconnect when pong is not received', async () => {
+    // Spy on console.warn to verify the warning message
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    
+    // Use fake timers from the start
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    
+    const tradeHandler = vi.fn();
+    const depthHandler = vi.fn();
+    const onReconnect = vi.fn();
+    const onClose = vi.fn();
+    let clientTerminateCalled = false;
+
+    const handlers = createWSHandlers(MockDefinitions, {
+      trade: tradeHandler,
+      depth: depthHandler,
+    });
+
+    const consumer = createWSConsumer(
+      handlers,
+      {
+        url: `ws://localhost:${port}`,
+        validation: true,
+        reconnect: true,
+        reconnectInterval: 1000,
+      },
+      { onReconnect, onClose },
+    );
+
+    const connectionPromise = new Promise<void>((resolve) => {
+      server.once('connection', (ws) => {
+        // Monitor when the connection is terminated/closed
+        ws.on('close', (code) => {
+          if (code === 1006) {
+            // 1006 indicates abnormal closure (terminate was likely called)
+            clientTerminateCalled = true;
+          }
+        });
+        
+        // Don't respond to pings - this simulates a stalled connection
+        ws.on('ping', () => {
+          // Intentionally not sending pong to trigger the timeout
+        });
+        
+        // Use real timer for this resolve to work with WebSocket handshake
+        setTimeout(resolve, 50);
+      });
+    });
+
+    consumer.connect();
+    
+    // Advance timers to allow connection to establish
+    await vi.advanceTimersByTimeAsync(100);
+    await connectionPromise;
+
+    expect(consumer.isConnected()).toBe(true);
+
+    // Fast-forward through first ping interval (15s)
+    // After this, wsIsAlive becomes false (no pong received)
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    // Fast-forward through second ping interval (another 15s)
+    // Since no pong was received, wsIsAlive is still false, so terminate should be called
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    // Allow some time for the close event and reconnection logic to process
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // Verify that the warning was logged
+    expect(consoleWarnSpy).toHaveBeenCalledWith('No pong — reconnecting...');
+    
+    // Verify that close event was triggered
+    expect(onClose).toHaveBeenCalled();
+    
+    // Verify that reconnection was attempted
+    expect(onReconnect).toHaveBeenCalledWith(1);
+    
+    // Verify abnormal closure (which indicates terminate was called)
+    expect(clientTerminateCalled).toBe(true);
+
+    consumer.disconnect();
+    consoleWarnSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });
 

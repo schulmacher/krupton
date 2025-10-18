@@ -1,23 +1,22 @@
 import { BinanceApi } from '@krupton/api-interface';
-import { createZmqProducerRegistry, zmqSocketTempalates } from '@krupton/messaging-node';
+import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 import {
+  BinanceDiffDepthWSRecord,
+  BinanceOrderBookStorageRecord,
+  BinanceTradeWSRecord,
   createBinanceDiffDepthWSStorage,
   createBinanceExchangeInfoStorage,
   createBinanceOrderBookStorage,
   createBinanceTradeWSStorage,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { createBinanceAuthHeaders } from '../../../../../packages/api-client-node/dist/apiAuth.js';
-import { createApiClient } from '../../../../../packages/api-client-node/dist/apiClient.js';
 import { binanceWebSocketEnvSchema, type BinanceWebSocketEnv } from './environment.js';
+import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 
 export function createBinanceWebsocketContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);
-  envContext.config.LOG_LEVEL = 'debug';
 
-  const diagnosticContext = SF.createDiagnosticContext(envContext, {
-    minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
-  });
+  const diagnosticContext = SF.createDiagnosticContext(envContext);
 
   const metricsContext = SF.createMetricsContext({
     envContext,
@@ -62,11 +61,17 @@ export function createBinanceWebsocketContext(processContext: SF.ProcessLifecycl
   );
 
   const producers = {
-    binanceTrade: createZmqProducerRegistry({
-      socketTemplate: zmqSocketTempalates.binanceTradeWs,
+    binanceTrade: createZmqPublisherRegistry<BinanceTradeWSRecord>({
+      socketTemplate: zmqSocketTempalatesRawData.binanceTradeWs,
+      diagnosticContext,
     }),
-    binanceDiffDepth: createZmqProducerRegistry({
-      socketTemplate: zmqSocketTempalates.binanceDiffDepth,
+    binanceDiffDepth: createZmqPublisherRegistry<BinanceDiffDepthWSRecord>({
+      socketTemplate: zmqSocketTempalatesRawData.binanceDiffDepth,
+      diagnosticContext,
+    }),
+    binanceOrderBook: createZmqPublisherRegistry<BinanceOrderBookStorageRecord>({
+      socketTemplate: zmqSocketTempalatesRawData.binanceOrderBook,
+      diagnosticContext,
     }),
   };
 

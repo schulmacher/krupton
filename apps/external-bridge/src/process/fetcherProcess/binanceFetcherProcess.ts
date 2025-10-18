@@ -37,9 +37,9 @@ export async function startExternalBridgeFetcherService(
   context.metricsContext.metrics.totalErrorsGauge.set(0);
   context.metricsContext.metrics.activeSymbolsGauge.set(binanceSymbols.length);
 
-  Object.values(context.producers).forEach((producer) => {
-    producer.connect(binanceSymbols.map((s) => normalizeSymbol('binance', s)));
-  });
+  for (const producer of Object.values(context.producers)) {
+    await producer.connect(binanceSymbols.map((s) => normalizeSymbol('binance', s)));
+  }
 
   const fetcherLoops = [
     ...(await createBinanceHistoricalTradesFetcherLoops(context, binanceSymbols)),
@@ -50,6 +50,9 @@ export async function startExternalBridgeFetcherService(
     processContext.onShutdown(async () => {
       diagnosticContext.logger.info('Shutting down fetcher services');
       await Promise.all(fetcherLoops.map((service) => service.stop()));
+      for (const producer of Object.values(context.producers)) {
+        await producer.close();
+      }
     });
   };
   registerGracefulShutdownCallback();

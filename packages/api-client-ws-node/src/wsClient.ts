@@ -20,7 +20,7 @@ export class WebSocketValidationError extends Error {
     this.name = 'WebSocketValidationError';
   }
 
-  getLogData() {
+  toErrorPlainObject() {
     let parsedMessage: unknown;
     try {
       parsedMessage = JSON.parse(this.rawMessage);
@@ -107,6 +107,8 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
   let ws: WebSocket | null = null;
   let reconnectAttempts = 0;
   let reconnectTimer: NodeJS.Timeout | null = null;
+  let pingInterval: NodeJS.Timeout | null = null;
+  let wsIsAlive = false;
   let isManualDisconnect = false;
 
   const enableValidation = config.validation ?? true;
@@ -116,7 +118,7 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
 
   const validators = enableValidation ? createMessageValidator(definitions) : null;
 
-  function handleMessage(rawMessage: string): void {
+  async function handleMessage(rawMessage: string): Promise<void> {
     let parsedMessage: unknown;
 
     try {
@@ -146,7 +148,7 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
 
     const handler = handlers.handlers[streamType];
     if (handler) {
-      handler(parsedMessage as never, rawMessage);
+      await handler(parsedMessage as never, rawMessage);
     } else {
       handlers.onError?.(new Error(`No handler registered for stream type: ${String(streamType)}`));
     }
@@ -184,12 +186,30 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
 
       ws.on('open', () => {
         reconnectAttempts = 0;
+        wsIsAlive = true;
         handlers.onOpen?.();
+    
+        // Start heartbeat
+        clearInterval(pingInterval!);
+        pingInterval = setInterval(() => {
+          if (!wsIsAlive) {
+            console.warn('No pong — reconnecting...');
+            ws?.terminate(); // triggers 'close' event
+            clearInterval(pingInterval!);
+            return;
+          }
+          wsIsAlive = false;
+          ws?.ping();
+        }, 15_000); // every 15s
+      });
+      
+      ws.on('pong', () => {
+        wsIsAlive = true;
       });
 
-      ws.on('message', (data: WebSocket.RawData) => {
+      ws.on('message', async (data: WebSocket.RawData) => {
         const message = data.toString();
-        handleMessage(message);
+        await handleMessage(message);
       });
 
       ws.on('close', (code: number, reason: Buffer) => {
@@ -217,6 +237,11 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
+    }
+
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
     }
 
     if (ws) {

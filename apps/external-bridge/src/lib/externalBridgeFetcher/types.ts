@@ -24,6 +24,7 @@ export type BuildRequestContext<E extends EndpointDefinition> = {
 
 export type FetchSuccessContext<E extends EndpointDefinition> = ExtractEndpointParams<E> & {
   response: ExtractEndpointDefinitionResponseSchema<E>;
+  prevResponse: ExtractEndpointDefinitionResponseSchema<E> | null;
 };
 
 export interface FetcherConfig<E extends EndpointDefinition> {

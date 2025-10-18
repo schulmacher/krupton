@@ -126,6 +126,7 @@ function createApiImplementationWithValidation<T extends EndpointDefinition>(
         throw new ApiClientRequestValidationError(
           `Invalid query parameters: ${errors.map((e) => e.message).join(', ')}`,
           errors,
+          params,
         );
       }
     }
@@ -138,6 +139,7 @@ function createApiImplementationWithValidation<T extends EndpointDefinition>(
         throw new ApiClientRequestValidationError(
           `Invalid path parameters: ${errors.map((e) => e.message).join(', ')}`,
           errors,
+          params,
         );
       }
     }
@@ -150,6 +152,7 @@ function createApiImplementationWithValidation<T extends EndpointDefinition>(
         throw new ApiClientRequestValidationError(
           `Invalid body parameters: ${errors.map((e) => e.message).join(', ')}`,
           errors,
+          params,
         );
       }
     }

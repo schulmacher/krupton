@@ -1,0 +1,46 @@
+{
+  "name": "@krupton/messaging-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./test": {
+      "types": "./dist/test.d.ts",
+      "source": "./src/test.ts",
+      "default": "./dist/test.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@krupton/api-interface": "workspace:*",
+    "@krupton/config": "workspace:*",
+    "@krupton/persistent-storage-node": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
+    "@krupton/utils": "workspace:*",
+    "zeromq": "^6.5.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
+  }
+}

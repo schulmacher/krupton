@@ -46,19 +46,16 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
     streamMessages.push({ streamName, messages: [] });
   }
 
-  // Fetch and push messages for a stream
   async function triggerNextMessagesForStream(streamName: string): Promise<boolean> {
     const streamEntry = activeStreams.find((s) => s.streamName === streamName);
     if (!streamEntry) {
       return false;
     }
 
-    // If a fetch is already in progress, return the existing promise
     if (streamEntry.fetchPromise) {
       return streamEntry.fetchPromise;
     }
 
-    // Create and store the fetch promise
     const fetchPromise = (async (): Promise<boolean> => {
       try {
         const result = await streamEntry.generator.next();
@@ -82,7 +79,6 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
           }
           return true;
         } else {
-          // Stream exhausted, remove it
           const streamIndex = activeStreams.findIndex((s) => s.streamName === streamName);
           if (streamIndex !== -1) {
             activeStreams.splice(streamIndex, 1);
@@ -94,7 +90,6 @@ export async function* mergeGenerators<T extends Record<string, AsyncGenerator<u
           return false;
         }
       } finally {
-        // Clear the promise after completion
         streamEntry.fetchPromise = undefined;
       }
     })();

@@ -88,7 +88,7 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
         totalFetchesGauge.set(state.fetchCount);
         lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
       } catch (error) {
-        diagnosticContext.logger.error('Fetch monitoring failed', {
+        diagnosticContext.logger.error(error, 'Fetch monitoring failed', {
           platform: env.PLATFORM,
           symbol: symbol,
           endpoint: endpointPath,
@@ -100,6 +100,7 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
         await onSuccess({
           ...prevParams,
           response,
+          prevResponse,
         });
       }
 
@@ -133,13 +134,13 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
       state.errors++;
       totalErrorsGauge.set(state.errors);
 
-      diagnosticContext.logger.error('Fetch failed', {
+      diagnosticContext.logger.error(error,'Fetch failed', {
         platform: env.PLATFORM,
         symbol: symbol,
         endpoint: endpointPath,
         error:
           error instanceof ApiClientError
-            ? error.getLogData()
+            ? error.toErrorPlainObject()
             : error instanceof Error
               ? error.message
               : String(error),

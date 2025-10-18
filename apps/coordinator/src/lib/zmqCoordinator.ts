@@ -1,7 +1,11 @@
 import * as zmq from 'zeromq';
 import type { CoordinatorContext } from '../context.js';
 import type { MessageHandler } from './messageHandler.js';
-import type { IncomingMessage, OutgoingMessage, AssignmentMessage, HeartbeatMessage, RegistrationMessage } from './types.js';
+import type {
+  AssignmentMessage,
+  IncomingMessage,
+  OutgoingMessage
+} from './types.js';
 
 export function createZmqCoordinator(context: CoordinatorContext, messageHandler: MessageHandler) {
   const { diagnosticContext, envContext } = context;
@@ -15,7 +19,7 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
 
   function sendAssignment(workerId: string, assignment: AssignmentMessage): void {
     const identity = workerIdentities.get(workerId);
-    
+
     if (!identity) {
       logger.warn('Cannot send assignment, worker identity not found', { workerId });
       return;
@@ -27,7 +31,7 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
     };
 
     const messageStr = JSON.stringify(message);
-    
+
     socket
       .send([identity, messageStr])
       .then(() => {
@@ -37,7 +41,7 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
         });
       })
       .catch((error) => {
-        logger.error('Failed to send assignment', {
+        logger.error(error, 'Failed to send assignment', {
           workerId,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -63,7 +67,7 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
       // Start receiving messages
       void receiveMessages();
     } catch (error) {
-      logger.error('Failed to bind ZMQ socket', {
+      logger.error(error, 'Failed to bind ZMQ socket', {
         address: bindAddress,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -101,14 +105,14 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
             logger.warn('Unknown message type received');
           }
         } catch (error) {
-          logger.error('Error processing message', {
+          logger.error(error, 'Error processing message', {
             error: error instanceof Error ? error.message : String(error),
           });
         }
       }
     } catch (error) {
       if (isRunning) {
-        logger.error('Error receiving messages', {
+        logger.error(error, 'Error receiving messages', {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -126,7 +130,7 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
       await socket.close();
       logger.info('ZMQ coordinator stopped');
     } catch (error) {
-      logger.error('Error stopping ZMQ coordinator', {
+      logger.error(error, 'Error stopping ZMQ coordinator', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -147,4 +151,3 @@ export function createZmqCoordinator(context: CoordinatorContext, messageHandler
 }
 
 export type ZmqCoordinator = ReturnType<typeof createZmqCoordinator>;
-

@@ -25,10 +25,10 @@ See [dev/README.md](./dev/README.md) for complete documentation.
 
 **Services:**
 - coordinator (port 3500)
-- external-bridge-fetcher-binance (port 3000)
-- external-bridge-fetcher-kraken (port 3001)
-- external-bridge-websocket-binance (port 3100)
-- external-bridge-websocket-kraken (port 3101)
+- external-bridge-binance-fetcher (port 3000)
+- external-bridge-kraken-fetcher (port 3001)
+- external-bridge-binance-websocket (port 3100)
+- external-bridge-kraken-websocket (port 3101)
 - external-bridge-storage (port 3200)
 - perses (port 8080)
 - victoriametrics (port 8428)

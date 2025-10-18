@@ -69,11 +69,9 @@ export class BinanceWebsocketManager<
   #subscriptions: StreamSubscriptions<TDefinitions>;
   #pendingRequests: Map<number, PromiseLock<BinanceWS.CommonResponseStream>> = new Map();
   #requestIdCounter: number = 0;
-  #afterConnect?: (manager: BinanceWebsocketManager<TDefinitions>) => Promise<void>;
 
   // Binance requires a new connection every 24 hours
-  #reconnectionTimer: NodeJS.Timeout | null = null;
-  #isReconnecting: boolean = false;
+  #restartTimer: NodeJS.Timeout | null = null;
   #connectionStartTime: number | null = null;
   #uptimeUpdateInterval: NodeJS.Timeout | null = null;
 
@@ -81,16 +79,12 @@ export class BinanceWebsocketManager<
     serviceContext: BinanceWebSocketServiceContext,
     handlers: StreamHandlersWithDefinitions<TDefinitions>,
     subscriptions: StreamSubscriptions<TDefinitions>,
-    options?: {
-      afterConnect?: (manager: BinanceWebsocketManager<TDefinitions>) => Promise<void>;
-    },
   ) {
     const { envContext, metricsContext } = serviceContext;
     const platform = 'binance';
 
     this.#serviceContext = serviceContext;
     this.#subscriptions = subscriptions;
-    this.#afterConnect = options?.afterConnect;
 
     const wrappedHandlers = wrapHandlersWithMetrics(serviceContext, handlers, platform);
 
@@ -150,25 +144,28 @@ export class BinanceWebsocketManager<
               platform,
               stream_type: error.streamType || 'unknown',
             });
-            serviceContext.diagnosticContext.logger.error(
-              `WebSocket validation error for stream "${error.streamType}"`,
-              error.getLogData(),
-            );
+            serviceContext.diagnosticContext.logger.error(error, `WebSocket validation error`, {
+              streamType: error.streamType,
+            });
           } else {
             const errorMessage = error.message || String(error);
             const isIdentificationError = errorMessage.includes('Unable to identify message type');
             const isHandlerError = errorMessage.includes('No handler registered');
 
-            serviceContext.diagnosticContext.logger.error(`WebSocket error: ${errorMessage}`, {
-              errorType: error.constructor.name,
-              message: errorMessage,
-              isIdentificationError,
-              isHandlerError,
-              pendingRequestsCount: this.#pendingRequests.size,
-              pendingRequestIds: Array.from(this.#pendingRequests.keys()),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              fullError: error as any,
-            });
+            serviceContext.diagnosticContext.logger.error(
+              error,
+              `WebSocket error: ${errorMessage}`,
+              {
+                errorType: error.constructor.name,
+                message: errorMessage,
+                isIdentificationError,
+                isHandlerError,
+                pendingRequestsCount: this.#pendingRequests.size,
+                pendingRequestIds: Array.from(this.#pendingRequests.keys()),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                fullError: error as any,
+              },
+            );
           }
         },
         onOpen: () => {
@@ -176,6 +173,8 @@ export class BinanceWebsocketManager<
           this.#connectionStartTime = Date.now();
           this.#startUptimeTracking();
           serviceContext.diagnosticContext.logger.info('WebSocket opened');
+
+          void this.#subscribe();
         },
         onReconnect: (attempt) => {
           metricsContext.metrics.reconnectionAttempts.inc({ platform });
@@ -212,22 +211,15 @@ export class BinanceWebsocketManager<
     this.#consumer.connect();
 
     // Wait for connection to be established with timeout
-    await Promise.race([this.#waitForConnection(), this.#connectionTimeout(10_000)]);
+    await this.#waitForConnection();
 
     diagnosticContext.logger.info('BinanceWebsocketManager connected');
 
-    // Call afterConnect hook if provided
-    if (this.#afterConnect) {
-      diagnosticContext.logger.info('BinanceWebsocketManager calling afterConnect hook');
-      await this.#afterConnect(this);
-      diagnosticContext.logger.info('BinanceWebsocketManager afterConnect hook completed');
-    }
-
     // Schedule reconnection before 24-hour limit
-    this.#scheduleReconnection();
+    this.#scheduleRestart();
   }
 
-  async subscribe() {
+  async #subscribe() {
     const { diagnosticContext, metricsContext } = this.#serviceContext;
     const platform = 'binance';
 
@@ -334,10 +326,14 @@ export class BinanceWebsocketManager<
         },
       );
     } catch (error) {
-      diagnosticContext.logger.error('sendRequestAndWaitForResponse: failed to send request', {
-        requestId: request.id,
+      diagnosticContext.logger.error(
         error,
-      });
+        'sendRequestAndWaitForResponse: failed to send request',
+        {
+          requestId: request.id,
+          error,
+        },
+      );
       this.#pendingRequests.delete(request.id);
       throw error;
     }
@@ -359,16 +355,27 @@ export class BinanceWebsocketManager<
           this.#pendingRequests.delete(request.id);
         }, timeoutMs),
       ),
-    ]);
+    ]).catch((error) => {
+      this.#serviceContext.diagnosticContext.logger.error(error, {
+        request,
+        timeoutMs,
+      });
+      this.#serviceContext.processContext.restart();
+      throw error;
+    });
 
     this.#pendingRequests.delete(request.id);
 
     if ('error' in response) {
-      diagnosticContext.logger.error('sendRequestAndWaitForResponse: response contains error', {
-        requestId: request.id,
-        error: response.error,
-      });
-      throw new Error(`Request failed: ${JSON.stringify(response.error)}`);
+      const error =new Error(`Request failed: ${JSON.stringify(response.error)}`);
+      diagnosticContext.logger.error(
+        error,
+        {
+          requestId: request.id,
+          error: response.error,
+        },
+      );
+      throw error;
     }
 
     diagnosticContext.logger.debug(
@@ -381,66 +388,27 @@ export class BinanceWebsocketManager<
     return response;
   }
 
-  #scheduleReconnection() {
+  #scheduleRestart() {
     const { diagnosticContext } = this.#serviceContext;
     const TWENTY_THREE_HOURS_MS = 23 * 60 * 60 * 1000;
 
     this.#clearReconnectionTimer();
 
-    this.#reconnectionTimer = setTimeout(() => {
+    this.#restartTimer = setTimeout(() => {
       diagnosticContext.logger.info(
-        'BinanceWebsocketManager initiating scheduled reconnection after 23 hours',
+        'BinanceWebsocketManager initiating scheduled restart after 23 hours',
       );
 
-      this.#performReconnection().catch((error) => {
-        diagnosticContext.logger.error(
-          'BinanceWebsocketManager failed to reconnect',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          error as any,
-        );
-      });
+      this.#serviceContext.processContext.restart();
     }, TWENTY_THREE_HOURS_MS);
 
-    diagnosticContext.logger.info('BinanceWebsocketManager scheduled reconnection in 23 hours');
+    diagnosticContext.logger.info('BinanceWebsocketManager scheduled restart in 23 hours');
   }
 
   #clearReconnectionTimer() {
-    if (this.#reconnectionTimer) {
-      clearTimeout(this.#reconnectionTimer);
-      this.#reconnectionTimer = null;
-    }
-  }
-
-  async #performReconnection() {
-    const { diagnosticContext } = this.#serviceContext;
-
-    if (this.#isReconnecting) {
-      diagnosticContext.logger.warn('BinanceWebsocketManager reconnection already in progress');
-      return;
-    }
-
-    this.#isReconnecting = true;
-
-    try {
-      diagnosticContext.logger.info('BinanceWebsocketManager disconnecting');
-      await this.disconnect();
-
-      diagnosticContext.logger.info('BinanceWebsocketManager reconnecting');
-      await this.connect();
-
-      diagnosticContext.logger.info('BinanceWebsocketManager resubscribing');
-      await this.subscribe();
-
-      diagnosticContext.logger.info('BinanceWebsocketManager reconnection completed successfully');
-    } catch (error) {
-      diagnosticContext.logger.error(
-        'BinanceWebsocketManager reconnection failed',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        error as any,
-      );
-      throw error;
-    } finally {
-      this.#isReconnecting = false;
+    if (this.#restartTimer) {
+      clearTimeout(this.#restartTimer);
+      this.#restartTimer = null;
     }
   }
 

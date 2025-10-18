@@ -30,7 +30,7 @@ async function performBackup(context: StorageContext): Promise<void> {
       await removeHistoricalBackups(context);
     }
   } catch (error) {
-    diagnosticContext.logger.error('Scheduled backup failed', { error });
+    diagnosticContext.logger.error(error, 'Scheduled backup failed');
 
     context.metricsContext.metrics.backupFailures.inc();
   }
@@ -80,10 +80,8 @@ async function calculateNextBackupDelay(
     return nextBackupDelay;
   } catch (error) {
     diagnosticContext.logger.error(
+      error,
       'Failed to calculate next backup delay, defaulting to immediate backup',
-      {
-        error,
-      },
     );
     return 0;
   }
@@ -101,7 +99,7 @@ export function createStorageBackupScheduler(
     if (!processContext.isShuttingDown()) {
       timeoutId = setTimeout(() => {
         runLoop().catch((error) => {
-          diagnosticContext.logger.error('Storage backup scheduler loop failed', { error });
+          diagnosticContext.logger.error(error, 'Storage backup scheduler loop failed');
           timeoutId = null;
           processContext.shutdown();
         });

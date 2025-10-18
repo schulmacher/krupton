@@ -6,10 +6,10 @@ This directory contains Podman container configurations for running the developm
 
 The following services are containerized:
 - **coordinator** (port 3500)
-- **external-bridge-fetcher-binance** (port 3000)
-- **external-bridge-fetcher-kraken** (port 3001)
-- **external-bridge-websocket-binance** (port 3100)
-- **external-bridge-websocket-kraken** (port 3101)
+- **external-bridge-binance-fetcher** (port 3000)
+- **external-bridge-kraken-fetcher** (port 3001)
+- **external-bridge-binance-websocket** (port 3100)
+- **external-bridge-kraken-websocket** (port 3101)
 - **external-bridge-storage** (port 3200)
 - **perses** (port 8080)
 - **victoriametrics** (port 8428)
@@ -91,7 +91,7 @@ View all logs:
 View logs for a specific service:
 ```bash
 ./scripts/logs.sh coordinator
-./scripts/logs.sh external-bridge-fetcher-binance
+./scripts/logs.sh external-bridge-binance-fetcher
 ```
 
 View logs for multiple services using wildcards:
@@ -361,7 +361,7 @@ All services are connected via the `dev-network` bridge network, allowing inter-
 - `perses`
 - `victoriametrics`
 
-Example: From `external-bridge-fetcher-binance`, connect to coordinator at `http://coordinator:3500`.
+Example: From `external-bridge-binance-fetcher`, connect to coordinator at `http://coordinator:3500`.
 
 ## Notes
 

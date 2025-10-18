@@ -3,10 +3,12 @@ import {
   createKrakenAssetPairsStorage,
   createKrakenBookWSStorage,
   createKrakenTickerWSStorage,
-  createKrakenTradeWSStorage
+  createKrakenTradeWSStorage,
+  KrakenBookWSRecord
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';
+import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 
 export function createKrakenWebsocketContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenWebSocketEnvSchema);
@@ -43,12 +45,24 @@ export function createKrakenWebsocketContext(processContext: SF.ProcessLifecycle
     }),
   };
 
+  const producers = {
+    krakenTradeWs: createZmqPublisherRegistry({
+      socketTemplate: zmqSocketTempalatesRawData.krakenTradeWs,
+      diagnosticContext,
+    }),
+    krakenBookWs: createZmqPublisherRegistry<KrakenBookWSRecord>({
+      socketTemplate: zmqSocketTempalatesRawData.krakenOrderBookWs,
+      diagnosticContext,
+    }),
+  };
+
   return {
     envContext,
     diagnosticContext,
     metricsContext,
     processContext,
     storage,
+    producers,
   };
 }
 

@@ -47,7 +47,7 @@ async function reportStats(context: StorageContext, baseDir: string): Promise<vo
       backupsReported: backups.length,
     });
   } catch (error) {
-    diagnosticContext.logger.error('Failed to report storage stats', { error });
+    diagnosticContext.logger.error(error, 'Failed to report storage stats');
   }
 }
 
@@ -65,7 +65,7 @@ export function createStorageStatsReporter(
     if (!processContext.isShuttingDown()) {
       timeoutId = setTimeout(() => {
         runLoop().catch((error) => {
-          diagnosticContext.logger.error('Storage stats reporter loop failed', { error });
+          diagnosticContext.logger.error(error, 'Storage stats reporter loop failed');
           timeoutId = null;
           processContext.shutdown();
         });
@@ -86,7 +86,7 @@ export function createStorageStatsReporter(
       });
 
       runLoop().catch((error) => {
-        diagnosticContext.logger.error('Storage stats reporter loop failed', { error });
+        diagnosticContext.logger.error(error, 'Storage stats reporter loop failed');
         timeoutId = null;
         processContext.shutdown();
       });

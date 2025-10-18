@@ -106,7 +106,10 @@ export function createMockProcessContext(
       await Promise.all(shutdownCallbacks.map((cb) => cb()));
     }),
     isShuttingDown: vi.fn(() => isShuttingDown),
-    restart: vi.fn(),
+    restart: vi.fn(async () => {
+      isShuttingDown = true;
+      await Promise.all(shutdownCallbacks.map((cb) => cb()));
+    }),
     ...overrides,
   };
 }

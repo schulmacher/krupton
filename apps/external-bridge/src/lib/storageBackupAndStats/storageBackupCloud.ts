@@ -3,11 +3,11 @@ import * as path from 'path';
 import { StorageContext } from '../../process/storageProcess/context.js';
 import { ensureDir } from '../fs.js';
 import {
-    deleteFileFromRemote,
-    downloadFileFromRemote,
-    ensureRcloneInstalled,
-    listRemoteFiles,
-    uploadFilesToRemote,
+  deleteFileFromRemote,
+  downloadFileFromRemote,
+  ensureRcloneInstalled,
+  listRemoteFiles,
+  uploadFilesToRemote,
 } from '../rclone.js';
 import { isBackupRelatedFile, listBackups, removeHistoricalBackups } from './storageBackup.js';
 
@@ -270,7 +270,7 @@ export async function syncLocalAndCloudBackups(context: StorageContext): Promise
       result.pushed = await pushFilesToCloud(context);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      diagnosticContext.logger.error('Error in push step', { error: errorMsg });
+      diagnosticContext.logger.error(error, 'Error in push step', { error: errorMsg });
       result.errors.push({ operation: 'push', file: 'multiple', error: errorMsg });
     }
 
@@ -279,7 +279,7 @@ export async function syncLocalAndCloudBackups(context: StorageContext): Promise
       result.pulled = await pullFilesFromCloud(context);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      diagnosticContext.logger.error('Error in pull step', { error: errorMsg });
+      diagnosticContext.logger.error(error, 'Error in pull step', { error: errorMsg });
       result.errors.push({ operation: 'pull', file: 'multiple', error: errorMsg });
     }
 
@@ -292,7 +292,7 @@ export async function syncLocalAndCloudBackups(context: StorageContext): Promise
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      diagnosticContext.logger.error('Error in reconciliation step', { error: errorMsg });
+      diagnosticContext.logger.error(error, 'Error in reconciliation step', { error: errorMsg });
       result.errors.push({ operation: 'reconcile', file: 'multiple', error: errorMsg });
     }
 
@@ -301,7 +301,7 @@ export async function syncLocalAndCloudBackups(context: StorageContext): Promise
       await copyTempFilesToBackupBaseDir(context);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      diagnosticContext.logger.error('Error in copy temp files step', { error: errorMsg });
+      diagnosticContext.logger.error(error, 'Error in copy temp files step');
       result.errors.push({ operation: 'copy temp files', file: 'multiple', error: errorMsg });
     }
 
@@ -319,8 +319,7 @@ export async function syncLocalAndCloudBackups(context: StorageContext): Promise
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    diagnosticContext.logger.error('Cloud backup synchronization failed', {
-      error,
+    diagnosticContext.logger.error(error, 'Cloud backup synchronization failed', {
       duration,
     });
     throw error;

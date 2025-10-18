@@ -1,3 +1,4 @@
+import { stringifyJSONSafe } from '@krupton/utils';
 import type { DiagnosticContext, Logger } from '../diagnostics/types.js';
 import { DefaultEnvSchemaType } from '../environment/types.js';
 import { createDiagnosticContext, createEnvContext } from '../sf.js';
@@ -51,7 +52,9 @@ export function startProcessLifecycle(
         onShutdown: context.onShutdown,
         restart,
       }).catch((error) => {
-        diagnosticContext.logger.error('Error starting process, restarting.', { error, ...baseEnv.config });
+        diagnosticContext.logger.error(error, 'Error starting process, restarting.', {
+          ...baseEnv.config,
+        });
         setTimeout(() => {
           void restart();
         }, 1000);
@@ -73,7 +76,9 @@ export function startProcessLifecycle(
 
 function startProcessLifecycleContext(
   diagnosticContext: DiagnosticContext,
-  { shutdownConfiguration }: ProcessLifecycleConfig = { shutdownConfiguration: defaultShutdownConfiguration },
+  { shutdownConfiguration }: ProcessLifecycleConfig = {
+    shutdownConfiguration: defaultShutdownConfiguration,
+  },
 ): Omit<ProcessLifecycleContext, 'restart'> & {
   registerSignalHandlers(): () => void;
   stopProcess(signal: string): Promise<void>;
@@ -96,8 +101,7 @@ function startProcessLifecycleContext(
         ),
       ]);
     } catch (error) {
-      logger.error('Shutdown callback failed or timed out', {
-        error: error instanceof Error ? error.message : String(error),
+      logger.error(error, 'Shutdown callback failed or timed out', {
         timeout,
       });
     }
@@ -119,7 +123,7 @@ function startProcessLifecycleContext(
     diagnosticContext.logger.info('Graceful shutdown initiated', { signal });
 
     const forceExitTimeout = setTimeout(() => {
-      diagnosticContext.logger.fatal('Shutdown timeout exceeded, forcing exit', {
+      diagnosticContext.logger.fatal(new Error('Shutdown timeout exceeded, forcing exit'), {
         totalTimeout: shutdownConfig.totalTimeout,
       });
       process.exit(1);
@@ -142,9 +146,9 @@ function startProcessLifecycleContext(
   };
 
   const handleUnhandledRejection = (reason: unknown, promise: Promise<unknown>): void => {
-    diagnosticContext.logger.fatal('Unhandled promise rejection detected', {
-      reason: String(reason),
-      stack: reason instanceof Error ? reason.stack : undefined,
+    diagnosticContext.logger.fatal(new Error('Unhandled promise rejection detected'), {
+      reason: stringifyJSONSafe(reason),
+      reasonString: String(reason),
       promise: promise.toString(),
     });
 
@@ -152,11 +156,7 @@ function startProcessLifecycleContext(
   };
 
   const handleUncaughtException = (error: Error): void => {
-    diagnosticContext.logger.fatal('Uncaught exception detected', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    });
+    diagnosticContext.logger.fatal(error, 'Uncaught exception detected');
 
     void initiateShutdown('uncaughtException');
   };

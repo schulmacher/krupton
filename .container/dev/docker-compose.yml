@@ -28,18 +28,18 @@ services:
     restart: unless-stopped
 
   # External Bridge - Fetcher Binance
-  external-bridge-fetcher-binance:
+  external-bridge-binance-fetcher:
     build:
       context: ../..
       dockerfile: .container/dev/Dockerfile.nodejs
-    container_name: dev-external-bridge-fetcher-binance
+    container_name: dev-external-bridge-binance-fetcher
     hostname: fetcher-binance
     working_dir: /workspace
     command: >
       sh -c "pnpm --filter external-bridge dev:fetcher-binance"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - PROCESS_NAME=external-bridge-fetcher-binance
+      - PROCESS_NAME=external-bridge-binance-fetcher
       - PLATFORM=binance
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PORT=${EXTERNAL_BRIDGE_FETCHER_BINANCE_PORT:-3000}
@@ -54,18 +54,18 @@ services:
     restart: unless-stopped
 
   # External Bridge - Fetcher Kraken
-  external-bridge-fetcher-kraken:
+  external-bridge-kraken-fetcher:
     build:
       context: ../..
       dockerfile: .container/dev/Dockerfile.nodejs
-    container_name: dev-external-bridge-fetcher-kraken
+    container_name: dev-external-bridge-kraken-fetcher
     hostname: fetcher-kraken
     working_dir: /workspace
     command: >
       sh -c "pnpm --filter external-bridge dev:fetcher-kraken"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - PROCESS_NAME=external-bridge-fetcher-kraken
+      - PROCESS_NAME=external-bridge-kraken-fetcher
       - PLATFORM=kraken
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PORT=${EXTERNAL_BRIDGE_FETCHER_KRAKEN_PORT:-3001}
@@ -80,18 +80,18 @@ services:
     restart: unless-stopped
 
   # External Bridge - WebSocket Binance
-  external-bridge-websocket-binance:
+  external-bridge-binance-websocket:
     build:
       context: ../..
       dockerfile: .container/dev/Dockerfile.nodejs
-    container_name: dev-external-bridge-websocket-binance
+    container_name: dev-external-bridge-binance-websocket
     hostname: websocket-binance
     working_dir: /workspace
     command: >
       sh -c "pnpm --filter external-bridge dev:websocket-binance"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - PROCESS_NAME=external-bridge-websocket-binance
+      - PROCESS_NAME=external-bridge-binance-websocket
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PORT=${EXTERNAL_BRIDGE_WEBSOCKET_BINANCE_PORT:-3100}
       - STORAGE_BASE_DIR=${STORAGE_BASE_DIR:-/data/storage}
@@ -105,18 +105,18 @@ services:
     restart: unless-stopped
 
   # External Bridge - WebSocket Kraken
-  external-bridge-websocket-kraken:
+  external-bridge-kraken-websocket:
     build:
       context: ../..
       dockerfile: .container/dev/Dockerfile.nodejs
-    container_name: dev-external-bridge-websocket-kraken
+    container_name: dev-external-bridge-kraken-websocket
     hostname: websocket-kraken
     working_dir: /workspace
     command: >
       sh -c "pnpm --filter external-bridge dev:websocket-kraken"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - PROCESS_NAME=external-bridge-websocket-kraken
+      - PROCESS_NAME=external-bridge-kraken-websocket
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PORT=${EXTERNAL_BRIDGE_WEBSOCKET_KRAKEN_PORT:-3101}
       - STORAGE_BASE_DIR=${STORAGE_BASE_DIR:-/data/storage}

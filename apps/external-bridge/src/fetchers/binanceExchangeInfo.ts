@@ -1,9 +1,9 @@
 import { BinanceApi } from '@krupton/api-interface';
+import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
 import { sleep } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 import { BinanceFetcherContext } from '../process/fetcherProcess/binanceFetcherContext.js';
-import { isSameExchangeInfoResponse, SYMBOL_ALL } from '@krupton/persistent-storage-node';
 
 const FETCH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -13,30 +13,13 @@ const handleExchangeInfoResponse = async (
   response: BinanceApi.GetExchangeInfoResponse,
 ): Promise<void> => {
   const { diagnosticContext, storage } = context;
-  const latestRecord = await storage.exchangeInfo.readLastRecord(SYMBOL_ALL);
 
-  if (latestRecord && isSameExchangeInfoResponse(latestRecord.response, response)) {
-    diagnosticContext.logger.info('Exchange info already in storage', {
-      symbolCount: response.symbols.length,
-    });
-    await storage.exchangeInfo.replaceOrInsertLastRecord({
-      subIndexDir: SYMBOL_ALL,
-      record: {
-        request: { query },
-        response,
-        timestamp: Date.now(),
-      },
-    });
-    return;
-  }
-
-  await storage.exchangeInfo.appendRecord({
+  await storage.exchangeInfo.replaceOrInsertLastRecord({
     subIndexDir: SYMBOL_ALL,
     record: {
-      id: storage.exchangeInfo.getNextId(SYMBOL_ALL),
-      timestamp: Date.now(),
       request: { query },
       response,
+      timestamp: Date.now(),
     },
   });
 

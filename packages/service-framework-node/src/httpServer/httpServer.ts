@@ -115,9 +115,7 @@ export function createHttpServer<T extends HttpServerEnv, TMetrics = undefined>(
           return { ...health, status: 'unhealthy' };
         }
       } catch (error) {
-        request.logger.error('Health check error', {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        request.logger.error(error, 'Health check error');
         reply.code(503);
         return { ...health, status: 'unhealthy' };
       }

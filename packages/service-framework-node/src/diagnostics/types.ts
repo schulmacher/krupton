@@ -6,8 +6,16 @@ export interface Logger {
   debug(message: string, fields?: Record<string, unknown>): void;
   info(message: string, fields?: Record<string, unknown>): void;
   warn(message: string, fields?: Record<string, unknown>): void;
-  error(message: string, fields?: Record<string, unknown>): void;
-  fatal(message: string, fields?: Record<string, unknown>): void;
+  error(
+    error: unknown,
+    message?: string | Record<string, unknown>,
+    fields?: Record<string, unknown>,
+  ): void;
+  fatal(
+    error: unknown,
+    message?: string | Record<string, unknown>,
+    fields?: Record<string, unknown>,
+  ): void;
   createChild(correlationId: string): Logger;
 }
 
@@ -29,10 +37,16 @@ export interface LogEntry {
 export interface DiagnosticConfig {
   minimumSeverity?: LogSeverity;
   outputFormat?: LogOutputFormat;
+  correlationId?: string;
+  defaultLoggerArgs?: Record<string, unknown>;
 }
 
 export interface DiagnosticContext {
   correlationIdGenerator: CorrelationIdGenerator;
   logger: Logger;
   createChildLogger: (correlationId: string) => Logger;
+  getChildDiagnosticContext: (
+    defaultLoggerArgs?: Record<string, unknown>,
+    scopeId?: string,
+  ) => DiagnosticContext;
 }

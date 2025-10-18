@@ -3,7 +3,7 @@ import { TB } from '@krupton/service-framework-node/typebox';
 import { getMonorepoRootDir } from '../../lib/fs.js';
 
 export const binanceWebSocketEnvSchema = TB.Object({
-  PROCESS_NAME: TB.String({ default: 'external-bridge-websocket-binance' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-binance-websocket' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3002 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
@@ -41,7 +41,7 @@ export const binanceWebSocketEnvSchema = TB.Object({
 export type BinanceWebSocketEnv = TB.Static<typeof binanceWebSocketEnvSchema>;
 
 export const krakenWebSocketEnvSchema = TB.Object({
-  PROCESS_NAME: TB.String({ default: 'external-bridge-websocket-kraken' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-kraken-websocket' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3003 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),

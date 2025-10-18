@@ -1,17 +1,20 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
+import { ZmqPublisherRegistry } from '@krupton/messaging-node';
 import {
-  BinanceOrderBookStorage
+  BinanceOrderBookStorage,
+  BinanceOrderBookStorageRecord,
 } from '@krupton/persistent-storage-node';
 import { createTryhardExponentialBackoff, tryHard } from '@krupton/utils';
-import { DiagnosticContext } from '../../../../packages/service-framework-node/dist/sf';
+import { SF } from '@krupton/service-framework-node';
 import { normalizeSymbol } from '../lib/symbol/normalizeSymbol';
 
 export async function saveBinanceOrderBookSnapshots(
-  diagnosticContext: DiagnosticContext,
+  diagnosticContext: SF.DiagnosticContext,
   binanceSymbols: string[],
   getOrderBook: EndpointFunction<typeof BinanceApi.GetOrderBookEndpoint>,
   orderBookStorage: BinanceOrderBookStorage,
+  producer: ZmqPublisherRegistry<BinanceOrderBookStorageRecord>,
 ) {
   diagnosticContext.logger.info('Fetching initial order book for binance symbols', {
     symbols: binanceSymbols,
@@ -31,21 +34,25 @@ export async function saveBinanceOrderBookSnapshots(
           query,
         });
 
+        const record: BinanceOrderBookStorageRecord = {
+          request: { query },
+          response,
+          timestamp: Date.now(),
+          id: orderBookStorage.getNextId(normalizedSymbol),
+        };
+
+        await producer.send(normalizedSymbol, record);
         await orderBookStorage.appendRecord({
           subIndexDir: normalizedSymbol,
-          record: {
-            request: { query },
-            response,
-            timestamp: Date.now(),
-            id: orderBookStorage.getNextId(normalizedSymbol),
-          },
+          record,
         });
       },
       createTryhardExponentialBackoff({
         onRetryAttempt: (error, attempt) => {
-          diagnosticContext.logger.error(`Failed to get order book snapshot, attempt ${attempt}`, {
-            error: error,
-          });
+          diagnosticContext.logger.error(
+            error,
+            `Failed to get order book snapshot, attempt ${attempt}`,
+          );
         },
         maxAttempts: 5,
       }),

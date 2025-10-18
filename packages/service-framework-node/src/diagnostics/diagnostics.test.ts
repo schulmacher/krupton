@@ -80,7 +80,7 @@ describe('createLogger', () => {
 
   it('logs error messages to console.error', () => {
     const logger = createLogger('test-service', 'test-id', { outputFormat: 'json' });
-    logger.error('Error occurred', { code: 500 });
+    logger.error(new Error('Test error'), 'Error occurred', { code: 500 });
 
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     const logOutput = consoleErrorSpy.mock.calls[0][0];
@@ -92,7 +92,7 @@ describe('createLogger', () => {
 
   it('logs fatal messages to console.error', () => {
     const logger = createLogger('test-service', 'test-id', { outputFormat: 'json' });
-    logger.fatal('Fatal error', { terminating: true });
+    logger.fatal(new Error('Test error'), 'Fatal error', { terminating: true });
 
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     const logOutput = consoleErrorSpy.mock.calls[0][0];

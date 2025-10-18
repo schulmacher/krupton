@@ -165,7 +165,7 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
       const db = getOrCreateDb(subIndexDir);
 
       const rows = db
-        .prepare('SELECT * FROM records WHERE id > ? ORDER BY id LIMIT ?')
+        .prepare('SELECT * FROM records WHERE id >= ? ORDER BY id LIMIT ?')
         .all(fromIndex, count) as { id: number; timestamp: number; data: string }[];
 
       return rows.map((row) => ({

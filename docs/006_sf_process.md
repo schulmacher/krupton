@@ -258,7 +258,7 @@ async function executeCallback(
       )
     ]);
   } catch (error) {
-    logger.error('Shutdown callback failed or timed out', {
+    logger.error(error, 'Shutdown callback failed or timed out', {
       error: error.message,
       timeout
     });
@@ -363,7 +363,7 @@ Request-scoped errors are logged and returned to clients without affecting other
 
 ```typescript
 app.use((err, req, res, next) => {
-  logger.error('Request handler error', {
+  logger.error(error, 'Request handler error', {
     path: req.path,
     method: req.method,
     error: err.message,

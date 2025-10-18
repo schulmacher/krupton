@@ -105,6 +105,9 @@ importers:
       '@krupton/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@krupton/messaging-node':
+        specifier: workspace:*
+        version: link:../../packages/messaging-node
       '@krupton/persistent-storage-node':
         specifier: workspace:*
         version: link:../../packages/persistent-storage-node
@@ -276,6 +279,9 @@ importers:
       '@krupton/config':
         specifier: workspace:*
         version: link:../config
+      '@krupton/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@sinclair/typebox':
         specifier: ^0.34.41
         version: 0.34.41

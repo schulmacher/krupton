@@ -10,6 +10,7 @@ import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';
+import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 
 export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenFetcherEnvSchema);
@@ -61,6 +62,13 @@ export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleCo
     }),
   };
 
+  const producers = {
+    krakenTradeApi: createZmqPublisherRegistry({
+      socketTemplate: zmqSocketTempalatesRawData.krakenTradeApi,
+      diagnosticContext,
+    }),
+  };
+
   return {
     envContext,
     diagnosticContext,
@@ -69,6 +77,7 @@ export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleCo
     rateLimiter,
     krakenClient,
     storage,
+    producers,
   };
 }
 

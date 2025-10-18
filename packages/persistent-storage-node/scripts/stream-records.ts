@@ -1,58 +1,160 @@
 #!/usr/bin/env tsx
 
-import { readdir, appendFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { spawn } from 'node:child_process';
 import Database from 'better-sqlite3';
+import { spawn } from 'node:child_process';
+import { appendFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import * as readline from 'node:readline/promises';
 
-const STORAGE_BASE = join(process.cwd(), '..', '..', 'storage', 'external-bridge');
+const STORAGE_BASE = join(process.cwd(), '..', '..', 'storage');
+const ALLOWED_BASE_DIRS = ['external-bridge', 'internal-bridge'];
+const isAllowedBaseDir = (dirName: string): boolean => ALLOWED_BASE_DIRS.includes(dirName);
+
 const POLL_INTERVAL_MS = 1000; // Poll every 1 second for new records
 
-async function listDirectories(path: string): Promise<string[]> {
-  try {
-    const entries = await readdir(path, { withFileTypes: true });
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-  } catch {
-    return [];
-  }
+interface DatabaseInfo {
+  fullPath: string;
+  relativePath: string;
+  displayName: string;
 }
 
-async function listDatabases(path: string): Promise<string[]> {
+async function recursivelyFindDatabases(
+  basePath: string,
+  currentPath: string,
+  relativePath: string = '',
+): Promise<DatabaseInfo[]> {
+  const databases: DatabaseInfo[] = [];
+
   try {
-    const entries = await readdir(path);
-    return entries.filter((entry) => entry.endsWith('.db')).sort();
+    const entries = await readdir(currentPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = join(currentPath, entry.name);
+      const entryRelativePath = relativePath ? join(relativePath, entry.name) : entry.name;
+
+      if (entry.isDirectory()) {
+        // Recursively search subdirectories
+        const subDatabases = await recursivelyFindDatabases(basePath, entryPath, entryRelativePath);
+        databases.push(...subDatabases);
+      } else if (entry.isFile() && entry.name.endsWith('.db')) {
+        // Found a database file
+        databases.push({
+          fullPath: entryPath,
+          relativePath: entryRelativePath,
+          displayName: entryRelativePath,
+        });
+      }
+    }
   } catch {
-    return [];
+    // Skip directories that can't be read
+    console.error(`Warning: Could not read directory ${currentPath}`);
   }
+
+  return databases;
 }
 
-async function selectFromList(prompt: string, options: string[]): Promise<string | null> {
-  if (options.length === 0) {
-    console.log('No options available');
+async function discoverAllDatabases(): Promise<DatabaseInfo[]> {
+  const allDatabases: DatabaseInfo[] = [];
+
+  // Read base storage directory
+  const baseEntries = await readdir(STORAGE_BASE, { withFileTypes: true });
+
+  // Filter to only allowed directories
+  const allowedDirs = baseEntries
+    .filter((entry) => entry.isDirectory() && isAllowedBaseDir(entry.name))
+    .map((entry) => entry.name);
+
+  // Recursively search each allowed directory
+  for (const dirName of allowedDirs) {
+    const dirPath = join(STORAGE_BASE, dirName);
+    const databases = await recursivelyFindDatabases(STORAGE_BASE, dirPath, dirName);
+    allDatabases.push(...databases);
+  }
+
+  // Sort by relative path for consistent ordering
+  allDatabases.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+
+  return allDatabases;
+}
+
+interface GroupedDatabases {
+  [key: string]: DatabaseInfo[];
+}
+
+function groupDatabasesByPath(databases: DatabaseInfo[]): GroupedDatabases {
+  const grouped: GroupedDatabases = {};
+
+  for (const db of databases) {
+    // Group by the path up to the last directory (excluding filename)
+    const pathParts = db.relativePath.split('/');
+    const groupKey = pathParts.slice(0, -1).join('/');
+
+    if (!grouped[groupKey]) {
+      grouped[groupKey] = [];
+    }
+    grouped[groupKey]!.push(db);
+  }
+
+  return grouped;
+}
+
+async function selectDatabase(
+  prompt: string,
+  databases: DatabaseInfo[],
+): Promise<DatabaseInfo | null> {
+  if (databases.length === 0) {
+    console.log('No databases found');
     return null;
   }
 
-  console.log(`\n${prompt}`);
-  options.forEach((option, index) => {
-    console.log(`  ${index + 1}. ${option}`);
-  });
+  console.log(`\n${'═'.repeat(80)}`);
+  console.log(`  ${prompt}`);
+  console.log(`${'═'.repeat(80)}\n`);
+
+  const grouped = groupDatabasesByPath(databases);
+  const groupKeys = Object.keys(grouped).sort();
+
+  let currentIndex = 0;
+  const indexToDb = new Map<number, DatabaseInfo>();
+
+  for (const groupKey of groupKeys) {
+    // Print group header
+    console.log(`\n  📁 ${groupKey}`);
+    console.log(`  ${'─'.repeat(Math.min(groupKey.length + 3, 76))}`);
+
+    const groupDbs = grouped[groupKey]!;
+    for (const db of groupDbs) {
+      const filename = db.relativePath.split('/').pop()!.replace('.db', '');
+      const paddedNumber = String(currentIndex + 1).padStart(3, ' ');
+      console.log(`     ${paddedNumber}. ${filename}`);
+      indexToDb.set(currentIndex, db);
+      currentIndex++;
+    }
+  }
+
+  console.log(`\n${'═'.repeat(80)}\n`);
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-  let selected: string | null = null;
+  let selected: DatabaseInfo | null = null;
 
   while (!selected) {
-    const answer = await rl.question('\nSelect (number): ');
+    const answer = await rl.question('Select database number (or q to quit): ');
+
+    if (answer.toLowerCase() === 'q') {
+      rl.close();
+      return null;
+    }
+
     const index = parseInt(answer, 10) - 1;
 
-    if (index >= 0 && index < options.length) {
-      selected = options[index]!;
+    if (index >= 0 && index < databases.length && indexToDb.has(index)) {
+      selected = indexToDb.get(index)!;
     } else {
-      console.log('Invalid selection. Please try again.');
+      console.log('❌ Invalid selection. Please try again.');
     }
   }
 
@@ -60,14 +162,38 @@ async function selectFromList(prompt: string, options: string[]): Promise<string
   return selected;
 }
 
-function generateOutputFilename(
-  exchange: string,
-  endpointType: string,
-  dbName: string,
-): string {
-  // Remove .db extension from database name
-  const symbol = dbName.replace('.db', '');
-  return `${exchange}_${endpointType}_${symbol}.jsonl`;
+function generateOutputFilename(dbInfo: DatabaseInfo): string {
+  // Convert relative path to filename: "external-bridge/binance/trades/BTCUSDT.db" -> "external-bridge_binance_trades_BTCUSDT.jsonl"
+  const pathWithoutExtension = dbInfo.relativePath.replace('.db', '');
+  const filename = pathWithoutExtension.replace(/\//g, '_') + '.jsonl';
+  return filename;
+}
+
+async function getDatabaseStats(dbPath: string): Promise<void> {
+  const stats = await stat(dbPath);
+  const sizeInMB = stats.size / (1024 * 1024);
+  
+  console.log(`\n${'═'.repeat(80)}`);
+  console.log(`  Database Statistics`);
+  console.log(`${'═'.repeat(80)}\n`);
+  console.log(`  File: ${dbPath}`);
+  console.log(`  Size: ${sizeInMB.toFixed(2)} MB`);
+  
+  // Get record count from database
+  const db = new Database(dbPath, { readonly: true });
+  try {
+    const result = db.prepare('SELECT COUNT(*) as count FROM records').get() as { count: number };
+    console.log(`  Records: ${result.count.toLocaleString()}`);
+    
+    if (result.count > 0) {
+      const avgSize = (stats.size / result.count).toFixed(2);
+      console.log(`  Avg size per record: ${avgSize} bytes`);
+    }
+  } finally {
+    db.close();
+  }
+  
+  console.log(`\n${'═'.repeat(80)}\n`);
 }
 
 async function openDatabaseClient(dbPath: string): Promise<void> {
@@ -177,7 +303,9 @@ async function main(): Promise<void> {
   const followMode = args.includes('--follow') || args.includes('-f');
   const saveMode = args.includes('--save') || args.includes('-s');
   const queryMode = args.includes('--query') || args.includes('-q');
+  const statsMode = args.includes('--stats');
   const helpMode = args.includes('--help') || args.includes('-h');
+  const partialFilter = args.filter((arg) => !arg.startsWith('-')).join(' ');
 
   console.error('Storage Record Streamer');
   console.error('=======================\n');
@@ -194,56 +322,67 @@ async function main(): Promise<void> {
     console.error('Mode: Help\n');
     console.error('Usage: stream-records [options]');
     console.error('Options:');
+    console.error('  [partial filter]  - Partial filter (matches both words)');
     console.error('  --follow, -f  - Follow mode (live streaming)');
     console.error('  --save, -s    - Save to file');
-    console.error('  --query, -q    - SQL Query (sqlite3 client)');
+    console.error('  --query, -q   - SQL Query (sqlite3 client)');
+    console.error('  --stats       - Show database statistics (size in MB, record count)');
     console.error('  --help, -h    - Show help');
     return;
   }
 
+  // Step 1: Discover all databases recursively
+  console.error('Discovering databases...\n');
+  const databases = await discoverAllDatabases();
 
-
-  // Step 1: Select exchange
-  const exchanges = await listDirectories(STORAGE_BASE);
-  const exchange = await selectFromList('Select Exchange:', exchanges);
-  if (!exchange) return;
-
-  // Step 2: Select endpoint type
-  const exchangePath = join(STORAGE_BASE, exchange);
-  const endpointTypes = await listDirectories(exchangePath);
-  const endpointType = await selectFromList('Select Endpoint Type:', endpointTypes);
-  if (!endpointType) return;
-
-  // Step 3: Select database
-  const endpointPath = join(exchangePath, endpointType);
-  const databases = await listDatabases(endpointPath);
-  const database = await selectFromList('Select Database:', databases);
-  if (!database) return;
-
-  const dbPath = join(endpointPath, database);
-
-  // Step 4: Execute based on mode
-  if (queryMode) {
-    await openDatabaseClient(dbPath);
+  if (databases.length === 0) {
+    console.error('No databases found in allowed directories.');
     return;
   }
 
-  // Step 5: Prepare output path if saving to file
+  const filteredDatabases = databases.filter((db) =>
+    partialFilter
+      .toLowerCase()
+      .split(' ')
+      .every((word) => db.relativePath.toLowerCase().includes(word)),
+  );
+
+  if (partialFilter) {
+    console.error(`Found ${filteredDatabases.length} out of  ${partialFilter} database(s)\n`);
+  } else {
+    console.error(`Found ${databases.length} database(s)\n`);
+  }
+
+  // Step 2: Select database
+  const selectedDb = await selectDatabase('Select Database:', filteredDatabases);
+  if (!selectedDb) return;
+
+  // Step 3: Execute based on mode
+  if (statsMode) {
+    await getDatabaseStats(selectedDb.fullPath);
+    return;
+  }
+
+  if (queryMode) {
+    await openDatabaseClient(selectedDb.fullPath);
+    return;
+  }
+
+  // Step 4: Prepare output path if saving to file
   let outputPath: string | undefined;
   if (saveMode) {
-    const filename = generateOutputFilename(exchange, endpointType, database);
-    outputPath = join(dirname(endpointPath), filename);
+    const filename = generateOutputFilename(selectedDb);
+    outputPath = join(STORAGE_BASE, filename);
     console.error(`Output file: ${outputPath}\n`);
   }
 
-  // Step 6: Stream records
-  console.error(`\nStreaming from: ${dbPath}\n`);
+  // Step 5: Stream records
+  console.error(`\nStreaming from: ${selectedDb.fullPath}\n`);
 
-  await streamRecords(dbPath, followMode, saveMode, outputPath);
+  await streamRecords(selectedDb.fullPath, followMode, saveMode, outputPath);
 }
 
 main().catch((error) => {
   console.error('Error:', error);
   process.exit(1);
 });
-

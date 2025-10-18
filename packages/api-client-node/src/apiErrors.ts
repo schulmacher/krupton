@@ -5,7 +5,7 @@ export class ApiClientError extends Error {
     Object.setPrototypeOf(this, ApiClientError.prototype);
   }
 
-  public getLogData() {
+  public toErrorPlainObject() {
     return {
       name: this.name,
       message: this.message,
@@ -24,9 +24,9 @@ export class ApiClientValidationError extends ApiClientError {
     Object.setPrototypeOf(this, ApiClientValidationError.prototype);
   }
 
-  public getLogData() {
+  public toErrorPlainObject() {
     return {
-      ...super.getLogData(),
+      ...super.toErrorPlainObject(),
       errors: this.errors,
     };
   }
@@ -34,18 +34,21 @@ export class ApiClientValidationError extends ApiClientError {
 
 export class ApiClientRequestValidationError extends ApiClientError {
   readonly errors: unknown[];
+  readonly requestParams?: unknown;
 
-  constructor(message: string, errors: unknown[]) {
+  constructor(message: string, errors: unknown[], requestParams?: unknown) {
     super(message);
     this.name = 'ApiClientRequestValidationError';
     this.errors = errors;
+    this.requestParams = requestParams;
     Object.setPrototypeOf(this, ApiClientRequestValidationError.prototype);
   }
 
-  public getLogData() {
+  public toErrorPlainObject() {
     return {
-      ...super.getLogData(),
+      ...super.toErrorPlainObject(),
       errors: this.errors,
+      requestParams: this.requestParams,
     };
   }
 }
@@ -62,7 +65,7 @@ export class ApiClientStatusError extends ApiClientError {
     Object.setPrototypeOf(this, ApiClientStatusError.prototype);
   }
 
-  public getLogData() {
+  public toErrorPlainObject() {
     const responseBodyString = this.responseBody ? JSON.stringify(this.responseBody) : undefined;
     const partialResponseBody = responseBodyString
       ? responseBodyString.slice(0, 50) +
@@ -71,7 +74,7 @@ export class ApiClientStatusError extends ApiClientError {
           : '')
       : undefined;
     return {
-      ...super.getLogData(),
+      ...super.toErrorPlainObject(),
       statusCode: this.statusCode,
       responseBody: partialResponseBody,
     };
@@ -88,9 +91,9 @@ export class ApiClientFetchError extends ApiClientError {
     Object.setPrototypeOf(this, ApiClientFetchError.prototype);
   }
 
-  public getLogData() {
+  public toErrorPlainObject() {
     return {
-      ...super.getLogData(),
+      ...super.toErrorPlainObject(),
       cause: this.cause,
     };
   }

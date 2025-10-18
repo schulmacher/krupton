@@ -16,4 +16,3 @@ export function createKrakenRecentTradesStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createEndpointStorage(baseDir, KrakenApi.GetRecentTradesEndpoint, options);
 }
-

@@ -4,7 +4,7 @@ import { getMonorepoRootDir } from '../../lib/fs.js';
 
 export const binanceFetcherEnvSchema = TB.Object({
   // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher-binance' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-binance-fetcher' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3000 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),
@@ -68,7 +68,7 @@ export type BinanceFetcherEnv = TB.Static<typeof binanceFetcherEnvSchema>;
 
 export const krakenFetcherEnvSchema = TB.Object({
   // Required framework variables
-  PROCESS_NAME: TB.String({ default: 'external-bridge-fetcher-kraken' }),
+  PROCESS_NAME: TB.String({ default: 'external-bridge-kraken-fetcher' }),
   NODE_ENV: TB.String({ default: 'development' }),
   PORT: TB.Integer({ default: 3000 }),
   LOG_LEVEL: TB.String({ default: 'debug' }),

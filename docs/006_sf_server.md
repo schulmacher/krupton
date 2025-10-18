@@ -114,7 +114,7 @@ fastify.get('/api/orders/:id', async (request, reply) => {
     
     return order;
   } catch (error) {
-    logger.error('Order retrieval failed', {
+    logger.error(error, 'Order retrieval failed', {
       orderId: request.params.id,
       error: error.message
     });
@@ -308,7 +308,7 @@ Fastify's built-in error handling works seamlessly with the framework's diagnost
 
 ```typescript
 fastify.setErrorHandler((error, request, reply) => {
-  request.logger.error('Request handler error', {
+  request.logger.error(error, 'Request handler error', {
     error: error.message,
     stack: error.stack
   });

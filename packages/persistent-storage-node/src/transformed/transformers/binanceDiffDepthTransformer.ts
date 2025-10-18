@@ -4,15 +4,17 @@ import type { UnifiedOrderBookUpdate } from '../unifiedOrderBook.js';
 
 export function transformBinanceDiffDepthToUnified(
   record: WebSocketStorageRecord<typeof BinanceWS.DiffDepthStream>,
+  normalizedSymbol: string,
 ): UnifiedOrderBookUpdate {
   const { message } = record;
   const data = message.data;
 
   return {
     type: 'update',
-    symbol: data.s,
+    symbol: normalizedSymbol,
     bids: data.b,
     asks: data.a,
-    timestamp: data.E,
+    time: data.E,
+    platform: 'binance',
   };
 }

@@ -5,12 +5,13 @@ import type { UnifiedTrade } from '../unifiedTrade.js';
 
 export function transformBinanceTradeWSToUnified(
   record: WebSocketStorageRecord<typeof BinanceWS.TradeStream>,
+  normalizedSymbol: string,
 ): UnifiedTrade {
   const { message } = record;
   const data = message.data;
 
   return {
-    symbol: data.s,
+    symbol: normalizedSymbol,
     price: data.p,
     quantity: data.q,
     time: data.T,
@@ -32,10 +33,10 @@ export function transformBinanceHistoricalTradesToUnified(
 
 export function transformBinanceHistoricalTradeToUnified(
   trade: EndpointStorageRecord<typeof BinanceApi.GetHistoricalTradesEndpoint>['response'][number],
-  symbol: string,
+  normalizedSymbol: string,
 ): UnifiedTrade {
   return {
-    symbol,
+    symbol: normalizedSymbol,
     price: trade.price,
     quantity: trade.qty,
     time: trade.time,

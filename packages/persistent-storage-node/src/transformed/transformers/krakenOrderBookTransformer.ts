@@ -12,6 +12,7 @@ function convertKrakenBookLevelsToTuples(
 
 export function transformKrakenBookWSToUnified(
   record: WebSocketStorageRecord<typeof KrakenWS.BookStream>,
+  normalizedSymbol: string,
 ): UnifiedOrderBook[] {
   const { message, timestamp } = record;
 
@@ -22,10 +23,11 @@ export function transformKrakenBookWSToUnified(
 
     return {
       type: message.type === 'snapshot' ? 'snapshot' : 'update',
-      symbol: data.symbol,
+      symbol: normalizedSymbol,
       bids,
       asks,
-      timestamp: eventTimestamp,
+      time: eventTimestamp,
+      platform: 'kraken',
     } satisfies UnifiedOrderBook;
   });
 }

@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/internalBridge.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:transformer-binance-orders": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceOrdersTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:transformer-binance-trades": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceTradesTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:transformer-kraken-orders": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenOrdersTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:transformer-kraken-trades": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenTradesTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
@@ -19,6 +22,7 @@
     "@krupton/service-framework-node": "workspace:*",
     "@krupton/persistent-storage-node": "workspace:*",
     "@krupton/utils": "workspace:*",
+    "@krupton/messaging-node": "workspace:*",
     "ws": "^8.18.0"
   }
 }

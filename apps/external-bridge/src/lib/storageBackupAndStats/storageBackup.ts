@@ -88,7 +88,7 @@ export async function doStorageBackup(context: StorageContext) {
       duration,
     };
   } catch (error) {
-    diagnosticContext.logger.error('Backup failed', { error });
+    diagnosticContext.logger.error(error, 'Backup failed');
     throw error;
   }
 }
@@ -162,7 +162,7 @@ export async function removeBackupByName(
         diagnosticContext.logger.warn('Checksum file not found', { path: checksumPath });
       });
   } catch (error) {
-    diagnosticContext.logger.error('Failed to remove backup', { fileName, error });
+    diagnosticContext.logger.error(error, 'Failed to remove backup', { fileName, error });
     throw error;
   }
 }
@@ -206,7 +206,7 @@ export async function removeHistoricalBackups(
       remainingBackupCount: allBackups.length - backupsToRemove,
     });
   } catch (error) {
-    diagnosticContext.logger.error('Failed to remove historical backups', { error });
+    diagnosticContext.logger.error(error, 'Failed to remove historical backups', { error });
   }
 }
 
@@ -252,7 +252,7 @@ export async function removeDuplicateBackupsForLatestDate(context: StorageContex
       removedCount: duplicatesForDate.length,
     });
   } catch (error) {
-    diagnosticContext.logger.error('Failed to remove duplicate backups', { error });
+    diagnosticContext.logger.error(error, 'Failed to remove duplicate backups', { error });
   }
 }
 

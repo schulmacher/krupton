@@ -18,15 +18,18 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
 ): AsyncGenerator<StorageRecord<T>[], undefined> {
   const { readBatchSize, startGlobalIndex, isStopped } = options;
 
-  let currentGlobalIndex = startGlobalIndex;
+  let globalStartIndex = startGlobalIndex;
 
   while (!isStopped?.()) {
-    // Read records using the range reader
-    const records = await storage.readRecordsRange({
-      subIndexDir,
-      fromIndex: currentGlobalIndex,
-      count: readBatchSize,
-    });
+    const records = await storage
+      .readRecordsRange({
+        subIndexDir,
+        fromIndex: globalStartIndex,
+        count: readBatchSize,
+      })
+      .then((records) => {
+        return records;
+      });
 
     if (records.length === 0) {
       break;
@@ -34,14 +37,12 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
 
     yield records;
 
-    // If we got fewer records than requested, we've reached the end
     if (records.length < readBatchSize) {
       break;
     }
+    yield records;
 
-    // Move to the next batch
-    // TODO TEST THIS!!
-    currentGlobalIndex = records[records.length - 1].id;
+    globalStartIndex = records.at(-1)!.id + 1;
   }
 
   console.log('entityReader stopped');
