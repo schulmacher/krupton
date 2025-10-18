@@ -20,7 +20,7 @@ export async function createZmqPublisher<T extends StorageRecord<Record<string, 
   const pusher = new zmq.Publisher();
   let sendingPromise: Promise<void> | null = null;
   const cache: string[] = [];
-  
+
   await pusher.bind(options.socket);
 
   return {
@@ -40,7 +40,7 @@ export async function createZmqPublisher<T extends StorageRecord<Record<string, 
 
       sendingPromise = pusher.send(serialized);
       await sendingPromise;
-      
+
       while (cache.length > 0) {
         sendingPromise = pusher.send(cache.splice(0, 100));
         await sendingPromise;
@@ -79,20 +79,20 @@ export function createZmqPublisherRegistry<T extends StorageRecord<Record<string
           const socket = options.socketTemplate(subIndex);
           const producer = await createZmqPublisher<T>({ socket, diagnosticContext });
           producers.set(subIndex, producer);
-        })
+        }),
       );
     },
     send: async (subIndex: string, message: T): Promise<void> => {
       const producer = producers.get(subIndex);
       if (!producer) {
-        throw new Error(`Producer for subIndex "${subIndex}" not found. Available subIndices: ${Array.from(producers.keys()).join(', ')}`);
+        throw new Error(
+          `Producer for subIndex "${subIndex}" not found. Available subIndices: ${Array.from(producers.keys()).join(', ')}`,
+        );
       }
       await producer.send(message);
     },
     close: async (): Promise<void> => {
-      await Promise.all(
-        Array.from(producers.values()).map((producer) => producer.close())
-      );
+      await Promise.all(Array.from(producers.values()).map((producer) => producer.close()));
       producers.clear();
     },
     getProducers: (): Map<string, ZmqPublisher<T>> => {

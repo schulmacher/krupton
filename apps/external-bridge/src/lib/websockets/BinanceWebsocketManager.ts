@@ -367,14 +367,11 @@ export class BinanceWebsocketManager<
     this.#pendingRequests.delete(request.id);
 
     if ('error' in response) {
-      const error =new Error(`Request failed: ${JSON.stringify(response.error)}`);
-      diagnosticContext.logger.error(
-        error,
-        {
-          requestId: request.id,
-          error: response.error,
-        },
-      );
+      const error = new Error(`Request failed: ${JSON.stringify(response.error)}`);
+      diagnosticContext.logger.error(error, {
+        requestId: request.id,
+        error: response.error,
+      });
       throw error;
     }
 

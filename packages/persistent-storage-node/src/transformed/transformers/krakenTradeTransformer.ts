@@ -31,7 +31,10 @@ export function transformKrakenRecentTradeToUnified(
   const allKeys = Object.keys(response.result);
 
   if (allKeys.length > 2) {
-    throw new Error('transformKrakenRecentTradeToUnified: Unexpected number of keys in response. result: ' + JSON.stringify(response.result));
+    throw new Error(
+      'transformKrakenRecentTradeToUnified: Unexpected number of keys in response. result: ' +
+        JSON.stringify(response.result),
+    );
   }
 
   for (const pairKey of allKeys) {
@@ -60,4 +63,3 @@ export function transformKrakenRecentTradeToUnified(
 
   return trades;
 }
-

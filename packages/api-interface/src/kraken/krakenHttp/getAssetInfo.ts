@@ -27,4 +27,3 @@ export const GetAssetInfoEndpoint = {
 export type GetAssetInfoQuery = TB.Static<typeof GetAssetInfoEndpoint.querySchema>;
 export type GetAssetInfoResponse = TB.Static<typeof GetAssetInfoEndpoint.responseSchema>;
 export type GetAssetInfoRequest = ExtractEndpointParams<typeof GetAssetInfoEndpoint>;
-

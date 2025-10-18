@@ -18,11 +18,13 @@ export interface ProcessLifecycleConfig {
   shutdownConfiguration?: ShutdownConfiguration;
 }
 
-export type ProcessStartFn = (context: ProcessLifecycleContext) => Promise<{ diagnosticContext: DiagnosticContext, envContext: EnvContext }>;
+export type ProcessStartFn = (
+  context: ProcessLifecycleContext,
+) => Promise<{ diagnosticContext: DiagnosticContext; envContext: EnvContext }>;
 
 export interface ProcessLifecycleContext {
   onShutdown(callback: ShutdownCallback): void;
   shutdown(): Promise<void>;
   isShuttingDown(): boolean;
-  restart(): Promise<void>
+  restart(): Promise<void>;
 }

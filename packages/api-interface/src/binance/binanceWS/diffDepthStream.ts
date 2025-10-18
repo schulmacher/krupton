@@ -36,7 +36,6 @@ export const DiffDepthStream = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageIdentifier: (message: any): boolean => {
     return String(message?.data?.e) === 'depthUpdate';
-
   },
 } satisfies WebSocketStreamDefinition;
 

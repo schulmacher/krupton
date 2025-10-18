@@ -1,6 +1,9 @@
 import type { WorkerInfo } from './types.js';
 
-export function allocateShards(workers: WorkerInfo[], maxShardCount: number): Map<string, number[]> {
+export function allocateShards(
+  workers: WorkerInfo[],
+  maxShardCount: number,
+): Map<string, number[]> {
   const allocation = new Map<string, number[]>();
 
   if (workers.length === 0 || maxShardCount === 0) {
@@ -31,11 +34,14 @@ export function allocateShards(workers: WorkerInfo[], maxShardCount: number): Ma
   return allocation;
 }
 
-export function rebalanceShards(serviceName: string, workers: WorkerInfo[], maxShardCount: number): void {
+export function rebalanceShards(
+  serviceName: string,
+  workers: WorkerInfo[],
+  maxShardCount: number,
+): void {
   const allocation = allocateShards(workers, maxShardCount);
 
   for (const worker of workers) {
     worker.assignedShards = allocation.get(worker.workerId) || [];
   }
 }
-

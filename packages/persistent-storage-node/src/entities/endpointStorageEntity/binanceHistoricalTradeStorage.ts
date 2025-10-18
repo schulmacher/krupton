@@ -9,7 +9,9 @@ import {
 export type BinanceHistoricalTradeStorage = EndpointStorage<
   typeof BinanceApi.GetHistoricalTradesEndpoint
 >;
-export type BinanceHistoricalTradeRecord = EndpointStorageRecord<typeof BinanceApi.GetHistoricalTradesEndpoint>;
+export type BinanceHistoricalTradeRecord = EndpointStorageRecord<
+  typeof BinanceApi.GetHistoricalTradesEndpoint
+>;
 
 export function createBinanceHistoricalTradeStorage(
   storageBaseDir: string,
@@ -18,4 +20,3 @@ export function createBinanceHistoricalTradeStorage(
   const baseDir = join(storageBaseDir, 'binance');
   return createEndpointStorage(baseDir, BinanceApi.GetHistoricalTradesEndpoint, options);
 }
-

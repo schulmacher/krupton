@@ -1,6 +1,10 @@
-import type { Registry } from 'prom-client';
 import { describe, expect, it, vi } from 'vitest';
 import type { Logger } from '../diagnostics/types.js';
+import {
+  createMockDiagnosticsContext,
+  createMockMetricsContext,
+  createMockProcessContext,
+} from '../test/index.js';
 import { createHttpServer } from './httpServer.js';
 import type { HealthCheckResult, ServiceContext } from './types.js';
 
@@ -15,21 +19,10 @@ function createMockLogger(): Logger {
   };
 }
 
-function createMockRegistry(): Registry {
-  const registry: Partial<Registry> = {
-    contentType: 'text/plain; version=0.0.4; charset=utf-8',
-    metrics: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
-  };
-  return registry as Registry;
-}
-
 function createTestServiceContext(): ServiceContext<{
   PORT: number;
   NODE_ENV: string;
 }> {
-  const shutdownCallbacks: Array<() => Promise<void>> = [];
-  const mockLogger = createMockLogger();
-
   const config: { PORT: number; NODE_ENV: string } = {
     PORT: 3000,
     NODE_ENV: 'test',
@@ -40,36 +33,9 @@ function createTestServiceContext(): ServiceContext<{
       config,
       nodeEnv: 'test',
     },
-    diagnosticContext: {
-      correlationIdGenerator: {
-        generateRootId: vi.fn().mockReturnValue('req-test-123'),
-        createScopedId: vi.fn((parent, scope) => `${parent}.${scope}`),
-        extractRootId: vi.fn((id) => id.split('.')[0]),
-      },
-      logger: mockLogger,
-      createChildLogger: vi.fn().mockReturnValue(mockLogger),
-    },
-    metricsContext: {
-      getRegistry: vi.fn().mockReturnValue(createMockRegistry()),
-      createCounter: vi.fn(),
-      createGauge: vi.fn(),
-      createHistogram: vi.fn(),
-      createSummary: vi.fn(),
-      getMetricsAsString: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
-      getMetrics: vi.fn().mockReturnValue([]),
-      clearMetrics: vi.fn(),
-      metrics: undefined,
-    },
-    processContext: {
-      onShutdown: vi.fn((callback) => {
-        shutdownCallbacks.push(callback);
-      }),
-      shutdown: vi.fn(async () => {
-        await Promise.all(shutdownCallbacks.map((cb) => cb()));
-      }),
-      isShuttingDown: vi.fn().mockReturnValue(false),
-      restart: vi.fn(),
-    },
+    diagnosticContext: createMockDiagnosticsContext(),
+    metricsContext: createMockMetricsContext(),
+    processContext: createMockProcessContext(),
   };
 }
 
@@ -406,12 +372,7 @@ describe('createHttpServer', () => {
       const body = JSON.parse(response.body);
       expect(body.status).toBe('unhealthy');
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Health check error',
-        expect.objectContaining({
-          error: 'Connection failed',
-        }),
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error), 'Health check error');
     });
 
     it('should execute all health checks in parallel', async () => {

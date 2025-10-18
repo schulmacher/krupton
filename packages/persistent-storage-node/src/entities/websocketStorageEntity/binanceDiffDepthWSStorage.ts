@@ -16,4 +16,3 @@ export function createBinanceDiffDepthWSStorage(
   const baseDir = join(storageBaseDir, 'binance');
   return createWebSocketStorage(baseDir, BinanceWS.DiffDepthStream, options);
 }
-

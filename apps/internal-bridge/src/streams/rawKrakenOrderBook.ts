@@ -15,7 +15,9 @@ export async function getRawKrakenOrderBookStream(
     zmqSubscriber: context.inputConsumers.krakenOrderBookWs.getZmqSubscriber(normalizedSymbol),
     lastState: wsLastState,
     batchSize: 200,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'kraken-ws-orderbook' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'kraken-ws-orderbook',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 

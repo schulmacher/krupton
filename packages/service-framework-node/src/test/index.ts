@@ -20,7 +20,7 @@ export function createMockDiagnosticsContext(
 ): DiagnosticContext {
   const mockLogger = createMockLogger();
 
-  return {
+  const context: DiagnosticContext = {
     correlationIdGenerator: {
       generateRootId: vi.fn().mockReturnValue('test-root-id'),
       createScopedId: vi.fn((parent, scope) => `${parent}.${scope}`),
@@ -28,8 +28,11 @@ export function createMockDiagnosticsContext(
     },
     logger: mockLogger,
     createChildLogger: vi.fn().mockReturnValue(mockLogger),
+    getChildDiagnosticContext: vi.fn(() => context),
     ...overrides,
   };
+
+  return context;
 }
 
 export function createMockEnvContext<T = Record<string, unknown>>(
@@ -77,12 +80,17 @@ export function createMockMetricsContext<TMetrics = undefined>(
     },
   ) as TMetrics;
 
+  const mockRegistry = {
+    contentType: 'text/plain; version=0.0.4; charset=utf-8',
+    metrics: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
+  };
+
   return {
-    getRegistry: vi.fn(),
-    createCounter: vi.fn(),
-    createGauge: vi.fn(),
-    createHistogram: vi.fn(),
-    createSummary: vi.fn(),
+    getRegistry: vi.fn().mockReturnValue(mockRegistry),
+    createCounter: vi.fn().mockReturnValue(createMockMetric()),
+    createGauge: vi.fn().mockReturnValue(createMockMetric()),
+    createHistogram: vi.fn().mockReturnValue(createMockMetric()),
+    createSummary: vi.fn().mockReturnValue(createMockMetric()),
     getMetricsAsString: vi.fn().mockResolvedValue('# HELP test\ntest_metric 1'),
     getMetrics: vi.fn().mockReturnValue([]),
     clearMetrics: vi.fn(),
@@ -113,4 +121,3 @@ export function createMockProcessContext(
     ...overrides,
   };
 }
-

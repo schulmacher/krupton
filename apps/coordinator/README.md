@@ -15,16 +15,19 @@ The coordinator service manages shard distribution across worker processes using
 The coordinator uses the following environment variables:
 
 ### Required Framework Variables
+
 - `PROCESS_NAME`: Process name (default: 'coordinator')
 - `NODE_ENV`: Node environment (default: 'development')
 - `PORT`: HTTP server port (default: 3000)
 - `LOG_LEVEL`: Logging level (default: 'debug')
 
 ### ZeroMQ Configuration
+
 - `SHARD_COORDINATOR_BIND_PORT`: ZeroMQ bind port (default: 5555)
 - `SHARD_COORDINATOR_BIND_HOST`: ZeroMQ bind host (default: 'tcp://0.0.0.0')
 
 ### Heartbeat Configuration
+
 - `HEARTBEAT_TIMEOUT_SECONDS`: Time before worker is marked inactive (default: 15)
 - `HEARTBEAT_CHECK_INTERVAL_SECONDS`: Interval for checking worker heartbeats (default: 5)
 
@@ -97,12 +100,14 @@ The `maxShardCount` is a **service-level property** shared across all workers wi
 ### Shard Allocation
 
 Shards are distributed evenly across active workers:
+
 - Workers are sorted by worker ID for consistent allocation
 - Base shards = `Math.floor(maxShardCount / activeWorkerCount)`
 - Remainder shards are distributed to the first N workers
 - Each worker receives a contiguous or distributed set of shard numbers
 
 Example with 10 shards and 3 workers:
+
 - Worker A: `[0, 1, 2, 3]` (4 shards)
 - Worker B: `[4, 5, 6]` (3 shards)
 - Worker C: `[7, 8, 9]` (3 shards)
@@ -120,7 +125,7 @@ Example with 10 shards and 3 workers:
 sequenceDiagram
     participant W as Worker
     participant C as Coordinator
-    
+
     W->>C: Register (service, worker, maxShardCount)
     C->>C: Store worker info
     C->>C: Check if maxShardCount changed
@@ -132,12 +137,12 @@ sequenceDiagram
         C->>C: Allocate shards for new worker
         C->>W: Assignment (shards)
     end
-    
+
     loop Every 5-10 seconds
         W->>C: Heartbeat (service, worker, maxShardCount, assignedShards)
         C->>C: Update last heartbeat time
     end
-    
+
     Note over C: After 15 seconds without heartbeat
     C->>C: Mark worker as inactive
     C->>C: Rebalance shards among active workers
@@ -180,7 +185,7 @@ class ShardWorker {
     };
 
     await this.socket.send(JSON.stringify(message));
-    
+
     // Wait for assignment
     for await (const [response] of this.socket) {
       const assignment = JSON.parse(response.toString());
@@ -276,6 +281,7 @@ Worker Message → ZMQ Coordinator → Message Handler → Worker Registry
 ### ZeroMQ Pattern
 
 The coordinator uses a ROUTER socket:
+
 - **Coordinator**: ROUTER socket binds and receives messages from multiple workers
 - **Workers**: DEALER sockets connect and send registration/heartbeat messages
 - Worker identities are tracked for routing responses back to specific workers
@@ -289,6 +295,7 @@ curl http://localhost:3000/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",

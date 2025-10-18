@@ -3,7 +3,7 @@ import { BinanceApi } from '@krupton/api-interface';
 import {
   createBinanceExchangeInfoStorage,
   createBinanceHistoricalTradeStorage,
-  createBinanceTradeWSStorage
+  createBinanceTradeWSStorage,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
@@ -65,14 +65,12 @@ export function createBinanceFetcherContext(processContext: SF.ProcessLifecycleC
     }),
   };
 
-
   const producers = {
     binanceTrade: createZmqPublisherRegistry({
       socketTemplate: zmqSocketTempalatesRawData.binanceTradeApi,
       diagnosticContext,
     }),
   };
-
 
   return {
     envContext,

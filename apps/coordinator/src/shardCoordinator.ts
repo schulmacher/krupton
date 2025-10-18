@@ -12,7 +12,7 @@ export function createShardCoordinator(context: CoordinatorContext) {
   const registry = createWorkerRegistry();
   const messageHandler = createMessageHandler(context, registry);
   const zmqCoordinator = createZmqCoordinator(context, messageHandler);
-  
+
   // Create heartbeat monitor with inactive worker callback
   const heartbeatMonitor = createHeartbeatMonitor(
     context,

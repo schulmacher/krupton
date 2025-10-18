@@ -17,7 +17,7 @@ describe('createPersistentStorage', () => {
 
   describe('appendRecord', () => {
     it('should append records to storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const records = [
         { timestamp: 1000, id: 1, data: 'Record 1' },
@@ -46,7 +46,7 @@ describe('createPersistentStorage', () => {
     });
 
     it('should handle appending to existing storage correctly', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       // Write first record
       await storage.appendRecord({
@@ -74,16 +74,18 @@ describe('createPersistentStorage', () => {
 
   describe('readFullPage', () => {
     it('should read all records from storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const records = [
         {
           timestamp: 1000,
+          id: 1,
           request: { query: { symbol: 'BTCUSDT' } },
           response: { id: '1', value: 100 },
         },
         {
           timestamp: 2000,
+          id: 2,
           request: { query: { symbol: 'ETHUSDT' } },
           response: { id: '2', value: 200 },
         },
@@ -105,7 +107,7 @@ describe('createPersistentStorage', () => {
     });
 
     it('should return empty array if storage does not exist', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const result = await storage.readFullPage({
         subIndexDir: 'nonexistent',
@@ -118,21 +120,24 @@ describe('createPersistentStorage', () => {
 
   describe('readLastRecord', () => {
     it('should read only the last record from storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const records = [
         {
           timestamp: 1000,
+          id: 1,
           request: { query: { symbol: 'BTCUSDT' } },
           response: { id: '1', value: 100 },
         },
         {
           timestamp: 2000,
+          id: 2,
           request: { query: { symbol: 'ETHUSDT' } },
           response: { id: '2', value: 200 },
         },
         {
           timestamp: 3000,
+          id: 3,
           request: { query: { symbol: 'BNBUSDT' } },
           response: { id: '3', value: 300 },
         },
@@ -151,7 +156,7 @@ describe('createPersistentStorage', () => {
     });
 
     it('should return null if storage does not exist', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const result = await storage.readLastRecord('nonexistent');
 
@@ -159,10 +164,11 @@ describe('createPersistentStorage', () => {
     });
 
     it('should handle single record storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const record = {
         timestamp: 1000,
+        id: 1,
         request: { query: { symbol: 'BTCUSDT' } },
         response: { id: '1', value: 100 },
       };
@@ -178,12 +184,13 @@ describe('createPersistentStorage', () => {
     });
 
     it('should handle large datasets efficiently', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       for (let i = 0; i < 1000; i++) {
         await storage.appendRecord({
           record: {
             timestamp: i,
+            id: i + 1,
             request: { query: { symbol: 'BTCUSDT' } },
             response: { id: `${i}`, value: i },
           },
@@ -195,6 +202,7 @@ describe('createPersistentStorage', () => {
 
       expect(result).toEqual({
         timestamp: 999,
+        id: 1000,
         request: { query: { symbol: 'BTCUSDT' } },
         response: { id: '999', value: 999 },
       });
@@ -203,7 +211,7 @@ describe('createPersistentStorage', () => {
 
   describe('readRecordsRange', () => {
     it('should read records in specified range', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const allRecords: unknown[] = [];
       for (let i = 0; i < 12; i++) {
@@ -254,7 +262,7 @@ describe('createPersistentStorage', () => {
     });
 
     it('should return empty array for non-existent range', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const result = await storage.readRecordsRange({
         subIndexDir: 'nonexistent',
@@ -265,41 +273,44 @@ describe('createPersistentStorage', () => {
       expect(result).toEqual([]);
     });
 
-    it('should include index in results', async () => {
-      const storage = createPersistentStorage(tempDir);
+    it('should include id in results', async () => {
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       await storage.appendRecord({
-        record: { timestamp: 1000, data: 'First' },
+        record: { timestamp: 1000, id: 1, data: 'First' },
         subIndexDir: 'test',
       });
 
       const result = await storage.readRecordsRange({
         subIndexDir: 'test',
-        fromIndex: 0,
+        fromIndex: 1,
         count: 1,
       });
 
-      expect(result[0]!.index).toBe(0);
+      expect(result[0]!.id).toBe(1);
     });
   });
 
   describe('replaceOrInsertLastRecord', () => {
     it('should replace the last record in storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const records = [
         {
           timestamp: 1000,
+          id: 1,
           request: { query: { symbol: 'BTCUSDT' } },
           response: { id: '1', value: 100 },
         },
         {
           timestamp: 2000,
+          id: 2,
           request: { query: { symbol: 'ETHUSDT' } },
           response: { id: '2', value: 200 },
         },
         {
           timestamp: 3000,
+          id: 3,
           request: { query: { symbol: 'BNBUSDT' } },
           response: { id: '3', value: 300 },
         },
@@ -331,14 +342,15 @@ describe('createPersistentStorage', () => {
       expect(allRecords).toHaveLength(3);
       expect(allRecords[0]).toEqual(records[0]);
       expect(allRecords[1]).toEqual(records[1]);
-      expect(allRecords[2]).toEqual(newLastRecord);
+      expect(allRecords[2]).toEqual({ ...newLastRecord, id: 3 });
     });
 
     it('should replace last record in single record storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
       const record = {
         timestamp: 1000,
+        id: 1,
         request: { query: { symbol: 'BTCUSDT' } },
         response: { id: '1', value: 100 },
       };
@@ -365,22 +377,30 @@ describe('createPersistentStorage', () => {
       });
 
       expect(allRecords).toHaveLength(1);
-      expect(allRecords[0]).toEqual(newRecord);
+      expect(allRecords[0]).toEqual({ ...newRecord, id: 1 });
     });
 
-    it('should throw error when replacing in empty storage', async () => {
-      const storage = createPersistentStorage(tempDir);
+    it('should insert record when storage is empty', async () => {
+      const storage = createPersistentStorage(tempDir, { writable: true });
 
-      await expect(
-        storage.replaceOrInsertLastRecord({
-          record: {
-            timestamp: 1000,
-            request: { query: { symbol: 'BTCUSDT' } },
-            response: { id: '1', value: 100 },
-          },
-          subIndexDir: 'BTCUSDT',
-        }),
-      ).rejects.toThrow('Cannot replace last record: no records exist');
+      const record = {
+        timestamp: 1000,
+        request: { query: { symbol: 'BTCUSDT' } },
+        response: { id: '1', value: 100 },
+      };
+
+      await storage.replaceOrInsertLastRecord({
+        record,
+        subIndexDir: 'BTCUSDT',
+      });
+
+      const allRecords = await storage.readFullPage({
+        subIndexDir: 'BTCUSDT',
+        fileName: 'unused',
+      });
+
+      expect(allRecords).toHaveLength(1);
+      expect(allRecords[0]).toEqual({ ...record, id: 1 });
     });
   });
 });
@@ -474,7 +494,7 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
   });
 
   it('should normalize subIndexDir when appending records', async () => {
-    const storage = createPersistentStorage(tempDir);
+    const storage = createPersistentStorage(tempDir, { writable: true });
 
     const record = { timestamp: 1000, id: 1, data: 'test' };
 
@@ -490,7 +510,7 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
   });
 
   it('should normalize subIndexDir when reading records', async () => {
-    const storage = createPersistentStorage(tempDir);
+    const storage = createPersistentStorage(tempDir, { writable: true });
 
     const record = { timestamp: 1000, id: 1, data: 'test' };
 
@@ -511,7 +531,7 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
   });
 
   it('should normalize subIndexDir consistently across operations', async () => {
-    const storage = createPersistentStorage(tempDir);
+    const storage = createPersistentStorage(tempDir, { writable: true });
 
     const records = [
       { timestamp: 1000, id: 1, data: 'first' },
@@ -535,7 +555,7 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
   });
 
   it('should normalize subIndexDir when reading last record', async () => {
-    const storage = createPersistentStorage(tempDir);
+    const storage = createPersistentStorage(tempDir, { writable: true });
 
     const record = { timestamp: 1000, id: 1, data: 'test' };
 
@@ -551,10 +571,10 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
   });
 
   it('should normalize subIndexDir when replacing last record', async () => {
-    const storage = createPersistentStorage(tempDir);
+    const storage = createPersistentStorage(tempDir, { writable: true });
 
     const record1 = { timestamp: 1000, id: 1, data: 'first' };
-    const record2 = { timestamp: 2000, id: 2, data: 'second' };
+    const record2 = { timestamp: 2000, data: 'second' };
 
     await storage.appendRecord({
       record: record1,
@@ -568,6 +588,6 @@ describe('createPersistentStorage with subIndexDir normalization', () => {
 
     const result = await storage.readLastRecord('test___data');
 
-    expect(result).toEqual(record2);
+    expect(result).toEqual({ ...record2, id: 1, timestamp: 2000 });
   });
 });

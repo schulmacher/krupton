@@ -3,7 +3,7 @@ import { KrakenApi } from '@krupton/api-interface';
 import {
   KrakenAssetInfoStorage,
   KrakenAssetPairsStorage,
-  SYMBOL_ALL
+  SYMBOL_ALL,
 } from '@krupton/persistent-storage-node';
 
 let assetPairs: KrakenApi.GetAssetPairsResponse | null = null;

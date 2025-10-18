@@ -83,14 +83,9 @@ export async function createKrakenOrderBookFetcherLoops(
         },
       };
 
-      return createKrakenOrderBookFetcherLoopForSymbol(
-        childContext,
-        symbol,
-        options?.count ?? 100,
-      );
+      return createKrakenOrderBookFetcherLoopForSymbol(childContext, symbol, options?.count ?? 100);
     }),
   );
 
   return fetcherLoops;
 }
-

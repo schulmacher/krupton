@@ -4,7 +4,7 @@ import {
   createKrakenBookWSStorage,
   createKrakenTickerWSStorage,
   createKrakenTradeWSStorage,
-  KrakenBookWSRecord
+  KrakenBookWSRecord,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { krakenWebSocketEnvSchema, type KrakenWebSocketEnv } from './environment.js';

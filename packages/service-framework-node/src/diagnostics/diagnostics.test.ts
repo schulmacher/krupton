@@ -87,7 +87,8 @@ describe('createLogger', () => {
     const parsed = JSON.parse(logOutput as string) as LogEntry;
 
     expect(parsed.severity).toBe('error');
-    expect(parsed.message).toBe('Error occurred');
+    expect(parsed.message).toBe('Test error');
+    expect(parsed.fields?.additionalMessage).toBe('Error occurred');
   });
 
   it('logs fatal messages to console.error', () => {
@@ -138,10 +139,12 @@ describe('createLogger', () => {
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     const logOutput = consoleLogSpy.mock.calls[0][0];
 
-    expect(logOutput).toContain('INFO');
-    expect(logOutput).toContain('[test-id]');
+    expect(logOutput).toContain('info');
+    expect(logOutput).toContain('process=');
+    expect(logOutput).toContain('test-service');
     expect(logOutput).toContain('Human readable message');
-    expect(logOutput).toContain('"key":"value"');
+    expect(logOutput).toContain('key=');
+    expect(logOutput).toContain('value');
   });
 
   it('formats logs as structured text', () => {
@@ -177,7 +180,7 @@ describe('createLogger', () => {
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     const logOutput = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(logOutput as string) as LogEntry;
-    expect(parsed.fields).toBeUndefined();
+    expect(parsed.fields).toEqual({});
   });
 });
 

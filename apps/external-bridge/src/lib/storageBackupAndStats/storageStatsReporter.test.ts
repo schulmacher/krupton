@@ -201,9 +201,7 @@ describe('createStorageStatsReporter', () => {
 
     await vi.advanceTimersByTimeAsync(100);
 
-    expect(mockLogger.error).toHaveBeenCalledWith('Failed to report storage stats', {
-      error: testError,
-    });
+    expect(mockLogger.error).toHaveBeenCalledWith(testError, 'Failed to report storage stats');
     expect(mockMetrics.directoryStorageSize.set).not.toHaveBeenCalled();
 
     await reporter.stop();
@@ -250,9 +248,7 @@ describe('createStorageStatsReporter', () => {
     await vi.advanceTimersByTimeAsync(100);
 
     // Loop should continue after first error
-    expect(mockLogger.error).toHaveBeenCalledWith('Failed to report storage stats', {
-      error: testError,
-    });
+    expect(mockLogger.error).toHaveBeenCalledWith(testError, 'Failed to report storage stats');
 
     await reporter.stop();
   });

@@ -172,19 +172,19 @@ function generateOutputFilename(dbInfo: DatabaseInfo): string {
 async function getDatabaseStats(dbPath: string): Promise<void> {
   const stats = await stat(dbPath);
   const sizeInMB = stats.size / (1024 * 1024);
-  
+
   console.log(`\n${'═'.repeat(80)}`);
   console.log(`  Database Statistics`);
   console.log(`${'═'.repeat(80)}\n`);
   console.log(`  File: ${dbPath}`);
   console.log(`  Size: ${sizeInMB.toFixed(2)} MB`);
-  
+
   // Get record count from database
   const db = new Database(dbPath, { readonly: true });
   try {
     const result = db.prepare('SELECT COUNT(*) as count FROM records').get() as { count: number };
     console.log(`  Records: ${result.count.toLocaleString()}`);
-    
+
     if (result.count > 0) {
       const avgSize = (stats.size / result.count).toFixed(2);
       console.log(`  Avg size per record: ${avgSize} bytes`);
@@ -192,7 +192,7 @@ async function getDatabaseStats(dbPath: string): Promise<void> {
   } finally {
     db.close();
   }
-  
+
   console.log(`\n${'═'.repeat(80)}\n`);
 }
 

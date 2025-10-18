@@ -1,6 +1,11 @@
 import type { CoordinatorContext } from '../context.js';
 import type { WorkerRegistry } from './workerRegistry.js';
-import type { RegistrationMessage, HeartbeatMessage, AssignmentMessage, OutgoingMessage } from './types.js';
+import type {
+  RegistrationMessage,
+  HeartbeatMessage,
+  AssignmentMessage,
+  OutgoingMessage,
+} from './types.js';
 import { rebalanceShards } from './shardAllocator.js';
 
 export function createMessageHandler(context: CoordinatorContext, registry: WorkerRegistry) {
@@ -59,7 +64,7 @@ export function createMessageHandler(context: CoordinatorContext, registry: Work
       // Just allocate shards for new worker
       const activeWorkers = registry.getActiveWorkers(serviceName);
       const service = registry.getService(serviceName);
-      
+
       if (service) {
         rebalanceShards(serviceName, activeWorkers, service.maxShardCount);
 
@@ -89,7 +94,7 @@ export function createMessageHandler(context: CoordinatorContext, registry: Work
     logger.debug('Handling heartbeat', { serviceName, workerId, assignedShards });
 
     const worker = registry.getWorker(serviceName, workerId);
-    
+
     if (!worker) {
       logger.warn('Received heartbeat from unregistered worker', {
         serviceName,
@@ -101,7 +106,7 @@ export function createMessageHandler(context: CoordinatorContext, registry: Work
     // Verify assigned shards match
     const expectedShards = worker.assignedShards.slice().sort((a, b) => a - b);
     const receivedShards = assignedShards.slice().sort((a, b) => a - b);
-    
+
     if (JSON.stringify(expectedShards) !== JSON.stringify(receivedShards)) {
       logger.warn('Worker reported mismatched shards', {
         serviceName,
@@ -154,4 +159,3 @@ export function createMessageHandler(context: CoordinatorContext, registry: Work
 }
 
 export type MessageHandler = ReturnType<typeof createMessageHandler>;
-

@@ -159,7 +159,6 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
           await sleep(1e4);
         }
 
-
         if (!wsHole?.gapStart || !wsHole?.gapEnd) {
           continue;
         }

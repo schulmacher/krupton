@@ -1,7 +1,7 @@
 import { BinanceApi } from '@krupton/api-interface';
 import {
-    createBinanceHistoricalTradeStorage,
-    createBinanceTradeWSStorage,
+  createBinanceHistoricalTradeStorage,
+  createBinanceTradeWSStorage,
 } from '@krupton/persistent-storage-node';
 import { createEntityReader } from '@krupton/persistent-storage-node/transformed';
 import {
@@ -211,7 +211,11 @@ describe('binanceHistoricalTrades - hole detection and filling', () => {
     const checkInterval = 50; // 50ms
     let elapsed = 0;
 
-    while (apiCallLog.length < 3 && elapsed < maxWaitTime && !mockContext.processContext.isShuttingDown()) {
+    while (
+      apiCallLog.length < 3 &&
+      elapsed < maxWaitTime &&
+      !mockContext.processContext.isShuttingDown()
+    ) {
       await new Promise((resolve) => setTimeout(resolve, checkInterval));
       elapsed += checkInterval;
     }

@@ -42,15 +42,24 @@ function createControlledGenerator<T>(name: string, messageFactory: (index: numb
 
 describe('mergeEntityStreams - Behavioral Tests', () => {
   it('should handle when only one generator yields', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
-    const second = createControlledGenerator('second', (i): SecondGeneratorMessage => ({
-      secondGenerator: i,
-    }));
-    const third = createControlledGenerator('third', (i): ThirdGeneratorMessage => ({
-      thirdGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
+    const second = createControlledGenerator(
+      'second',
+      (i): SecondGeneratorMessage => ({
+        secondGenerator: i,
+      }),
+    );
+    const third = createControlledGenerator(
+      'third',
+      (i): ThirdGeneratorMessage => ({
+        thirdGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,
@@ -94,15 +103,24 @@ describe('mergeEntityStreams - Behavioral Tests', () => {
   });
 
   it('should handle when two generators yield at the same time', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
-    const second = createControlledGenerator('second', (i): SecondGeneratorMessage => ({
-      secondGenerator: i,
-    }));
-    const third = createControlledGenerator('third', (i): ThirdGeneratorMessage => ({
-      thirdGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
+    const second = createControlledGenerator(
+      'second',
+      (i): SecondGeneratorMessage => ({
+        secondGenerator: i,
+      }),
+    );
+    const third = createControlledGenerator(
+      'third',
+      (i): ThirdGeneratorMessage => ({
+        thirdGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,
@@ -137,15 +155,24 @@ describe('mergeEntityStreams - Behavioral Tests', () => {
   });
 
   it('should handle when three generators yield at the same time', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
-    const second = createControlledGenerator('second', (i): SecondGeneratorMessage => ({
-      secondGenerator: i,
-    }));
-    const third = createControlledGenerator('third', (i): ThirdGeneratorMessage => ({
-      thirdGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
+    const second = createControlledGenerator(
+      'second',
+      (i): SecondGeneratorMessage => ({
+        secondGenerator: i,
+      }),
+    );
+    const third = createControlledGenerator(
+      'third',
+      (i): ThirdGeneratorMessage => ({
+        thirdGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,
@@ -182,9 +209,12 @@ describe('mergeEntityStreams - Behavioral Tests', () => {
   });
 
   it('should handle done without takeMore and yield empty array after 1 second heartbeat', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,
@@ -226,15 +256,24 @@ describe('mergeEntityStreams - Behavioral Tests', () => {
   });
 
   it('should handle takeMore to fetch next batch from specific streams', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
-    const second = createControlledGenerator('second', (i): SecondGeneratorMessage => ({
-      secondGenerator: i,
-    }));
-    const third = createControlledGenerator('third', (i): ThirdGeneratorMessage => ({
-      thirdGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
+    const second = createControlledGenerator(
+      'second',
+      (i): SecondGeneratorMessage => ({
+        secondGenerator: i,
+      }),
+    );
+    const third = createControlledGenerator(
+      'third',
+      (i): ThirdGeneratorMessage => ({
+        thirdGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,
@@ -295,12 +334,18 @@ describe('mergeEntityStreams - Behavioral Tests', () => {
   });
 
   it('should cache messages that are not doneped', async () => {
-    const first = createControlledGenerator('first', (i): FirstGeneratorMessage => ({
-      firstGenerator: i,
-    }));
-    const second = createControlledGenerator('second', (i): SecondGeneratorMessage => ({
-      secondGenerator: i,
-    }));
+    const first = createControlledGenerator(
+      'first',
+      (i): FirstGeneratorMessage => ({
+        firstGenerator: i,
+      }),
+    );
+    const second = createControlledGenerator(
+      'second',
+      (i): SecondGeneratorMessage => ({
+        secondGenerator: i,
+      }),
+    );
 
     const streams = {
       first: first.generator,

@@ -137,7 +137,7 @@ function startProcessLifecycleContext(
   };
 
   const initiateShutdown = async (signal: string): Promise<void> => {
-    stopProcess(signal);
+    await stopProcess(signal);
     process.exit(0);
   };
 
@@ -196,6 +196,9 @@ function startProcessLifecycleContext(
   }
 
   const shutdown = async (): Promise<void> => {
+    if (shuttingDown) {
+      return;
+    }
     await initiateShutdown('manual');
   };
 

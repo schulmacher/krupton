@@ -18,7 +18,9 @@ export async function getRawBinanceTradesMergedStream(
     zmqSubscriber: context.inputConsumers.binanceTradeApi.getZmqSubscriber(normalizedSymbol),
     lastState: apiLastState,
     batchSize: 10,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'binance-api-trade' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'binance-api-trade',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 
@@ -27,7 +29,9 @@ export async function getRawBinanceTradesMergedStream(
     zmqSubscriber: context.inputConsumers.binanceTradeWs.getZmqSubscriber(normalizedSymbol),
     lastState: wsLastState,
     batchSize: 200,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'binance-ws-trade' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'binance-ws-trade',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 

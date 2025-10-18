@@ -2,10 +2,10 @@ import { createMockZmqPublisherRegistry } from '@krupton/messaging-node/test';
 import { KrakenBookWSRecord } from '@krupton/persistent-storage-node';
 import { UnifiedOrderBook } from '@krupton/persistent-storage-node/transformed';
 import {
-    createMockDiagnosticsContext,
-    createMockEnvContext,
-    createMockMetricsContext,
-    createMockProcessContext,
+  createMockDiagnosticsContext,
+  createMockEnvContext,
+  createMockMetricsContext,
+  createMockProcessContext,
 } from '@krupton/service-framework-node/test';
 import { sleep } from '@krupton/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

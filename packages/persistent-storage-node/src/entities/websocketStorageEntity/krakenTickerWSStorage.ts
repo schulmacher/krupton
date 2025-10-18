@@ -16,4 +16,3 @@ export function createKrakenTickerWSStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createWebSocketStorage(baseDir, KrakenWS.TickerStream, options);
 }
-

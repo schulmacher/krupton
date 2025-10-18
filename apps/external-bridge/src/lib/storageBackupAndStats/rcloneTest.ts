@@ -35,16 +35,15 @@
  * 5. Removes old files from cloud based on retention policy
  */
 
-import { createStorageContext } from '../../process/storageProcess/context.js';
+import { SF } from '@krupton/service-framework-node';
+import { createStorageContext, StorageContext } from '../../process/storageProcess/context.js';
 import { syncLocalAndCloudBackups } from './storageBackupCloud.js';
 
-
-async function testRcloneSync() {
+async function testRcloneSync(context: StorageContext) {
   console.log('=== Starting rclone sync test ===\n');
 
   try {
     // Create context
-    const context = createStorageContext();
 
     console.log('Environment configuration:');
     console.log('- CLOUD_SYNC_ENABLED:', context.envContext.config.CLOUD_SYNC_ENABLED);
@@ -97,4 +96,13 @@ async function testRcloneSync() {
   }
 }
 
-testRcloneSync();
+SF.startProcessLifecycle(async (processContext) => {
+  const context = createStorageContext(processContext);
+
+  await testRcloneSync(context);
+
+  return {
+    diagnosticContext: context.diagnosticContext,
+    envContext: context.envContext,
+  };
+});

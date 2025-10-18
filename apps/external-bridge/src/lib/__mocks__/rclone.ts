@@ -54,7 +54,10 @@ export const executeRcloneCommand = vi.fn(async (command: string) => {
 });
 
 export const listRemoteFiles = vi.fn(
-  async (remoteName: string, remotePath: string): Promise<Array<{ name: string; size: number }>> => {
+  async (
+    remoteName: string,
+    remotePath: string,
+  ): Promise<Array<{ name: string; size: number }>> => {
     const storage = getRemoteStorage(remoteName, remotePath);
     const files: Array<{ name: string; size: number }> = [];
 

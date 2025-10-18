@@ -1,11 +1,7 @@
 import * as zmq from 'zeromq';
 import type { CoordinatorContext } from '../context.js';
 import type { MessageHandler } from './messageHandler.js';
-import type {
-  AssignmentMessage,
-  IncomingMessage,
-  OutgoingMessage
-} from './types.js';
+import type { AssignmentMessage, IncomingMessage, OutgoingMessage } from './types.js';
 
 export function createZmqCoordinator(context: CoordinatorContext, messageHandler: MessageHandler) {
   const { diagnosticContext, envContext } = context;

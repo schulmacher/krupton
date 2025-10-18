@@ -3,11 +3,7 @@ import {
   WebSocketStreamDefinition,
 } from '@krupton/api-client-ws-node';
 import { join } from 'path';
-import {
-  createPersistentStorage,
-  normalizeIndexDir,
-  StorageRecord
-} from '../persistentStorage.js';
+import { createPersistentStorage, normalizeIndexDir, StorageRecord } from '../persistentStorage.js';
 
 function normalizeStreamName(name: string): string {
   return 'ws_' + normalizeIndexDir(name);

@@ -134,7 +134,7 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
       state.errors++;
       totalErrorsGauge.set(state.errors);
 
-      diagnosticContext.logger.error(error,'Fetch failed', {
+      diagnosticContext.logger.error(error, 'Fetch failed', {
         platform: env.PLATFORM,
         symbol: symbol,
         endpoint: endpointPath,

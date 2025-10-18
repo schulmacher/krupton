@@ -16,4 +16,3 @@ export function createKrakenBookWSStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createWebSocketStorage(baseDir, KrakenWS.BookStream, options);
 }
-

@@ -115,6 +115,7 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
   const enableReconnect = config.reconnect ?? true;
   const reconnectInterval = config.reconnectInterval ?? 5000;
   const maxReconnectAttempts = config.maxReconnectAttempts ?? Infinity;
+  const pingIntervalMs = config.pingInterval ?? 15_000;
 
   const validators = enableValidation ? createMessageValidator(definitions) : null;
 
@@ -188,7 +189,7 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
         reconnectAttempts = 0;
         wsIsAlive = true;
         handlers.onOpen?.();
-    
+
         // Start heartbeat
         clearInterval(pingInterval!);
         pingInterval = setInterval(() => {
@@ -200,9 +201,9 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
           }
           wsIsAlive = false;
           ws?.ping();
-        }, 15_000); // every 15s
+        }, pingIntervalMs);
       });
-      
+
       ws.on('pong', () => {
         wsIsAlive = true;
       });

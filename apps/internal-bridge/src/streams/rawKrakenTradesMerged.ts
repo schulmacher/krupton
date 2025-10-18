@@ -17,7 +17,9 @@ export async function getRawKrakenTradesMergedStream(
     zmqSubscriber: context.inputConsumers.krakenTradeApi.getZmqSubscriber(normalizedSymbol),
     lastState: apiState,
     batchSize: 10,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'kraken-api-trade' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'kraken-api-trade',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
   const wsStream = createConsistentConsumer({
@@ -25,7 +27,9 @@ export async function getRawKrakenTradesMergedStream(
     zmqSubscriber: context.inputConsumers.krakenTradeWs.getZmqSubscriber(normalizedSymbol),
     lastState: wsState,
     batchSize: 200,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'kraken-ws-trade' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'kraken-ws-trade',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 

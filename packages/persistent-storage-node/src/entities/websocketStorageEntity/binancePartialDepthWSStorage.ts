@@ -9,7 +9,9 @@ import {
 export type BinancePartialDepthWSStorage = WebSocketStorage<
   typeof BinanceWS.PartialBookDepthStream
 >;
-export type BinancePartialDepthWSRecord = WebSocketStorageRecord<typeof BinanceWS.PartialBookDepthStream>;
+export type BinancePartialDepthWSRecord = WebSocketStorageRecord<
+  typeof BinanceWS.PartialBookDepthStream
+>;
 
 export function createBinancePartialDepthWSStorage(
   storageBaseDir: string,
@@ -18,4 +20,3 @@ export function createBinancePartialDepthWSStorage(
   const baseDir = join(storageBaseDir, 'binance');
   return createWebSocketStorage(baseDir, BinanceWS.PartialBookDepthStream, options);
 }
-

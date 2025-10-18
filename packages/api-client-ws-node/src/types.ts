@@ -23,6 +23,7 @@ export interface WebSocketConsumerConfig {
   reconnect?: boolean;
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
+  pingInterval?: number;
 }
 
 export type StreamMessageHandler<T extends WebSocketStreamDefinition> = (
@@ -43,11 +44,15 @@ export type StreamHandlerWithDefinition<T extends WebSocketStreamDefinition> = {
   handler: StreamMessageHandler<T>;
 };
 
-export type StreamHandlersWithDefinitions<TDefinitions extends Record<string, WebSocketStreamDefinition>> = {
+export type StreamHandlersWithDefinitions<
+  TDefinitions extends Record<string, WebSocketStreamDefinition>,
+> = {
   [K in keyof TDefinitions]: StreamHandlerWithDefinition<TDefinitions[K]>;
 };
 
-export interface WebSocketEventHandlers<TDefinitions extends Record<string, WebSocketStreamDefinition>> {
+export interface WebSocketEventHandlers<
+  TDefinitions extends Record<string, WebSocketStreamDefinition>,
+> {
   handlers: StreamHandlers<TDefinitions>;
   onOpen?: () => void | Promise<void>;
   onClose?: (code: number, reason: string) => void | Promise<void>;

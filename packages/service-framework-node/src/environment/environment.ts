@@ -7,7 +7,7 @@ import type {
   EnvParserConfig,
   EnvSource,
   EnvValidationError,
-  ParsedEnv
+  ParsedEnv,
 } from './types.js';
 
 const SENSITIVE_PATTERNS = [/password/i, /secret/i, /key/i, /token/i, /credential/i, /auth/i];

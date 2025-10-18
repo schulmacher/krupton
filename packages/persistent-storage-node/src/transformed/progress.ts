@@ -81,4 +81,3 @@ export function getEntityProgress(
 ): EntityProgress | null {
   return progress.find((p) => p.entityType === entityType && p.symbol === symbol) ?? null;
 }
-

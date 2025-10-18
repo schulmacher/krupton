@@ -1,3 +1,4 @@
+import { createMockProcessContext } from '@krupton/service-framework-node/test';
 import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -107,7 +108,7 @@ describe('storageBackupCloud', () => {
     expect(initialCloudFiles.length).toBeGreaterThan(0);
 
     // Run sync
-    const context = createStorageContext({
+    const context = createStorageContext(createMockProcessContext(), {
       LOG_LEVEL: 'fatal',
       CLOUD_SYNC_ENABLED: 'true',
       BACKUP_BASE_DIR: testBackupDir,

@@ -16,4 +16,3 @@ export function createBinanceTradeWSStorage(
   const baseDir = join(storageBaseDir, 'binance');
   return createWebSocketStorage(baseDir, BinanceWS.TradeStream, options);
 }
-

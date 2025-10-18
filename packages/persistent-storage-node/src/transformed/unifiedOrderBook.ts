@@ -23,4 +23,3 @@ export const UnifiedOrderBook = TB.Union([UnifiedOrderBookSnapshot, UnifiedOrder
 export type UnifiedOrderBookSnapshot = TB.Static<typeof UnifiedOrderBookSnapshot>;
 export type UnifiedOrderBookUpdate = TB.Static<typeof UnifiedOrderBookUpdate>;
 export type UnifiedOrderBook = TB.Static<typeof UnifiedOrderBook>;
-

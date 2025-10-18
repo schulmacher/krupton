@@ -40,4 +40,3 @@ export const TickerStream = {
 
 export type TickerStreamMessage = ExtractWebSocketStreamMessage<typeof TickerStream>;
 export type TickerStreamParams = ExtractWebSocketStreamParams<typeof TickerStream>;
-

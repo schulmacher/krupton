@@ -6,7 +6,7 @@ import { createMockDiagnosticsContext } from '@krupton/service-framework-node/te
 
 // Mock zeromq
 vi.mock('zeromq', () => ({
-  Push: vi.fn(),
+  Publisher: vi.fn(),
 }));
 
 type TestMessage = StorageRecord<{ value: string }>;
@@ -51,7 +51,7 @@ describe('createZmqPublisher', () => {
       close: vi.fn(),
     };
 
-    (zmq.Push as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockPusher);
+    (zmq.Publisher as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockPusher);
 
     const producer = await createZmqPublisher<TestMessage>({
       socket: 'tcp://*:5555',
@@ -87,10 +87,10 @@ describe('createZmqPublisher', () => {
     // Now pusher.send should have been called twice:
     // 1st time with msg1, 2nd time with [msg2, msg3]
     expect(mockPusher.send).toHaveBeenCalledTimes(2);
-    expect(mockPusher.send).toHaveBeenNthCalledWith(
-      2,
-      [JSON.stringify(msg2), JSON.stringify(msg3)]
-    );
+    expect(mockPusher.send).toHaveBeenNthCalledWith(2, [
+      JSON.stringify(msg2),
+      JSON.stringify(msg3),
+    ]);
   });
 
   it('should wait for pending sends before closing', async () => {
@@ -101,7 +101,7 @@ describe('createZmqPublisher', () => {
       close: vi.fn(),
     };
 
-    (zmq.Push as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockPusher);
+    (zmq.Publisher as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockPusher);
 
     const producer = await createZmqPublisher<TestMessage>({
       socket: 'tcp://*:5555',
@@ -136,4 +136,3 @@ describe('createZmqPublisher', () => {
     expect(mockPusher.close).toHaveBeenCalledTimes(1);
   });
 });
-

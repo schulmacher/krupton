@@ -17,7 +17,7 @@ const krakenSymbolToNormalMap = {
   ZUSD: 'USD',
   XXBT: 'BTC',
   XXDG: 'DOGE',
-  
+
   // OOPS what happened here?
   XBT: 'BTC',
   XDG: 'DOGE',

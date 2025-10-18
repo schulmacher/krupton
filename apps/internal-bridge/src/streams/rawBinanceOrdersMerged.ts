@@ -19,7 +19,9 @@ export async function getRawBinanceOrdersMergedStream(
     zmqSubscriber: context.inputConsumers.binanceOrderBook.getZmqSubscriber(normalizedSymbol),
     lastState: lastOrderBookState,
     batchSize: 10,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'binance-api-orderbook-snapshot' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'binance-api-orderbook-snapshot',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 
@@ -28,7 +30,9 @@ export async function getRawBinanceOrdersMergedStream(
     zmqSubscriber: context.inputConsumers.binanceDiffDepth.getZmqSubscriber(normalizedSymbol),
     lastState: lastDiffDepthState,
     batchSize: 100,
-    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({ stream: 'binance-ws-orderbook-diff' }),
+    diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
+      stream: 'binance-ws-orderbook-diff',
+    }),
     isStopped: () => processContext.isShuttingDown(),
   });
 

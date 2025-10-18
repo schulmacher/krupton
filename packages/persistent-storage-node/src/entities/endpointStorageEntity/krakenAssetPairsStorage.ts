@@ -16,4 +16,3 @@ export function createKrakenAssetPairsStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createEndpointStorage(baseDir, KrakenApi.GetAssetPairsEndpoint, options);
 }
-

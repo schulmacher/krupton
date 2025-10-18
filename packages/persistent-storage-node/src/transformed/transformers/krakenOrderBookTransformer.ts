@@ -1,8 +1,6 @@
 import { KrakenWS } from '@krupton/api-interface';
 import type { WebSocketStorageRecord } from '../../entities/websocketStorage.js';
-import type {
-    UnifiedOrderBook
-} from '../unifiedOrderBook.js';
+import type { UnifiedOrderBook } from '../unifiedOrderBook.js';
 
 function convertKrakenBookLevelsToTuples(
   levels: Array<{ price: number; qty: number }>,

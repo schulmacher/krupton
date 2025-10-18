@@ -1,16 +1,9 @@
 import { mkdir, rm, writeFile, utimes } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readStorageStats } from './storageStats.js';
 
-vi.mock('./storageStats.js', async () => {
-  const actual = await vi.importActual<typeof import('./storageStats.js')>('./storageStats.js');
-  return {
-    ...actual,
-    STORAGE_DIRECTORY_PATTERNS: ['binance/**', 'kraken/**', 'victoria_metrics'],
-  };
-});
-
-const { readStorageStats, STORAGE_DIRECTORY_PATTERNS } = await import('./storageStats.js');
+const TEST_PATTERNS = ['binance/**', 'kraken/**', 'victoria_metrics'];
 
 describe('readStorageStats', () => {
   let tempDir: string;
@@ -44,7 +37,7 @@ describe('readStorageStats', () => {
   };
 
   it('should return empty array for empty directory', async () => {
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([]);
   });
@@ -60,7 +53,7 @@ describe('readStorageStats', () => {
       'test data 3',
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -88,7 +81,7 @@ describe('readStorageStats', () => {
       'kraken data 2',
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -111,7 +104,7 @@ describe('readStorageStats', () => {
     await createTestFile('victoria_metrics/data/nested/file2.bin', 'vm data 2');
     const lastUpdated = await createTestFile('victoria_metrics/cache/file3.bin', 'vm data 3');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -135,7 +128,7 @@ describe('readStorageStats', () => {
     );
     const vmUpdated = await createTestFile('victoria_metrics/data/file.bin', 'xyz');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -170,7 +163,7 @@ describe('readStorageStats', () => {
     await createTestFile('unknown_platform/data/file.txt', 'unmatched');
     const unmatchedLastUpdated = await createTestFile('random.txt', 'random file');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -199,7 +192,7 @@ describe('readStorageStats', () => {
       'deep3',
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -229,7 +222,7 @@ describe('readStorageStats', () => {
       smallContent,
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -247,7 +240,7 @@ describe('readStorageStats', () => {
     await createTestFile('kraken/api_0_public_Depth/BTCUSD/data.jsonl', 'k1');
     await createTestFile('binance/api_v3_depth/BTCUSDT/data.jsonl', 'b2');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats.map((s) => s.directory)).toEqual([
       'binance/api_v3_depth',
@@ -262,7 +255,7 @@ describe('readStorageStats', () => {
     await mkdir(join(tempDir, 'binance/api_v3_depth/BTCUSDT'), { recursive: true });
     await mkdir(join(tempDir, 'victoria_metrics/empty/nested/dir'), { recursive: true });
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([]);
   });
@@ -276,7 +269,7 @@ describe('readStorageStats', () => {
     await createTestFile('victoria_metrics/data/file.bin', 'binary');
     const vmLastUpdated = await createTestFile('victoria_metrics/cache/file.txt', 'text');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -306,7 +299,7 @@ describe('readStorageStats', () => {
       'data4',
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -354,7 +347,7 @@ describe('readStorageStats', () => {
       'x'.repeat(64),
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toHaveLength(5);
     expect(stats.find((s) => s.directory === 'binance/api_v3_depth')).toEqual({
@@ -388,7 +381,7 @@ describe('readStorageStats', () => {
     await createTestFile('kraken/api_0_public_Depth/BTCUSD/data.jsonl', 'data2');
     await createTestFile('victoria_metrics/data/file.bin', 'data3');
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     const unmatchedEntry = stats.find((s) => s.directory === '');
     expect(unmatchedEntry).toBeUndefined();
@@ -401,7 +394,7 @@ describe('readStorageStats', () => {
       'regular file',
     );
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -425,7 +418,7 @@ describe('readStorageStats', () => {
     await createTestFile('victoria_metrics/data/old.bin', 'old', oldTime);
     await createTestFile('victoria_metrics/cache/newer.bin', 'newer', midTime);
 
-    const stats = await readStorageStats(tempDir);
+    const stats = await readStorageStats(tempDir, TEST_PATTERNS);
 
     expect(stats).toEqual([
       {
@@ -441,28 +434,5 @@ describe('readStorageStats', () => {
         lastUpdated: midTime,
       },
     ]);
-  });
-});
-
-describe('STORAGE_DIRECTORY_PATTERNS', () => {
-  it('should export the expected directory patterns', () => {
-    expect(STORAGE_DIRECTORY_PATTERNS).toEqual(['binance/**', 'kraken/**', 'victoria_metrics']);
-  });
-
-  it('should be an array of strings', () => {
-    expect(Array.isArray(STORAGE_DIRECTORY_PATTERNS)).toBe(true);
-    expect(STORAGE_DIRECTORY_PATTERNS.every((p) => typeof p === 'string')).toBe(true);
-  });
-
-  it('should have pattern for binance with wildcard', () => {
-    expect(STORAGE_DIRECTORY_PATTERNS).toContain('binance/**');
-  });
-
-  it('should have pattern for kraken with wildcard', () => {
-    expect(STORAGE_DIRECTORY_PATTERNS).toContain('kraken/**');
-  });
-
-  it('should have pattern for victoria_metrics without wildcard', () => {
-    expect(STORAGE_DIRECTORY_PATTERNS).toContain('victoria_metrics');
   });
 });

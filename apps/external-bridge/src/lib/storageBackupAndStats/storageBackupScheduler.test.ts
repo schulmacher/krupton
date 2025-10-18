@@ -264,7 +264,7 @@ describe('createStorageBackupScheduler', () => {
 
     await vi.advanceTimersByTimeAsync(100);
 
-    expect(mockLogger.error).toHaveBeenCalledWith('Scheduled backup failed', { error: testError });
+    expect(mockLogger.error).toHaveBeenCalledWith(testError, 'Scheduled backup failed');
     expect(mockMetrics.backupFailures.inc).toHaveBeenCalledTimes(1);
     expect(mockMetrics.backupSuccesses.inc).not.toHaveBeenCalled();
 

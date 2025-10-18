@@ -34,4 +34,3 @@ export const TradeStream = {
 
 export type TradeStreamMessage = ExtractWebSocketStreamMessage<typeof TradeStream>;
 export type TradeStreamParams = ExtractWebSocketStreamParams<typeof TradeStream>;
-

@@ -7,7 +7,9 @@ import {
 } from '../endpointStorage.js';
 
 export type KrakenRecentTradesStorage = EndpointStorage<typeof KrakenApi.GetRecentTradesEndpoint>;
-export type KrakenRecentTradesRecord = EndpointStorageRecord<typeof KrakenApi.GetRecentTradesEndpoint>;
+export type KrakenRecentTradesRecord = EndpointStorageRecord<
+  typeof KrakenApi.GetRecentTradesEndpoint
+>;
 
 export function createKrakenRecentTradesStorage(
   storageBaseDir: string,

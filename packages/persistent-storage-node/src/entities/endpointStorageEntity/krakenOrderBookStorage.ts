@@ -16,4 +16,3 @@ export function createKrakenOrderBookStorage(
   const baseDir = join(storageBaseDir, 'kraken');
   return createEndpointStorage(baseDir, KrakenApi.GetOrderBookEndpoint, options);
 }
-

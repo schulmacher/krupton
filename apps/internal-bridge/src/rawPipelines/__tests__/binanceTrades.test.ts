@@ -184,6 +184,5 @@ describe('startJoinAndTransformBinanceTradesPipeline', () => {
         expect.objectContaining({ ...trade }),
       );
     }
-
   });
 });

@@ -202,15 +202,28 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
         | undefined;
 
       if (!lastRow) {
+        const nextId = getNextId(subIndexDir);
         const insert = db.prepare('INSERT INTO records (id, timestamp, data) VALUES (?, ?, ?)');
-        insert.run(getNextId(subIndexDir), record.timestamp, JSON.stringify(record));
+        insert.run(
+          nextId,
+          record.timestamp,
+          JSON.stringify({
+            ...record,
+            id: nextId,
+            timestamp: record.timestamp,
+          } satisfies StorageRecord<Record<string, unknown>>),
+        );
         return;
       }
 
       // Update the last record
       db.prepare('UPDATE records SET timestamp = ?, data = ? WHERE id = ?').run(
         record.timestamp,
-        JSON.stringify(record),
+        JSON.stringify({
+          ...record,
+          id: lastRow.id,
+          timestamp: record.timestamp,
+        } satisfies StorageRecord<Record<string, unknown>>),
         lastRow.id,
       );
     },

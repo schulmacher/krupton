@@ -9,9 +9,7 @@ export const Level3Stream = {
   streamName: 'level3' as const,
   params: TB.Object({
     symbol: TB.Array(TB.String()),
-    depth: TB.Optional(
-      TB.Union([TB.Literal(10), TB.Literal(100), TB.Literal(1000)]),
-    ),
+    depth: TB.Optional(TB.Union([TB.Literal(10), TB.Literal(100), TB.Literal(1000)])),
     snapshot: TB.Optional(TB.Boolean()),
     token: TB.Optional(TB.String()),
   }),
@@ -50,4 +48,3 @@ export const Level3Stream = {
 
 export type Level3StreamMessage = ExtractWebSocketStreamMessage<typeof Level3Stream>;
 export type Level3StreamParams = ExtractWebSocketStreamParams<typeof Level3Stream>;
-

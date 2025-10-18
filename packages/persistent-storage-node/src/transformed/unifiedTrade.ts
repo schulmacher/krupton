@@ -13,4 +13,3 @@ export const UnifiedTrade = TB.Object({
 });
 
 export type UnifiedTrade = TB.Static<typeof UnifiedTrade>;
-

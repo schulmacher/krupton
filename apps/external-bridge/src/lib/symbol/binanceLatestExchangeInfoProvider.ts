@@ -1,9 +1,6 @@
 import { EndpointFunction } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
-import {
-  BinanceExchangeInfoStorage,
-  SYMBOL_ALL
-} from '@krupton/persistent-storage-node';
+import { BinanceExchangeInfoStorage, SYMBOL_ALL } from '@krupton/persistent-storage-node';
 
 let latestBinanceExchangeInfo: BinanceApi.GetExchangeInfoResponse | null = null;
 

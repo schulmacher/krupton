@@ -51,7 +51,11 @@ export async function listRemoteFiles(
   }
 }
 
-export async function uploadFilesToRemote(localPath: string, remoteName: string, remotePath: string) {
+export async function uploadFilesToRemote(
+  localPath: string,
+  remoteName: string,
+  remotePath: string,
+) {
   const command = `rclone copy "${localPath}" "${remoteName}:${remotePath}" --progress`;
   await executeRcloneCommand(command);
 }

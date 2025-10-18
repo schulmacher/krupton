@@ -38,4 +38,3 @@ export interface OutgoingMessage {
   type: 'assignment';
   data: AssignmentMessage;
 }
-

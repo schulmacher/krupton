@@ -16,7 +16,11 @@ export function createWorkerRegistry() {
     return service;
   }
 
-  function registerWorker(serviceName: string, workerId: string, maxShardCount: number): WorkerInfo {
+  function registerWorker(
+    serviceName: string,
+    workerId: string,
+    maxShardCount: number,
+  ): WorkerInfo {
     const service = getOrCreateService(serviceName);
     const now = Date.now();
 
@@ -76,7 +80,9 @@ export function createWorkerRegistry() {
     return Array.from(service.workers.values()).filter((worker) => worker.isActive);
   }
 
-  function markInactiveWorkers(timeoutMs: number): Array<{ serviceName: string; workerId: string }> {
+  function markInactiveWorkers(
+    timeoutMs: number,
+  ): Array<{ serviceName: string; workerId: string }> {
     const now = Date.now();
     const inactiveWorkers: Array<{ serviceName: string; workerId: string }> = [];
 
@@ -113,4 +119,3 @@ export function createWorkerRegistry() {
 }
 
 export type WorkerRegistry = ReturnType<typeof createWorkerRegistry>;
-

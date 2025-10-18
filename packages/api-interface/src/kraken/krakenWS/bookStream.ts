@@ -52,4 +52,3 @@ export const BookStream = {
 
 export type BookStreamMessage = ExtractWebSocketStreamMessage<typeof BookStream>;
 export type BookStreamParams = ExtractWebSocketStreamParams<typeof BookStream>;
-

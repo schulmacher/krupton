@@ -19,7 +19,7 @@ export const storageEnvSchema = TB.Object({
     default: getMonorepoRootDir('tmp', 'backup'),
   }),
   BACKUP_INTERVAL_MS: TB.Integer({ default: 3 * 60 * 60 * 1000 }), // Default: 3 hours
-  
+
   // Cloud backup configuration
   CLOUD_BACKUP_TEMP_DIR: TB.String({
     description: 'Temporary directory for cloud backup operations',

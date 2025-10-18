@@ -32,24 +32,24 @@ describe('mergeEntityStreams - Type Tests', () => {
       // Test discriminated union - when streamName is 'streamA', value should have 'foo'
       if (firstResult.streamName === 'streamA') {
         type ExpectedValueA = Array<{ id: number; foo: string }>;
-        expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueA>();
+        expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueA[number]>();
         // This should narrow to the specific type
-        expectTypeOf(firstResult.value[0].foo).toBeString();
+        expectTypeOf(firstResult.value.foo).toBeString();
       }
 
       // Test discriminated union - when streamName is 'streamB', value should have 'bar'
       if (firstResult.streamName === 'streamB') {
         type ExpectedValueB = Array<{ id: number; bar: string }>;
-        expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueB>();
+        expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueB[number]>();
         // This should narrow to the specific type
-        expectTypeOf(firstResult.value[0].bar).toBeString();
+        expectTypeOf(firstResult.value.bar).toBeString();
       }
 
       // Before narrowing, value should be a union type
       type ExpectedValueUnion =
         | Array<{ id: number; foo: string }>
         | Array<{ id: number; bar: string }>;
-      expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueUnion>();
+      expectTypeOf(firstResult.value).toEqualTypeOf<ExpectedValueUnion[number]>();
     }
   });
 
@@ -79,7 +79,7 @@ describe('mergeEntityStreams - Type Tests', () => {
 
       // Value should be array of number | array of string (union of both stream types)
       type ExpectedValue = number[] | string[];
-      expectTypeOf(messages[0].value).toEqualTypeOf<ExpectedValue>();
+      expectTypeOf(messages[0].value).toEqualTypeOf<ExpectedValue[number]>();
     }
   });
 
@@ -104,7 +104,7 @@ describe('mergeEntityStreams - Type Tests', () => {
 
       // Value should be the exact type (array)
       type ExpectedValue = Array<{ data: string }>;
-      expectTypeOf(messages[0].value).toEqualTypeOf<ExpectedValue>();
+      expectTypeOf(messages[0].value).toEqualTypeOf<ExpectedValue[number]>();
     }
   });
 
@@ -134,7 +134,7 @@ describe('mergeEntityStreams - Type Tests', () => {
       expectTypeOf(control.done[0].streamName).toExtend<ExpectedStreamName>();
 
       type ExpectedValue = Array<{ value: number }>;
-      expectTypeOf(control.done[0].value).toEqualTypeOf<ExpectedValue>();
+      expectTypeOf(control.done[0].value).toEqualTypeOf<ExpectedValue[number]>();
 
       // Verify takeMore accepts the correct stream names
       expectTypeOf(control.takeMore[0]).toExtend<ExpectedStreamName>();

@@ -6,7 +6,8 @@ export const zmqSocketTempalatesRawData = {
 
   krakenTradeApi: (symbol: string) => `ipc:///tmp/zmq-pubsub-kraken-trade-api-${symbol}.sock`,
   krakenTradeWs: (symbol: string) => `ipc:///tmp/zmq-pubsub-kraken-trade-ws-${symbol}.sock`,
-  krakenOrderBookWs: (symbol: string) => `ipc:///tmp/zmq-pubsub-kraken-order-book-ws-${symbol}.sock`,
+  krakenOrderBookWs: (symbol: string) =>
+    `ipc:///tmp/zmq-pubsub-kraken-order-book-ws-${symbol}.sock`,
 } as const;
 
 export const zmqSocketTempalatesUnifiedData = {

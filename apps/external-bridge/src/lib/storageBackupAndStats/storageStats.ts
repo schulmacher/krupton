@@ -2,7 +2,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DirectoryStats, FileInfo } from './types';
 
-export const STORAGE_DIRECTORY_PATTERNS = [
+const STORAGE_DIRECTORY_PATTERNS = [
   'external-bridge/binance/**',
   'external-bridge/kraken/**',
   'victoria_metrics',
@@ -56,7 +56,10 @@ function matchesPattern(relativePath: string, pattern: string): string | null {
   return null;
 }
 
-export async function readStorageStats(baseDir: string): Promise<DirectoryStats[]> {
+export async function readStorageStats(
+  baseDir: string,
+  patterns: string[] = STORAGE_DIRECTORY_PATTERNS,
+): Promise<DirectoryStats[]> {
   const allFiles = await collectFilesRecursively(baseDir);
 
   const directoryMap = new Map<
@@ -69,7 +72,7 @@ export async function readStorageStats(baseDir: string): Promise<DirectoryStats[
     const relativePath = file.path.substring(baseDir.length + 1);
     let matched = false;
 
-    for (const pattern of STORAGE_DIRECTORY_PATTERNS) {
+    for (const pattern of patterns) {
       const matchedDir = matchesPattern(relativePath, pattern);
       if (matchedDir) {
         const existing = directoryMap.get(matchedDir) || {

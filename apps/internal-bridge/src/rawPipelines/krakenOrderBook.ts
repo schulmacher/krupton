@@ -41,11 +41,9 @@ export async function startTransformKrakenOrderBookPipeline(
       ...orderbook,
     };
     emitCache.orderbook.push(record);
-    await context.producers.unifiedOrderBook
-      .send(normalizedSymbol, record)
-      .catch((error) => {
-        diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-      })
+    await context.producers.unifiedOrderBook.send(normalizedSymbol, record).catch((error) => {
+      diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
+    });
   }
 
   let lastProcessedIndex: number =

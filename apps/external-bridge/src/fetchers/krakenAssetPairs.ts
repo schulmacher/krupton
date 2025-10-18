@@ -16,7 +16,10 @@ async function handleAssetPairsResponse(
 
   const lastAssetPairs = await storage.assetPairs.readLastRecord(SYMBOL_ALL);
 
-  if (lastAssetPairs && JSON.stringify(lastAssetPairs.response.result) === JSON.stringify(response.result)) {
+  if (
+    lastAssetPairs &&
+    JSON.stringify(lastAssetPairs.response.result) === JSON.stringify(response.result)
+  ) {
     diagnosticContext.logger.info('Asset pairs already in storage', {
       pairCount: Object.keys(response.result).length,
     });
@@ -88,4 +91,3 @@ export async function createKrakenAssetPairsFetcherLoop(
     onSuccess: async ({ query, response }) => handleAssetPairsResponse(context, query, response),
   });
 }
-

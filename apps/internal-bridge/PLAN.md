@@ -3,6 +3,7 @@
 PS! DO NOT WRITE DOCS.
 
 ## Overview
+
 Transform platform-specific entities (Binance/Kraken) from external-bridge storage into unified format, tracking progress per entity/entities using JSON files.
 
 ## Todo List
@@ -17,6 +18,7 @@ Do this inside packages/persistent-storage-node/src/transformed
 - [x] Do NOT document anything!
 
 ### 2. Progress Tracking System
+
 - [x] Design progress tracking JSON schema (file path, last processed line index, timestamp)
 - [x] Create progress file storage structure (one JSON per entity)
 - [x] Implement `readProgress(entityType: string)` function
@@ -24,6 +26,7 @@ Do this inside packages/persistent-storage-node/src/transformed
 - [x] Add progress file initialization logic
 
 ### 3. Transformation Functions
+
 - [x] Implement Kraken WS (update) OrderBook → Unified OrderBook {type update} transformer
 - [x] Implement Kraken WS (snapshot) OrderBook → Unified OrderBook {type: snapshot} transformer
 - [x] Implement Binance API OrderBook → Unified OrderBook {type: snapshot} transformer
@@ -32,6 +35,7 @@ Do this inside packages/persistent-storage-node/src/transformed
 - [x] Implement Kraken Trade → Unified Trade transformer
 
 ### 4. Single Entity Reader
+
 - [ ] Create async generator function to read entity batches from storage
 - [ ] Read from specified starting position (fileName + lineIndex)
 - [ ] Yield batches of configurable size
@@ -39,6 +43,7 @@ Do this inside packages/persistent-storage-node/src/transformed
 - [ ] Handle file rotation (continue reading across multiple .jsonl files)
 
 ### 5. Multi Entity Stream Merger
+
 - [ ] Create async generator to merge two entity streams by timestamp
 - [ ] Implement peek-based logic to compare next records from both streams
 - [ ] Implement pause condition function (decides which stream to take from based on peeked records)
@@ -58,49 +63,53 @@ PS! DO NOT WRITE DOCS.
 ## Entity Mapping Reference
 
 ### Endpoint Storage Entities
+
 - `binanceOrderBook` → Unified OrderBook {snapshot}
 - `binanceHistoricalTrade` → Unified Trade
 - `krakenOrderBook` → Unified OrderBook {snapshot | update}
 - `krakenRecentTrades` → Unified Trade
 
 ### WebSocket Storage Entities
+
 - `binanceTrade` → Unified Trade
 - `binanceDiffDepth` → Unified OrderBook {update}
 
 ## Progress File Structure
 
 For combined stream
+
 ```json
 [
-   {
-      "entityType": "binanceOrderBook",
-      "symbol": "btcusdt",
-      "lastProcessedFile": "00000000000000000000000000000000",
-      "lastProcessedLineIndex": 1234,
-      "lastProcessedTimestamp": 1696723200000,
-      "updatedAt": 1696723250000
-   },
-   {
-      "entityType": "binanceDiffDepth",
-      "symbol": "btcusdt",
-      "lastProcessedFile": "00000000000000000000000000000000",
-      "lastProcessedLineIndex": 5678,
-      "lastProcessedTimestamp": 1696723200010,
-      "updatedAt": 1696723250010
-   },
+  {
+    "entityType": "binanceOrderBook",
+    "symbol": "btcusdt",
+    "lastProcessedFile": "00000000000000000000000000000000",
+    "lastProcessedLineIndex": 1234,
+    "lastProcessedTimestamp": 1696723200000,
+    "updatedAt": 1696723250000
+  },
+  {
+    "entityType": "binanceDiffDepth",
+    "symbol": "btcusdt",
+    "lastProcessedFile": "00000000000000000000000000000000",
+    "lastProcessedLineIndex": 5678,
+    "lastProcessedTimestamp": 1696723200010,
+    "updatedAt": 1696723250010
+  }
 ]
 ```
 
 For single stream
+
 ```json
 [
-   {
-      "entityType": "binanceHistoricalTrade",
-      "symbol": "btcusdt",
-      "lastProcessedFile": "00000000000000000000000000000000",
-      "lastProcessedLineIndex": 1234,
-      "lastProcessedTimestamp": 1696723200000,
-      "updatedAt": 1696723250000
-   },
+  {
+    "entityType": "binanceHistoricalTrade",
+    "symbol": "btcusdt",
+    "lastProcessedFile": "00000000000000000000000000000000",
+    "lastProcessedLineIndex": 1234,
+    "lastProcessedTimestamp": 1696723200000,
+    "updatedAt": 1696723250000
+  }
 ]
 ```
