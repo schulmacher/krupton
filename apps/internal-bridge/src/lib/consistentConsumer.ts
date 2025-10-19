@@ -100,13 +100,17 @@ export async function* createConsistentConsumer<T extends StorageRecord<Record<s
           );
 
           diagnosticContext.logger.info('Filled gap', {
-            missingRecords: missingRecords.length,
+            fillCount: missingRecords.length,
             gapSize,
           });
 
           missingRecords.push(...gapFilledBatch);
         } catch (error) {
-          diagnosticContext.logger.error(error, 'Failed to fill gap');
+          diagnosticContext.logger.error(error, 'Failed to fill gap', {
+            lastProcessedId,
+            messageId: message.id,
+            gapSize,
+          });
         }
       }
 
