@@ -36,6 +36,7 @@ export function createZmqSubscriber<T extends StorageRecord<Record<string, unkno
       for await (const messages of puller) {
         diagnosticContext.logger.debug('[ZmqSubscriber] Received message', {
           socket: options.socket,
+          messageLength: messages.length,
         });
         const parsed = messages.map((message) => JSON.parse(message.toString()) as T);
         yield parsed;

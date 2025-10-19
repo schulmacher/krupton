@@ -62,8 +62,8 @@ function formatAsHumanReadable(entry: LogEntry): string {
 
   const parts: string[] = [
     `${severityColor}${entry.severity}${resetColor}`,
-    `process=${msgColor}${entry.serviceName}${resetColor}`,
-    `ts=${msgColor}${entry.timestamp}${resetColor}`,
+    `process="${msgColor}${entry.serviceName}${resetColor}"`,
+    `ts="${msgColor}${entry.timestamp}${resetColor}"`,
     `msg="${severityColor}${entry.message}${resetColor}"`,
   ];
 

@@ -86,13 +86,17 @@ async function seekWsTradeHoleRange(
   const lastApiRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
   const lastApiId = lastApiRecord?.response?.at(-1)?.id;
   const CHUNK_SIZE = 100;
+  const startGlobalIndex = Math.min(
+    prevHole?.gapStart?.id ? prevHole.gapStart.id - CHUNK_SIZE : 0,
+    0,
+  );
 
   let gapStart: BinanceTradeWSRecord | undefined = prevHole?.gapStart;
   let gapEnd: BinanceTradeWSRecord | undefined = undefined;
 
   for await (const records of createEntityReader(storage.wsTrade, normalizedSymbol, {
     readBatchSize: CHUNK_SIZE,
-    startGlobalIndex: Math.min(prevHole?.gapStart?.id ? prevHole.gapStart.id - CHUNK_SIZE : 0, 0),
+    startGlobalIndex,
     isStopped: () => context.processContext.isShuttingDown(),
   })) {
     for (const record of records) {
@@ -150,39 +154,39 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
       do {
         wsHole = await seekWsTradeHoleRange(context, normalizedSymbol, wsHole);
 
-        if (!wsHole?.gapEnd) {
+        if (!wsHole?.gapStart || !wsHole?.gapEnd) {
           diagnosticContext.logger.info('No holes found, sleeping for 10 seconds', {
             symbol: normalizedSymbol,
             totalRows: wsHole?.totalRows,
             gapStart: wsHole?.gapStart,
           });
           await sleep(1e4);
-        }
-
-        if (!wsHole?.gapStart || !wsHole?.gapEnd) {
           continue;
         }
 
-        const lastApiId = wsHole.lastApiRecord?.response?.at(-1)?.id;
-        const fromId = Math.max(lastApiId ? lastApiId + 1 : 0, wsHole.gapStart.message.data.t + 1);
+        const lastApiTradeId = wsHole.lastApiRecord?.response?.at(-1)?.id;
+        const fromId = Math.max(
+          lastApiTradeId ? lastApiTradeId + 1 : 0,
+          wsHole.gapStart.message.data.t + 1,
+        );
         const limit = Math.min(1000, wsHole.gapEnd.message.data.t - fromId);
+
+        context.diagnosticContext.logger.info('Detected gap in ws trades', {
+          symbol: normalizedSymbol,
+          lastApiId: wsHole.lastApiRecord?.id,
+          gapStartId: wsHole.gapStart.id,
+          gapEndId: wsHole.gapEnd.id,
+          gapSize: wsHole.gapEnd.id - wsHole.gapStart.id,
+          lastApiTradeId,
+          gapStartTradeId: wsHole.gapStart.message.data.t,
+          gapEndTradeId: wsHole.gapEnd.message.data.t,
+          fromId,
+          limit,
+          totalRows: wsHole.totalRows,
+        });
 
         if (limit < 1) {
           continue;
-        }
-
-        if (process.env.DEBUG !== 'true') {
-          context.diagnosticContext.logger.debug('Debugging binance historical trades', {
-            symbol: normalizedSymbol,
-            lastApiId,
-            gapStartId: wsHole.gapStart.id,
-            gapStartTradeId: wsHole.gapStart.message.data.t,
-            gapEndId: wsHole.gapEnd.id,
-            gapEndTradeId: wsHole.gapEnd.message.data.t,
-            fromId,
-            limit,
-            totalRows: wsHole.totalRows,
-          });
         }
 
         return {

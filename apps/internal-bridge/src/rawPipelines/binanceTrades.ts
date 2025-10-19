@@ -299,9 +299,23 @@ export async function startJoinAndTransformBinanceTradesPipeline(
         continue;
       } else {
         if (!nextOfSameType) {
+          diagnosticContext.logger.debug('No next of same type', {
+            lastTradeId: lastEmmittedRef.platformTradeId,
+            currentTradeId: trade.trade.platformTradeId,
+            gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
+            streamName: trade.streamName,
+            compareType,
+          });
           takeMore.add(trade.streamName);
         }
         if (!nextOfDifferentType) {
+          diagnosticContext.logger.debug('No next of different type', {
+            lastTradeId: lastEmmittedRef.platformTradeId,
+            currentTradeId: trade.trade.platformTradeId,
+            gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
+            streamName: trade.streamName,
+            compareType,
+          });
           takeMore.add(compareType);
         }
         break;

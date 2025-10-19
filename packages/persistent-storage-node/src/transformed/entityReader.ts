@@ -19,7 +19,7 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
   const { readBatchSize, startGlobalIndex, isStopped } = options;
 
   let globalStartIndex = startGlobalIndex;
-
+ 
   while (!isStopped?.()) {
     const records = await storage
       .readRecordsRange({
@@ -40,7 +40,6 @@ export async function* createEntityReader<T extends Record<string, unknown>>(
     if (records.length < readBatchSize) {
       break;
     }
-    yield records;
 
     globalStartIndex = records.at(-1)!.id + 1;
   }
