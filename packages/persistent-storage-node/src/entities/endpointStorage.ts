@@ -4,13 +4,17 @@ import {
   ExtractEndpointParams,
 } from '@krupton/api-client-node';
 import { join } from 'path';
-import { createPersistentStorage, normalizeIndexDir, StorageRecord } from '../persistentStorage.js';
+import {
+  createPersistentStorage,
+  normalizeIndexDir,
+  StorageRecordReturn,
+} from '../persistentStorage.js';
 
 function normalizeEndpointPath(endpoint: string): string {
   return 'endpoint_' + normalizeIndexDir(endpoint);
 }
 
-export type EndpointStorageRecord<T extends EndpointDefinition> = StorageRecord<{
+export type EndpointStorageRecord<T extends EndpointDefinition> = StorageRecordReturn<{
   request: ExtractEndpointParams<T>;
   response: ExtractEndpointDefinitionResponseSchema<T>;
 }>;

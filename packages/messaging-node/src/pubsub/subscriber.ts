@@ -1,4 +1,4 @@
-import { StorageRecord } from '@krupton/persistent-storage-node';
+import { BaseStorageRecord, StorageRecord } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import * as zmq from 'zeromq';
 
@@ -7,14 +7,14 @@ interface ZmqSubscriberOptions {
   diagnosticContext: SF.DiagnosticContext;
 }
 
-export interface ZmqSubscriber<T extends StorageRecord<Record<string, unknown>>> {
+export interface ZmqSubscriber<T extends StorageRecord<BaseStorageRecord>> {
   puller: zmq.Subscriber;
   receive: () => AsyncIterableIterator<T[]>;
   connect: () => void;
   close: () => void;
 }
 
-export function createZmqSubscriber<T extends StorageRecord<Record<string, unknown>>>(
+export function createZmqSubscriber<T extends StorageRecord<BaseStorageRecord>>(
   options: ZmqSubscriberOptions,
 ): ZmqSubscriber<T> {
   const { diagnosticContext } = options;
@@ -56,7 +56,7 @@ interface ZmqSubscriberRegistryOptions {
   diagnosticContext: SF.DiagnosticContext;
 }
 
-interface ZmqSubscriberRegistry<T extends StorageRecord<Record<string, unknown>>> {
+interface ZmqSubscriberRegistry<T extends StorageRecord<BaseStorageRecord>> {
   connect: (subIndices: string[]) => void;
   receive: (subIndex: string) => AsyncIterableIterator<T[]>;
   close: () => void;
@@ -64,7 +64,7 @@ interface ZmqSubscriberRegistry<T extends StorageRecord<Record<string, unknown>>
   getZmqSubscriber: (subIndex: string) => ZmqSubscriber<T>;
 }
 
-export function createZmqSubscriberRegistry<T extends StorageRecord<Record<string, unknown>>>(
+export function createZmqSubscriberRegistry<T extends StorageRecord<BaseStorageRecord>>(
   options: ZmqSubscriberRegistryOptions,
 ): ZmqSubscriberRegistry<T> {
   const { diagnosticContext } = options;

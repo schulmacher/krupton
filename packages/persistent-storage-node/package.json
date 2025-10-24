@@ -29,14 +29,17 @@
     "test": "vitest",
     "test:reindex": "tsx test/test-reindex-trades.ts",
     "typecheck": "tsc --noEmit",
-    "stream": "tsx scripts/stream-records.ts"
+    "stream": "tsx scripts/stream-records.ts",
+    "migrate-rocks": "tsx scripts/migrate-to-levelsdb.ts"
   },
   "dependencies": {
     "@krupton/api-interface": "workspace:*",
     "@krupton/config": "workspace:*",
+    "@krupton/rust-rocksdb-napi": "workspace:*",
     "@krupton/service-framework-node": "workspace:*",
     "@krupton/utils": "workspace:*",
-    "better-sqlite3": "^12.4.1"
+    "better-sqlite3": "^12.4.1",
+    "classic-level": "^3.0.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"

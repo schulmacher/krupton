@@ -20,7 +20,7 @@ const handleHistoricalTradesResponse = async (
   const { diagnosticContext, envContext, storage, producers } = context;
   const config = envContext.config;
 
-  if (!response || response.length === 0) {
+  if (!response || response.length === 0 || !Array.isArray(response)) {
     diagnosticContext.logger.debug('Empty response', {
       platform: config.PLATFORM,
       symbol,
@@ -32,12 +32,10 @@ const handleHistoricalTradesResponse = async (
   const normalizedSymbol = normalizeSymbol('binance', symbol);
 
   const latestStoredRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
+  const latestStoredTradeId = latestStoredRecord?.response?.at(-1)?.id;
+  const responseTradeId = response.at(-1)!.id;
 
-  if (
-    latestStoredRecord &&
-    query.fromId &&
-    query.fromId <= latestStoredRecord.request.query.fromId!
-  ) {
+  if ((latestStoredTradeId && responseTradeId < latestStoredTradeId) || !responseTradeId) {
     diagnosticContext.logger.warn('Skipping historic records', {
       platform: config.PLATFORM,
       symbol: normalizedSymbol,
@@ -47,19 +45,16 @@ const handleHistoricalTradesResponse = async (
   }
 
   const record = {
-    id: storage.historicalTrade.getNextId(normalizedSymbol),
-    timestamp: Date.now(),
     request: { query },
     response,
+    timestamp: Date.now(),
   };
 
-  await Promise.all([
-    storage.historicalTrade.appendRecord({
-      subIndexDir: normalizedSymbol,
-      record,
-    }),
-    producers.binanceTrade.send(normalizedSymbol, record),
-  ]);
+  (record as BinanceHistoricalTradeRecord).id = await storage.historicalTrade.appendRecord({
+    subIndex: normalizedSymbol,
+    record,
+  });
+  await producers.binanceTrade.send(normalizedSymbol, record as BinanceHistoricalTradeRecord);
 
   diagnosticContext.logger.debug('Response saved to storage', {
     platform: config.PLATFORM,
@@ -73,7 +68,6 @@ const handleHistoricalTradesResponse = async (
 type WsTradeHoleRange = {
   gapStart?: BinanceTradeWSRecord;
   gapEnd?: BinanceTradeWSRecord;
-  totalRows?: number;
   lastApiRecord?: BinanceHistoricalTradeRecord;
 };
 
@@ -83,13 +77,25 @@ async function seekWsTradeHoleRange(
   prevHole: WsTradeHoleRange | undefined,
 ): Promise<WsTradeHoleRange> {
   const { storage } = context;
-  const lastApiRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
+  let lastApiRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    lastApiRecord?.response?.at(-1)?.id;
+  } catch (error) {
+    console.error('Invalid record', error);
+    console.error(lastApiRecord);
+    await storage.historicalTrade.replaceOrInsertLastRecord({
+      record: {
+        ...lastApiRecord!,
+        response: [],
+      },
+      subIndex: normalizedSymbol,
+    });
+    lastApiRecord = await storage.historicalTrade.readLastRecord(normalizedSymbol);
+  }
   const lastApiId = lastApiRecord?.response?.at(-1)?.id;
   const CHUNK_SIZE = 100;
-  const startGlobalIndex = Math.min(
-    prevHole?.gapStart?.id ? prevHole.gapStart.id - CHUNK_SIZE : 0,
-    0,
-  );
+  const startGlobalIndex = Math.max(prevHole?.gapStart?.id ? prevHole.gapStart.id + 1 : 0, 0);
 
   let gapStart: BinanceTradeWSRecord | undefined = prevHole?.gapStart;
   let gapEnd: BinanceTradeWSRecord | undefined = undefined;
@@ -125,7 +131,6 @@ async function seekWsTradeHoleRange(
   if (gapEnd === undefined || gapStart === undefined) {
     return {
       gapStart,
-      totalRows: await storage.wsTrade.count(normalizedSymbol),
       lastApiRecord: lastApiRecord ?? undefined,
     };
   }
@@ -133,7 +138,6 @@ async function seekWsTradeHoleRange(
   return {
     gapStart,
     gapEnd,
-    totalRows: await storage.wsTrade.count(normalizedSymbol),
     lastApiRecord: lastApiRecord ?? undefined,
   };
 }
@@ -157,7 +161,6 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
         if (!wsHole?.gapStart || !wsHole?.gapEnd) {
           diagnosticContext.logger.info('No holes found, sleeping for 10 seconds', {
             symbol: normalizedSymbol,
-            totalRows: wsHole?.totalRows,
             gapStart: wsHole?.gapStart,
           });
           await sleep(1e4);
@@ -169,20 +172,20 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
           lastApiTradeId ? lastApiTradeId + 1 : 0,
           wsHole.gapStart.message.data.t + 1,
         );
-        const limit = Math.min(1000, wsHole.gapEnd.message.data.t - fromId);
+        const limit = Math.min(100, wsHole.gapEnd.message.data.t - fromId);
 
         context.diagnosticContext.logger.info('Detected gap in ws trades', {
           symbol: normalizedSymbol,
           lastApiId: wsHole.lastApiRecord?.id,
           gapStartId: wsHole.gapStart.id,
           gapEndId: wsHole.gapEnd.id,
-          gapSize: wsHole.gapEnd.id - wsHole.gapStart.id,
+          gapSize: wsHole.gapEnd.message.data.t - fromId,
+          totalGapSize: wsHole.gapEnd.message.data.t - wsHole.gapStart.message.data.t,
           lastApiTradeId,
           gapStartTradeId: wsHole.gapStart.message.data.t,
           gapEndTradeId: wsHole.gapEnd.message.data.t,
           fromId,
           limit,
-          totalRows: wsHole.totalRows,
         });
 
         if (limit < 1) {

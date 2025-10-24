@@ -1,6 +1,8 @@
 import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-node';
 import { BinanceApi } from '@krupton/api-interface';
+import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 import {
+  BinanceHistoricalTradeRecord,
   createBinanceExchangeInfoStorage,
   createBinanceHistoricalTradeStorage,
   createBinanceTradeWSStorage,
@@ -9,7 +11,6 @@ import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { BinanceFetcherEnv } from './environment.js';
 import { binanceFetcherEnvSchema } from './environment.js';
-import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 
 export function createBinanceFetcherContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceFetcherEnvSchema);
@@ -66,7 +67,7 @@ export function createBinanceFetcherContext(processContext: SF.ProcessLifecycleC
   };
 
   const producers = {
-    binanceTrade: createZmqPublisherRegistry({
+    binanceTrade: createZmqPublisherRegistry<BinanceHistoricalTradeRecord>({
       socketTemplate: zmqSocketTempalatesRawData.binanceTradeApi,
       diagnosticContext,
     }),

@@ -1,0 +1,17 @@
+{
+  "name": "@krupton/rust-rocksdb-napi",
+  "version": "1.0.0",
+  "main": "index.mjs",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "my-rocksdb",
+    "triples": {}
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  }
+}

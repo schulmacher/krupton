@@ -2,6 +2,21 @@
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
-    "package.json": ".eslintrc.*, .npmrc, .prettierrc.*, eslint.config.*, prettier.config.*, README.md, tsconfig.*, tsup.config.*, vitest.config.*, pnpm-lock.yaml"
-  }
+    "package.json": ".eslintrc.*, .npmrc, .prettierrc.*, eslint.config.*, prettier.config.*, README.md, tsconfig.*, tsup.config.*, vitest.config.*, pnpm-lock.yaml, uv.lock"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/.pytest_cache": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "python.languageServer": "Pylance",
+  // "python.analysis.autoImportCompletions": true,
+  "python.analysis.indexing": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/apps/py-predictor/src",
+    "${workspaceFolder}/packages/py-service-framework/service_framework"
+  ]
 }

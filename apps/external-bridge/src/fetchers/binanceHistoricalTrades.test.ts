@@ -150,9 +150,8 @@ describe('binanceHistoricalTrades - hole detection and filling', () => {
 
     for (const data of wsTradeData) {
       await mockContext.storage.wsTrade.appendRecord({
-        subIndexDir: normalizedSymbol,
+        subIndex: normalizedSymbol,
         record: {
-          id: data.id,
           timestamp: Date.now(),
           message: {
             stream: `${symbol.toLowerCase()}@trade`,
@@ -173,22 +172,13 @@ describe('binanceHistoricalTrades - hole detection and filling', () => {
     }
 
     // Verify records were written
-    const wsTradeCount = await mockContext.storage.wsTrade.count(normalizedSymbol);
-    debug('WS Trade records written:', wsTradeCount);
-
-    const wsTradeRecords = await mockContext.storage.wsTrade.readFullPage({
-      subIndexDir: normalizedSymbol,
-      fileName: 'data',
-    });
-    debug(
-      'WS Trade records:',
-      wsTradeRecords.map((r) => ({ id: r.id, tradeId: r.message.data.t })),
-    );
+    const wsTradeCount = await mockContext.storage.wsTrade.readFullPage({ subIndex: normalizedSymbol });
+    debug('WS Trade records written:', wsTradeCount.length);
 
     // Test readRecordsRange directly
     const rangeRecords = await mockContext.storage.wsTrade.readRecordsRange({
-      subIndexDir: normalizedSymbol,
-      fromIndex: 0,
+      subIndex: normalizedSymbol,
+      fromId: 0,
       count: 100,
     });
     debug('readRecordsRange result:', rangeRecords.length, 'records');
@@ -249,8 +239,7 @@ describe('binanceHistoricalTrades - hole detection and filling', () => {
 
     // Verify data was stored
     const historicalTradeRecords = await mockContext.storage.historicalTrade.readFullPage({
-      subIndexDir: normalizedSymbol,
-      fileName: 'data',
+      subIndex: normalizedSymbol,
     });
 
     expect(historicalTradeRecords).toHaveLength(3);
@@ -307,4 +296,364 @@ describe('binanceHistoricalTrades - hole detection and filling', () => {
     expect(allTradeIds.has(1302)).toBe(true); // End of first hole
     expect(allTradeIds.has(1304)).toBe(true); // Second hole
   });
+
+  it('should start reading from middle of trade sequence', { timeout: 15000 }, async () => {
+    const symbol = 'BTCUSDT';
+    const normalizedSymbol = 'btc_usdt';
+
+    // Populate wsTrade starting from trade ID 5000 with holes
+    const wsTradeData = [
+      { id: 1, tradeId: 5000 },
+      // hole from 5001 to 5499 (499 trades)
+      { id: 2, tradeId: 5500 },
+      { id: 3, tradeId: 5501 },
+    ];
+
+    for (const data of wsTradeData) {
+      await mockContext.storage.wsTrade.appendRecord({
+        subIndex: normalizedSymbol,
+        record: {
+          timestamp: Date.now(),
+          message: {
+            stream: `${symbol.toLowerCase()}@trade`,
+            data: {
+              e: 'trade' as const,
+              E: Date.now(),
+              s: symbol,
+              t: data.tradeId,
+              p: '50000.00',
+              q: '0.1',
+              T: Date.now(),
+              m: false,
+              M: false,
+            },
+          },
+        },
+      });
+    }
+
+    const fetcherLoops = await createBinanceHistoricalTradesFetcherLoops(mockContext, [symbol]);
+    const fetcherLoop = fetcherLoops[0]!;
+
+    await fetcherLoop.start();
+
+    const maxWaitTime = 10000;
+    const checkInterval = 50;
+    let elapsed = 0;
+
+    while (
+      apiCallLog.length < 1 &&
+      elapsed < maxWaitTime &&
+      !mockContext.processContext.isShuttingDown()
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      elapsed += checkInterval;
+    }
+
+    void fetcherLoop.stop();
+
+    expect(apiCallLog.length).toBeGreaterThanOrEqual(1);
+    expect(apiCallLog[0]).toEqual({ fromId: 5001, limit: 499 });
+
+    const historicalTradeRecords = await mockContext.storage.historicalTrade.readFullPage({
+      subIndex: normalizedSymbol,
+    });
+
+    expect(historicalTradeRecords.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should handle hole appearing async during fetching', { timeout: 15000 }, async () => {
+    const symbol = 'BTCUSDT';
+    const normalizedSymbol = 'btc_usdt';
+
+    // Initial data with first hole
+    const initialData = [
+      { id: 1, tradeId: 100 },
+      // hole from 101 to 199
+      { id: 2, tradeId: 200 },
+    ];
+
+    for (const data of initialData) {
+      await mockContext.storage.wsTrade.appendRecord({
+        subIndex: normalizedSymbol,
+        record: {
+          timestamp: Date.now(),
+          message: {
+            stream: `${symbol.toLowerCase()}@trade`,
+            data: {
+              e: 'trade' as const,
+              E: Date.now(),
+              s: symbol,
+              t: data.tradeId,
+              p: '50000.00',
+              q: '0.1',
+              T: Date.now(),
+              m: false,
+              M: false,
+            },
+          },
+        },
+      });
+    }
+
+    const fetcherLoops = await createBinanceHistoricalTradesFetcherLoops(mockContext, [symbol]);
+    const fetcherLoop = fetcherLoops[0]!;
+
+    await fetcherLoop.start();
+
+    // Wait for first API call
+    while (apiCallLog.length < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    // Add new hole while fetching
+    await mockContext.storage.wsTrade.appendRecord({
+      subIndex: normalizedSymbol,
+      record: {
+        timestamp: Date.now(),
+        message: {
+          stream: `${symbol.toLowerCase()}@trade`,
+          data: {
+            e: 'trade' as const,
+            E: Date.now(),
+            s: symbol,
+            t: 300,
+            p: '50000.00',
+            q: '0.1',
+            T: Date.now(),
+            m: false,
+            M: false,
+          },
+        },
+      },
+    });
+
+    // Wait for processing to complete
+    const maxWaitTime = 10000;
+    let elapsed = 0;
+
+    while (apiCallLog.length < 2 && elapsed < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      elapsed += 50;
+    }
+
+    void fetcherLoop.stop();
+
+    expect(apiCallLog.length).toBeGreaterThanOrEqual(2);
+    expect(apiCallLog[0]).toEqual({ fromId: 101, limit: 99 });
+  });
+
+  it(
+    'should handle large gap and resume from middle when restarted',
+    { timeout: 20000 },
+    async () => {
+      const symbol = 'BTCUSDT';
+      const normalizedSymbol = 'btc_usdt';
+
+      // Create a large gap requiring multiple batches (3000+ trades)
+      const wsTradeData = [
+        { id: 1, tradeId: 1000 },
+        // Large gap from 1001 to 4500 (3500 trades = 4 batches of 1000)
+        { id: 2, tradeId: 4501 },
+      ];
+
+      for (const data of wsTradeData) {
+        await mockContext.storage.wsTrade.appendRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            timestamp: Date.now(),
+            message: {
+              stream: `${symbol.toLowerCase()}@trade`,
+              data: {
+                e: 'trade' as const,
+                E: Date.now(),
+                s: symbol,
+                t: data.tradeId,
+                p: '50000.00',
+                q: '0.1',
+                T: Date.now(),
+                m: false,
+                M: false,
+              },
+            },
+          },
+        });
+      }
+
+      // Control flag for first run
+      let firstRunCallCount = 0;
+      const maxFirstRunCalls = 2;
+
+      // Override the mock to limit first run to 2 calls
+      getHistoricalTradesMock.mockImplementation(
+        async (params: BinanceApi.GetHistoricalTradesRequest) => {
+          const { query } = params;
+          const fromId = query.fromId ?? 1;
+          const limit = query.limit ?? 500;
+
+          apiCallLog.push({ fromId, limit });
+          firstRunCallCount++;
+
+          const trades: BinanceApi.GetHistoricalTradesResponse = [];
+          for (let i = 0; i < limit; i++) {
+            const tradeId = fromId + i;
+            trades.push({
+              id: tradeId,
+              price: '50000.00',
+              qty: '0.1',
+              quoteQty: '5000.00',
+              time: Date.now(),
+              isBuyerMaker: false,
+              isBestMatch: true,
+            });
+          }
+
+          // Trigger shutdown after 2 calls to force restart scenario
+          if (firstRunCallCount >= maxFirstRunCalls) {
+            mockContext.processContext.shutdown();
+          }
+
+          return trades;
+        },
+      );
+
+      // First run - process partially
+      const fetcherLoops1 = await createBinanceHistoricalTradesFetcherLoops(mockContext, [symbol]);
+      const fetcherLoop1 = fetcherLoops1[0]!;
+
+      await fetcherLoop1.start();
+
+      // Wait for shutdown to be triggered
+      const maxWaitTime = 10000;
+      let elapsed = 0;
+      while (!mockContext.processContext.isShuttingDown() && elapsed < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        elapsed += 50;
+      }
+
+      await fetcherLoop1.stop();
+
+      const firstRunCalls = apiCallLog.length;
+      debug('First run API calls:', firstRunCalls, apiCallLog);
+      expect(firstRunCalls).toBe(2);
+      expect(apiCallLog[0]).toEqual({ fromId: 1001, limit: 1000 });
+      expect(apiCallLog[1]).toEqual({ fromId: 2001, limit: 1000 });
+
+      // Verify partial data was stored
+      const historicalTradeRecords1 = await mockContext.storage.historicalTrade.readFullPage({
+        subIndex: normalizedSymbol,
+      });
+      debug('First run stored records:', historicalTradeRecords1.length);
+      expect(historicalTradeRecords1.length).toBe(2);
+
+      // Reset API call log
+      const firstRunApiCalls = [...apiCallLog];
+      apiCallLog.length = 0;
+
+      // Reset process context shutdown state for second run
+      mockContext.processContext = createMockProcessContext();
+
+      // Create new mock for second run that will shutdown after 2 calls
+      let secondRunCallCount = 0;
+      getHistoricalTradesMock.mockImplementation(
+        async (params: BinanceApi.GetHistoricalTradesRequest) => {
+          const { query } = params;
+          const fromId = query.fromId ?? 1;
+          const limit = query.limit ?? 500;
+
+          apiCallLog.push({ fromId, limit });
+          secondRunCallCount++;
+
+          const trades: BinanceApi.GetHistoricalTradesResponse = [];
+          for (let i = 0; i < limit; i++) {
+            const tradeId = fromId + i;
+            trades.push({
+              id: tradeId,
+              price: '50000.00',
+              qty: '0.1',
+              quoteQty: '5000.00',
+              time: Date.now(),
+              isBuyerMaker: false,
+              isBestMatch: true,
+            });
+          }
+
+          // Shutdown after 2 calls in second run
+          if (secondRunCallCount >= 2) {
+            mockContext.processContext.shutdown();
+          }
+
+          return trades;
+        },
+      );
+
+      // Second run - should resume from where it left off
+      const fetcherLoops2 = await createBinanceHistoricalTradesFetcherLoops(mockContext, [symbol]);
+      const fetcherLoop2 = fetcherLoops2[0]!;
+
+      await fetcherLoop2.start();
+
+      // Wait for shutdown in second run
+      elapsed = 0;
+      while (!mockContext.processContext.isShuttingDown() && elapsed < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        elapsed += 50;
+      }
+
+      await fetcherLoop2.stop();
+
+      debug('Second run API calls:', apiCallLog);
+
+      // Should resume from where first run left off (not restart from 1001)
+      expect(apiCallLog.length).toBe(2);
+      expect(apiCallLog[0]).toEqual({ fromId: 3001, limit: 1000 });
+      expect(apiCallLog[1]).toEqual({ fromId: 4001, limit: 500 });
+
+      // Verify total data after both runs
+      const historicalTradeRecords2 = await mockContext.storage.historicalTrade.readFullPage({
+        subIndex: normalizedSymbol,
+      });
+      debug('Second run stored records:', historicalTradeRecords2.length);
+      expect(historicalTradeRecords2.length).toBe(4);
+
+      // Verify continuity - all historical trades should be stored
+      const allTradeIds = new Set<number>();
+
+      for (const record of historicalTradeRecords2) {
+        for (const trade of record.response) {
+          allTradeIds.add(trade.id);
+        }
+      }
+
+      for await (const records of createEntityReader(mockContext.storage.wsTrade, normalizedSymbol, {
+        readBatchSize: 100,
+        startGlobalIndex: 0,
+        isStopped: () => false,
+      })) {
+        for (const record of records) {
+          allTradeIds.add(record.message.data.t);
+        }
+      }
+
+      const sortedTradeIds = Array.from(allTradeIds).sort((a, b) => a - b);
+      debug('All trade IDs range:', sortedTradeIds[0], 'to', sortedTradeIds[sortedTradeIds.length - 1]);
+      debug('Total unique trade IDs:', sortedTradeIds.length);
+
+      expect(sortedTradeIds[0]).toBe(1000);
+      expect(sortedTradeIds[sortedTradeIds.length - 1]).toBe(4501);
+
+      // Verify no duplicates
+      expect(sortedTradeIds.length).toBe(allTradeIds.size);
+
+      // Verify complete sequence (no holes)
+      for (let i = 1000; i <= 4501; i++) {
+        expect(allTradeIds.has(i)).toBe(true);
+      }
+
+      // Verify that second run did NOT restart from beginning
+      expect(firstRunApiCalls.some((call) => call.fromId === 1001)).toBe(true);
+      expect(apiCallLog.some((call) => call.fromId === 1001)).toBe(false);
+      expect(apiCallLog.some((call) => call.fromId === 3001)).toBe(true);
+    },
+  );
 });

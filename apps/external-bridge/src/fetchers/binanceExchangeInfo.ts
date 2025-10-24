@@ -15,7 +15,7 @@ const handleExchangeInfoResponse = async (
   const { diagnosticContext, storage } = context;
 
   await storage.exchangeInfo.replaceOrInsertLastRecord({
-    subIndexDir: SYMBOL_ALL,
+    subIndex: SYMBOL_ALL,
     record: {
       request: { query },
       response,

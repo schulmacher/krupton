@@ -2,7 +2,11 @@ import { SF } from '@krupton/service-framework-node';
 
 import { createWSHandlers } from '@krupton/api-client-ws-node';
 import { BinanceWS } from '@krupton/api-interface';
-import { SYMBOL_ALL } from '@krupton/persistent-storage-node';
+import {
+  BinanceDiffDepthWSRecord,
+  BinanceTradeWSRecord,
+  SYMBOL_ALL
+} from '@krupton/persistent-storage-node';
 import { saveBinanceOrderBookSnapshots } from '../../fetchers/binanceOrderBook.js';
 import { setBinanceLatestExchangeInfo } from '../../lib/symbol/binanceLatestExchangeInfoProvider.js';
 import { normalizeSymbol, unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
@@ -51,16 +55,16 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
     createWSHandlers(BinanceWSDefinition, {
       tradeStream: async (message) => {
         const normalizedSymbol = normalizeSymbol('binance', message.data.s);
-        const record = {
-          id: context.storage.trade.getNextId(normalizedSymbol),
+        const record: Omit<BinanceTradeWSRecord, 'id'> = {
           timestamp: Date.now(),
           message,
         };
-        await context.producers.binanceTrade.send(normalizedSymbol, record);
-        context.storage.trade.appendRecord({
-          subIndexDir: normalizedSymbol,
+        (record as BinanceTradeWSRecord).id = await context.storage.trade.appendRecord({
+          subIndex: normalizedSymbol,
           record,
         });
+
+        await context.producers.binanceTrade.send(normalizedSymbol, record as BinanceTradeWSRecord);
       },
       diffDepthStream: async (message) => {
         const normalizedSymbol = normalizeSymbol('binance', message.data.s);
@@ -93,16 +97,16 @@ export async function startWebsocketService(context: BinanceWebSocketContext): P
 
         lastDiffDepthFinalIdBySymbol.set(normalizedSymbol, message.data.u);
 
-        const record = {
-          id: context.storage.diffDepth.getNextId(normalizedSymbol),
+        const record: Omit<BinanceDiffDepthWSRecord, 'id'> = {
           timestamp: new Date().getTime(),
           message,
         };
-        await context.producers.binanceDiffDepth.send(normalizedSymbol, record);
-        context.storage.diffDepth.appendRecord({
-          subIndexDir: normalizedSymbol,
+
+        (record as BinanceDiffDepthWSRecord).id = await context.storage.diffDepth.appendRecord({
+          subIndex: normalizedSymbol,
           record,
         });
+        await context.producers.binanceDiffDepth.send(normalizedSymbol, record as BinanceDiffDepthWSRecord);
       },
     }),
     {

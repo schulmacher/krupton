@@ -1,4 +1,5 @@
 import { KrakenApi } from '@krupton/api-interface';
+import { KrakenRecentTradesRecord } from '@krupton/persistent-storage-node';
 import { sleep } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
@@ -50,16 +51,18 @@ async function handleRecentTradesResponse(
     request: { query },
     response,
     timestamp: Date.now(),
-    id: storage.recentTrades.getNextId(normalizedSymbol),
   };
+  (record as KrakenRecentTradesRecord).id = await storage.recentTrades.appendRecord({
+    subIndex: normalizedSymbol,
+    record,
+  });
+  
+  await producers.krakenTradeApi.send(
+    normalizedSymbol,
+    record as KrakenRecentTradesRecord,
+  );
 
-  await Promise.all([
-    producers.krakenTradeApi.send(normalizedSymbol, record),
-    storage.recentTrades.appendRecord({
-      subIndexDir: normalizedSymbol,
-      record,
-    }),
-  ]);
+  
 
   diagnosticContext.logger.debug('Response saved to storage', {
     platform: config.PLATFORM,

@@ -1,5 +1,5 @@
 import * as zmq from 'zeromq';
-import { StorageRecord } from '@krupton/persistent-storage-node';
+import { BaseStorageRecord, StorageRecord } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 
 interface ZmqPublisherOptions {
@@ -7,13 +7,13 @@ interface ZmqPublisherOptions {
   socket: string;
 }
 
-export interface ZmqPublisher<T extends StorageRecord<Record<string, unknown>>> {
+export interface ZmqPublisher<T extends StorageRecord<BaseStorageRecord>> {
   pusher: zmq.Publisher;
   send: (message: T) => Promise<void>;
   close: () => Promise<void>;
 }
 
-export async function createZmqPublisher<T extends StorageRecord<Record<string, unknown>>>(
+export async function createZmqPublisher<T extends StorageRecord<BaseStorageRecord>>(
   options: ZmqPublisherOptions,
 ): Promise<ZmqPublisher<T>> {
   const { diagnosticContext } = options;
@@ -59,14 +59,14 @@ interface ZmqPublisherRegistryOptions {
   socketTemplate: (subIndex: string) => string;
 }
 
-export interface ZmqPublisherRegistry<T extends StorageRecord<Record<string, unknown>>> {
+export interface ZmqPublisherRegistry<T extends StorageRecord<BaseStorageRecord>> {
   connect: (subIndices: string[]) => Promise<void>;
   send: (subIndex: string, message: T) => Promise<void>;
   close: () => Promise<void>;
   getProducers: () => Map<string, ZmqPublisher<T>>;
 }
 
-export function createZmqPublisherRegistry<T extends StorageRecord<Record<string, unknown>>>(
+export function createZmqPublisherRegistry<T extends StorageRecord<BaseStorageRecord>>(
   options: ZmqPublisherRegistryOptions,
 ): ZmqPublisherRegistry<T> {
   const { diagnosticContext } = options;

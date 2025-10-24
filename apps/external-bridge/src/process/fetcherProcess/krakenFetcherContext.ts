@@ -1,16 +1,17 @@
 import { createApiClient } from '@krupton/api-client-node';
 import { KrakenApi } from '@krupton/api-interface';
+import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 import {
   createKrakenAssetInfoStorage,
   createKrakenAssetPairsStorage,
   createKrakenOrderBookStorage,
   createKrakenRecentTradesStorage,
+  KrakenRecentTradesRecord,
 } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
 import { createExternalBridgeFetcherRateLimiter } from '../../lib/externalBridgeFetcher/externalBridgeFetcherRateLimiter.js';
 import type { KrakenFetcherEnv } from './environment.js';
 import { krakenFetcherEnvSchema } from './environment.js';
-import { createZmqPublisherRegistry, zmqSocketTempalatesRawData } from '@krupton/messaging-node';
 
 export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenFetcherEnvSchema);
@@ -63,7 +64,7 @@ export function createKrakenFetcherContext(processContext: SF.ProcessLifecycleCo
   };
 
   const producers = {
-    krakenTradeApi: createZmqPublisherRegistry({
+    krakenTradeApi: createZmqPublisherRegistry<KrakenRecentTradesRecord>({
       socketTemplate: zmqSocketTempalatesRawData.krakenTradeApi,
       diagnosticContext,
     }),

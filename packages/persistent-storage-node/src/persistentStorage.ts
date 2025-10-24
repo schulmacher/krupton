@@ -1,241 +1,282 @@
-import Database from 'better-sqlite3';
+import { SegmentedLog } from '@krupton/rust-rocksdb-napi'; // ← your NAPI binding
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-export function normalizeIndexDir(subIndexDir: string): string {
-  return subIndexDir
+export function normalizeIndexDir(subIndex: string): string {
+  return subIndex
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '_')
     .replace(/_{2,}/g, '_')
     .replace(/^_+|_+$/g, '');
 }
 
-export type StorageRecord<T extends Record<string, unknown>> = {
-  timestamp: number;
+export type BaseStorageRecord = Record<string, unknown>;
+
+export type StorageRecord<T extends BaseStorageRecord> = {
+  timestamp?: number;
+} & Omit<T, 'timestamp' | 'id'>;
+
+export type StorageRecordReturn<T extends BaseStorageRecord> = {
   id: number;
-} & T;
+  timestamp: number;
+} & Omit<T, 'timestamp'>;
 
-type WriteRecordParams<T extends Record<string, unknown>> = {
+type WriteRecordParams<T extends BaseStorageRecord> = {
   record: StorageRecord<T>;
-  subIndexDir: string;
+  subIndex: string;
 };
 
-type WriteRecordsParams<T extends Record<string, unknown>> = {
+type WriteRecordsParams<T extends BaseStorageRecord> = {
   records: StorageRecord<T>[];
-  subIndexDir: string;
+  subIndex: string;
 };
 
-type ReplaceLastRecordParams<T extends Record<string, unknown>> = {
-  record: Omit<StorageRecord<T>, 'id'>;
-  subIndexDir: string;
+type ReplaceRecordParams<T extends BaseStorageRecord> = {
+  record: StorageRecordReturn<T>;
+  subIndex: string;
+  id: number;
 };
-
+type ReplaceLastRecordParams<T extends BaseStorageRecord> = {
+  record: StorageRecord<T>;
+  subIndex: string;
+};
 type ReadFullPageParams = {
-  subIndexDir: string;
-  fileName: string;
+  subIndex: string;
 };
 
-type ReadIndexRangeParams = {
-  subIndexDir: string;
-  fromIndex: number;
+type ReadRangeParams = {
+  subIndex: string;
+  fromId: number;
   count: number;
+};
+type IterateFromParams = {
+  subIndex: string;
+  fromId: number;
 };
 
 type CreatePersistentStorageOptions = {
-  maxFileSize?: number;
+  compression?: boolean;
   writable?: boolean;
 };
 
-export function createPersistentStorage<T extends Record<string, unknown>>(
+/**
+ * Persistent storage backed by SegmentedLog (RocksDB)
+ * - Fast sequential appends
+ * - Timestamp+sequence ordering
+ * - Direct key overwrite support
+ */
+export function createPersistentStorage<T extends BaseStorageRecord>(
   baseDir: string,
   options?: CreatePersistentStorageOptions,
 ) {
-  const dbCache = new Map<string, Database.Database>();
-  const nextIdCache = new Map<string, number>();
+  const dbCache = new Map<string, InstanceType<typeof SegmentedLog>>();
+  const syncIntervals = new Map<string, NodeJS.Timeout>();
 
-  const getDbPath = (subIndexDir: string): string => {
-    return join(baseDir, subIndexDir + '.db');
-  };
+  const getDbPath = (subIndex: string): string => join(baseDir, subIndex);
+  const getSecondaryPath = (subIndex: string): string => join(baseDir, `${subIndex}_secondary`);
 
-  const getOrCreateDb = (subIndexDir: string): Database.Database => {
-    const cached = dbCache.get(subIndexDir);
-    if (cached) {
-      return cached;
+  const getOrCreateDb = (subIndex: string): InstanceType<typeof SegmentedLog> => {
+    const normalized = normalizeIndexDir(subIndex);
+    const cached = dbCache.get(normalized);
+    if (cached) return cached;
+
+    const dbPath = getDbPath(normalized);
+    mkdirSync(dirname(dbPath), { recursive: true });
+
+    const db = options?.writable
+      ? new SegmentedLog(dbPath, options?.compression ?? true)
+      : SegmentedLog.openAsSecondary(dbPath, getSecondaryPath(normalized), options?.compression ?? true);
+    
+    dbCache.set(normalized, db);
+
+    if (!options?.writable) {
+      const interval = setInterval(() => {
+        try {
+          db.tryCatchUpWithPrimary();
+        } catch (error) {
+          console.error(`Failed to sync secondary instance for ${normalized}:`, error);
+        }
+      }, 500);
+      syncIntervals.set(normalized, interval);
     }
 
-    const dbPath = getDbPath(subIndexDir);
-
-    // Ensure directory exists synchronously
-    try {
-      mkdirSync(dirname(dbPath), { recursive: true });
-    } catch {
-      // Directory might already exist
-    }
-
-    const db = new Database(dbPath, { readonly: !options?.writable });
-
-    // Configure WAL mode
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
-    db.pragma('wal_autocheckpoint = 1000');
-
-    // Create table if it doesn't exist
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY,
-        timestamp INTEGER NOT NULL,
-        data TEXT NOT NULL
-      );
-    `);
-
-    // Initialize next ID cache
-    const lastIdRow = db.prepare('SELECT MAX(id) as maxId FROM records').get() as
-      | { maxId: number | null }
-      | undefined;
-    const nextId =
-      lastIdRow?.maxId !== null && lastIdRow?.maxId !== undefined ? lastIdRow.maxId + 1 : 1;
-    nextIdCache.set(subIndexDir, nextId);
-
-    dbCache.set(subIndexDir, db);
     return db;
   };
 
-  const getNextId = (subIndexDir: string): number => {
-    const normalizedDir = normalizeIndexDir(subIndexDir);
-
-    // Ensure DB is initialized (this will initialize the cache too)
-    getOrCreateDb(normalizedDir);
-
-    const currentId = nextIdCache.get(normalizedDir);
-    if (currentId === undefined) {
-      throw new Error(`Next ID not initialized for ${normalizedDir}`);
-    }
-
-    nextIdCache.set(normalizedDir, currentId + 1);
-    return currentId;
-  };
-
   const closeAllDatabases = (): void => {
+    for (const interval of syncIntervals.values()) {
+      clearInterval(interval);
+    }
+    syncIntervals.clear();
+
     for (const db of dbCache.values()) {
-      db.close();
+      try {
+        db.close();
+      } catch (error) {
+        console.error('Failed to close rocksdb', error);
+      }
     }
     dbCache.clear();
-    nextIdCache.clear();
   };
 
   return {
-    getNextId,
+    /**
+     * Append one record (auto key: timestamp + seq)
+     */
+    async appendRecord(params: WriteRecordParams<T>): Promise<number> {
+      const { record, subIndex } = params;
+      record.timestamp = record.timestamp ?? Date.now();
+      const db = getOrCreateDb(subIndex);
+      const key = db.append(Buffer.from(JSON.stringify(record)));
 
-    async appendRecord(params: WriteRecordParams<T>): Promise<void> {
-      const { record, subIndexDir: rawSubIndexDir } = params;
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
-
-      const db = getOrCreateDb(subIndexDir);
-      const insert = db.prepare('INSERT INTO records (id, timestamp, data) VALUES (?, ?, ?)');
-      insert.run(record.id, record.timestamp, JSON.stringify(record));
+      return parseKey(key);
     },
 
-    async appendRecords(params: WriteRecordsParams<T>): Promise<void> {
-      const { records, subIndexDir: rawSubIndexDir } = params;
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
-
-      const db = getOrCreateDb(subIndexDir);
-      const insert = db.prepare(
-        `INSERT INTO records (id, timestamp, data) VALUES ${records.map(() => '(?, ?, ?)').join(',')}`,
+    /**
+     * Append multiple records
+     */
+    async appendRecords(params: WriteRecordsParams<T>): Promise<number[]> {
+      const { records, subIndex } = params;
+      const db = getOrCreateDb(subIndex);
+      const now = Date.now();
+      const results = db.appendBatch(
+        records.map((record) => {
+          record.timestamp = record.timestamp ?? now;
+          return Buffer.from(JSON.stringify(record));
+        }),
       );
-      insert.run(
-        records.map((record) => [record.id, record.timestamp, JSON.stringify(record)]).flat(),
-      );
+
+      return results.map((r) => parseKey(r));
     },
 
-    async readFullPage(params: ReadFullPageParams): Promise<StorageRecord<T>[]> {
-      const { subIndexDir: rawSubIndexDir } = params;
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
-
-      const db = getOrCreateDb(subIndexDir);
-      const rows = db.prepare('SELECT data FROM records ORDER BY id').all() as { data: string }[];
-
-      return rows.map((row) => JSON.parse(row.data) as StorageRecord<T>);
+    /**
+     * Replace or insert a specific record at a known key
+     */
+    async replaceRecord(params: ReplaceRecordParams<T>): Promise<void> {
+      const { record, subIndex, id: key } = params;
+      const db = getOrCreateDb(subIndex);
+      record.timestamp = record.timestamp ?? Date.now();
+      db.put(key, Buffer.from(JSON.stringify(record)));
     },
 
-    async readRecordsRange(params: ReadIndexRangeParams): Promise<StorageRecord<T>[]> {
-      const { subIndexDir: rawSubIndexDir, fromIndex, count } = params;
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
+    /**
+     * Replace the last record if it exists, otherwise append a new one.
+     */
+    async replaceOrInsertLastRecord(params: ReplaceLastRecordParams<T>) {
+      const { record, subIndex } = params;
+      const db = getOrCreateDb(subIndex);
+      record.timestamp = record.timestamp ?? Date.now();
 
-      const db = getOrCreateDb(subIndexDir);
-
-      const rows = db
-        .prepare('SELECT * FROM records WHERE id >= ? ORDER BY id LIMIT ?')
-        .all(fromIndex, count) as { id: number; timestamp: number; data: string }[];
-
-      return rows.map((row) => ({
-        ...JSON.parse(row.data),
-        id: row.id,
-        timestamp: row.timestamp,
-      })) as StorageRecord<T>[];
-    },
-
-    async readLastRecord(rawSubIndexDir: string): Promise<StorageRecord<T> | null> {
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
-
-      const db = getOrCreateDb(subIndexDir);
-      const row = db.prepare('SELECT data FROM records ORDER BY id DESC LIMIT 1').get() as
-        | { data: string }
-        | undefined;
-
-      if (!row) {
-        return null;
+      // Try to read the most recent record
+      const [last] = db.readLast(1);
+      let key = last?.key ? parseKey(last.key) : undefined;
+      if (key) {
+        db.put(key, Buffer.from(JSON.stringify(record)));
+      } else {
+        // Append if database empty
+        key = parseKey(db.append(Buffer.from(JSON.stringify(record))));
       }
 
-      return JSON.parse(row.data) as StorageRecord<T>;
+      return key;
     },
 
-    async replaceOrInsertLastRecord(params: ReplaceLastRecordParams<T>): Promise<void> {
-      const { record, subIndexDir: rawSubIndexDir } = params;
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
+    async readFullPage(params: ReadFullPageParams): Promise<StorageRecordReturn<T>[]> {
+      const { subIndex } = params;
+      const db = getOrCreateDb(normalizeIndexDir(subIndex));
 
-      const db = getOrCreateDb(subIndexDir);
+      const results: StorageRecordReturn<T>[] = [];
+      const iter = db.iterateFrom(0);
 
-      // Get the last record ID
-      const lastRow = db.prepare('SELECT id FROM records ORDER BY id DESC LIMIT 1').get() as
-        | { id: number }
-        | undefined;
-
-      if (!lastRow) {
-        const nextId = getNextId(subIndexDir);
-        const insert = db.prepare('INSERT INTO records (id, timestamp, data) VALUES (?, ?, ?)');
-        insert.run(
-          nextId,
-          record.timestamp,
-          JSON.stringify({
-            ...record,
-            id: nextId,
-            timestamp: record.timestamp,
-          } satisfies StorageRecord<Record<string, unknown>>),
-        );
-        return;
+      try {
+        while (iter.hasNext()) {
+          const result = iter.next();
+          if (result) {
+            const key = parseKey(result.key);
+            const value = JSON.parse(result.value.toString());
+            results.push({ ...value, id: key });
+          }
+        }
+      } finally {
+        iter.close();
       }
 
-      // Update the last record
-      db.prepare('UPDATE records SET timestamp = ?, data = ? WHERE id = ?').run(
-        record.timestamp,
-        JSON.stringify({
-          ...record,
-          id: lastRow.id,
-          timestamp: record.timestamp,
-        } satisfies StorageRecord<Record<string, unknown>>),
-        lastRow.id,
-      );
+      return results;
     },
 
-    async count(rawSubIndexDir: string): Promise<number> {
-      const subIndexDir = normalizeIndexDir(rawSubIndexDir);
-      const db = getOrCreateDb(subIndexDir);
-      const row = db.prepare('SELECT COUNT(*) as count FROM records').get() as
-        | { count: number }
-        | undefined;
+    async iterateFrom(params: IterateFromParams): Promise<PersistentStorageIterator<T>> {
+      const { subIndex, fromId } = params;
+      const db = getOrCreateDb(normalizeIndexDir(subIndex));
+      const iter = db.iterateFrom(fromId);
 
-      return row?.count ?? 0;
+      return {
+        hasNext() {
+          return iter.hasNext();
+        },
+        close() {
+          return iter.close();
+        },
+        next() {
+          const item = iter.next();
+          if (!item) {
+            return null;
+          }
+          const value = JSON.parse(item.value.toString());
+          value.id = parseKey(item.key);
+          return value;
+        },
+      };
+    },
+
+    /**
+     * Read forward from key (bigint)
+     */
+    async readRecordsRange(params: ReadRangeParams): Promise<StorageRecordReturn<T>[]> {
+      const { subIndex, fromId, count } = params;
+      const db = getOrCreateDb(subIndex);
+
+      const results: StorageRecordReturn<T>[] = [];
+      const iter = db.iterateFrom(fromId);
+      const maxCount = count ?? 1000;
+
+      try {
+        let readCount = 0;
+        while (iter.hasNext() && readCount < maxCount) {
+          const result = iter.next();
+          if (result) {
+            const id = parseKey(result.key);
+            const value = JSON.parse(result.value.toString());
+            results.push({ id, ...value });
+            readCount++;
+          }
+        }
+      } finally {
+        iter.close();
+      }
+
+      return results;
+    },
+
+    /**
+     * Read the most recent N records
+     */
+    async readLastRecords(subIndex: string, count = 1): Promise<StorageRecordReturn<T>[]> {
+      const db = getOrCreateDb(subIndex);
+      const entries = db.readLast(count);
+      const result: StorageRecordReturn<T>[] = [];
+      for (const { key, value } of entries) {
+        result.push({ ...JSON.parse(value.toString()), id: parseKey(key) });
+      }
+      return result;
+    },
+
+    /**
+     * Read just the last record (if exists)
+     */
+    async readLastRecord(subIndex: string): Promise<StorageRecordReturn<T> | null> {
+      const db = getOrCreateDb(subIndex);
+      const [last] = db.readLast(1);
+      if (!last) return null;
+      return { ...JSON.parse(last.value.toString()), id: parseKey(last.key) };
     },
 
     close(): void {
@@ -244,6 +285,23 @@ export function createPersistentStorage<T extends Record<string, unknown>>(
   };
 }
 
-export type PersistentStorage<T extends Record<string, unknown>> = ReturnType<
+export type PersistentStorage<T extends BaseStorageRecord> = ReturnType<
   typeof createPersistentStorage<T>
 >;
+
+export function parseKey(key: Buffer): number {
+  if (key.byteLength !== 8) {
+    throw new Error(`Invalid key length ${key.byteLength}, expected 8 bytes`);
+  }
+
+  // Read big-endian 64-bit signed integer and convert to JS number
+  const id = Number(key.readBigInt64BE(0));
+
+  return id;
+}
+
+export type PersistentStorageIterator<T extends BaseStorageRecord> = {
+  next(): StorageRecordReturn<T> | null;
+  hasNext(): boolean;
+  close(): void;
+};

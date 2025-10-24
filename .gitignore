@@ -116,3 +116,38 @@ temp
 
 # Storage
 /storage
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+*.egg
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+.coverage
+htmlcov/
+.tox/
+uv.lock
+.python-version
+
+# Rust
+target/
+# Cargo.lock
+**/*.rs.bk
+*.pdb
+dump_*.ndjson
+# NAPI compiled binaries (keep platform-specific ones that are committed)
+*.node

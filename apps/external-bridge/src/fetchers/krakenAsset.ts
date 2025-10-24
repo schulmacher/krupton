@@ -24,7 +24,7 @@ async function handleAssetInfoResponse(
       assetCount: Object.keys(response.result).length,
     });
     await storage.assetInfo.replaceOrInsertLastRecord({
-      subIndexDir: SYMBOL_ALL,
+      subIndex: SYMBOL_ALL,
       record: {
         request: { query },
         response,
@@ -35,12 +35,11 @@ async function handleAssetInfoResponse(
   }
 
   await storage.assetInfo.appendRecord({
-    subIndexDir: SYMBOL_ALL,
+    subIndex: SYMBOL_ALL,
     record: {
       request: { query },
       response,
       timestamp: Date.now(),
-      id: storage.assetInfo.getNextId(SYMBOL_ALL),
     },
   });
 

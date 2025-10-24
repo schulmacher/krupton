@@ -54,9 +54,8 @@ export async function initAndDownloadKrakenLatestAssetPairsProvider(
   if (!assetPairs) {
     const result = await getExchangeInfo({ query: {} });
     await krakenAssetPairsEntity.appendRecord({
-      subIndexDir: SYMBOL_ALL,
+      subIndex: SYMBOL_ALL,
       record: {
-        id: krakenAssetPairsEntity.getNextId(SYMBOL_ALL),
         timestamp: Date.now(),
         request: { query: {} },
         response: result,
@@ -68,9 +67,8 @@ export async function initAndDownloadKrakenLatestAssetPairsProvider(
   if (!assetInfo) {
     const result = await getAssetInfo({ query: {} });
     await krakenAssetInfoEntity.appendRecord({
-      subIndexDir: SYMBOL_ALL,
+      subIndex: SYMBOL_ALL,
       record: {
-        id: krakenAssetInfoEntity.getNextId(SYMBOL_ALL),
         timestamp: Date.now(),
         request: { query: {} },
         response: result,

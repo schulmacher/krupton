@@ -16,7 +16,9 @@ import { createApiClient, createBinanceAuthHeaders } from '@krupton/api-client-n
 export function createBinanceWebsocketContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceWebSocketEnvSchema);
 
-  const diagnosticContext = SF.createDiagnosticContext(envContext);
+  const diagnosticContext = SF.createDiagnosticContext(envContext, {
+    minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
+  });
 
   const metricsContext = SF.createMetricsContext({
     envContext,

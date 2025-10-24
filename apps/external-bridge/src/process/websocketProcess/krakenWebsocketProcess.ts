@@ -41,14 +41,13 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
   const websocketManager = new KrakenWebsocketManager(
     context,
     createWSHandlers(KrakenWSDefinition, {
-      tickerStream: (message) => {
+      tickerStream: async (message) => {
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
           const normalizedSymbol = normalizeSymbol('kraken', symbol);
-          context.storage.ticker.appendRecord({
-            subIndexDir: normalizedSymbol,
+          await context.storage.ticker.appendRecord({
+            subIndex: normalizedSymbol,
             record: {
-              id: context.storage.ticker.getNextId(normalizedSymbol),
               timestamp: Date.now(),
               message: {
                 channel: 'ticker',
@@ -63,8 +62,7 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
           const normalizedSymbol = normalizeSymbol('kraken', symbol);
-          const record: KrakenTradeWSRecord = {
-            id: context.storage.trade.getNextId(normalizedSymbol),
+          const record: Omit<KrakenTradeWSRecord, 'id'> = {
             timestamp: Date.now(),
             message: {
               channel: 'trade',
@@ -72,22 +70,19 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
               data: messages,
             },
           };
-
-          await Promise.all([
-            context.producers.krakenTradeWs.send(normalizedSymbol, record),
-            context.storage.trade.appendRecord({
-              subIndexDir: normalizedSymbol,
-              record,
-            }),
-          ]);
+          const id = await context.storage.trade.appendRecord({
+            subIndex: normalizedSymbol,
+            record,
+          });
+          (record as KrakenTradeWSRecord).id = id;
+          await context.producers.krakenTradeWs.send(normalizedSymbol, record as KrakenTradeWSRecord);
         }
       },
       bookStream: async (message) => {
         const messagesBySymbol = arrayToMultiMap(message.data, (item) => item.symbol);
         for (const [symbol, messages] of messagesBySymbol.entries()) {
           const normalizedSymbol = normalizeSymbol('kraken', symbol);
-          const record: KrakenBookWSRecord = {
-            id: context.storage.book.getNextId(normalizedSymbol),
+          const record: Omit<KrakenBookWSRecord, 'id'> = {
             timestamp: Date.now(),
             message: {
               channel: 'book',
@@ -95,13 +90,12 @@ export async function startWebsocketService(context: KrakenWebSocketContext): Pr
               data: messages,
             },
           };
-          await Promise.all([
-            context.producers.krakenBookWs.send(normalizedSymbol, record),
-            context.storage.book.appendRecord({
-              subIndexDir: normalizedSymbol,
-              record,
-            }),
-          ]);
+          const id = await context.storage.book.appendRecord({
+            subIndex: normalizedSymbol,
+            record,
+          });
+          (record as KrakenBookWSRecord).id = id;
+          await context.producers.krakenBookWs.send(normalizedSymbol, record as KrakenBookWSRecord);
         }
       },
     }),

@@ -15,12 +15,11 @@ async function handleOrderBookResponse(
   const normalizedSymbol = normalizeSymbol('kraken', symbol);
 
   await storage.orderBook.appendRecord({
-    subIndexDir: normalizedSymbol,
+    subIndex: normalizedSymbol,
     record: {
       request: { query },
       response,
       timestamp: Date.now(),
-      id: storage.orderBook.getNextId(normalizedSymbol),
     },
   });
 

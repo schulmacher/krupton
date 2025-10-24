@@ -3,13 +3,17 @@ import {
   WebSocketStreamDefinition,
 } from '@krupton/api-client-ws-node';
 import { join } from 'path';
-import { createPersistentStorage, normalizeIndexDir, StorageRecord } from '../persistentStorage.js';
+import {
+  createPersistentStorage,
+  normalizeIndexDir,
+  StorageRecordReturn,
+} from '../persistentStorage.js';
 
 function normalizeStreamName(name: string): string {
   return 'ws_' + normalizeIndexDir(name);
 }
 
-export type WebSocketStorageRecord<T extends WebSocketStreamDefinition> = StorageRecord<{
+export type WebSocketStorageRecord<T extends WebSocketStreamDefinition> = StorageRecordReturn<{
   message: ExtractWebSocketStreamMessage<T>;
 }>;
 

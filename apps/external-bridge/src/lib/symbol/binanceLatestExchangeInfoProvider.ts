@@ -27,9 +27,8 @@ export async function initBinanceLatestExchangeInfoProvider(
   if (!latestBinanceExchangeInfo) {
     const result = await getExchangeInfo({ query: {} });
     await binanceExchangeInfoEntity.appendRecord({
-      subIndexDir: SYMBOL_ALL,
+      subIndex: SYMBOL_ALL,
       record: {
-        id: binanceExchangeInfoEntity.getNextId(SYMBOL_ALL),
         timestamp: Date.now(),
         request: { query: {} },
         response: result,

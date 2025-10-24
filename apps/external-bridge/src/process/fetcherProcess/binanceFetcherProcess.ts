@@ -5,6 +5,8 @@ import { initBinanceLatestExchangeInfoProvider } from '../../lib/symbol/binanceL
 import { normalizeSymbol, unnormalizeToBinanceSymbol } from '../../lib/symbol/normalizeSymbol.js';
 import type { BinanceFetcherContext } from './binanceFetcherContext.js';
 
+process.env.LOG_LEVEL = 'debug';
+
 export async function startExternalBridgeFetcherService(
   context: BinanceFetcherContext,
 ): Promise<void> {

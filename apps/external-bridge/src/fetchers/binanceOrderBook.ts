@@ -34,18 +34,18 @@ export async function saveBinanceOrderBookSnapshots(
           query,
         });
 
-        const record: BinanceOrderBookStorageRecord = {
+        const record: Omit<BinanceOrderBookStorageRecord, 'id'> = {
           request: { query },
           response,
           timestamp: Date.now(),
-          id: orderBookStorage.getNextId(normalizedSymbol),
         };
 
-        await producer.send(normalizedSymbol, record);
-        await orderBookStorage.appendRecord({
-          subIndexDir: normalizedSymbol,
+        const id = await orderBookStorage.appendRecord({
+          subIndex: normalizedSymbol,
           record,
         });
+        (record as BinanceOrderBookStorageRecord).id = id;
+        await producer.send(normalizedSymbol, record as BinanceOrderBookStorageRecord);
       },
       createTryhardExponentialBackoff({
         onRetryAttempt: (error, attempt) => {

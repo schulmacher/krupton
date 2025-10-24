@@ -200,7 +200,9 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
             return;
           }
           wsIsAlive = false;
-          ws?.ping();
+          try {
+            ws?.ping();
+          } catch {}
         }, pingIntervalMs);
       });
 

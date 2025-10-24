@@ -10,7 +10,7 @@
     "dev:deps": "pnpm --filter './packages/*' --parallel dev",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --parallel test",
     "typecheck": "pnpm -r typecheck",
     "pm2:dev:packages": "cd process-manager/dev/packages && pm2 start ecosystem.config.js",
     "pm2:dev:eb": "cd process-manager/dev/external-bridge && pm2 start ecosystem.config.js",

@@ -1,4 +1,8 @@
-import type { PersistentStorage, StorageRecord } from '../persistentStorage.js';
+import type {
+  BaseStorageRecord,
+  PersistentStorage,
+  StorageRecordReturn,
+} from '../persistentStorage.js';
 
 export type EntityPosition = {
   globalIndex: number;
@@ -11,38 +15,38 @@ export type EntityReaderOptions = {
   isStopped?: () => boolean;
 };
 
-export async function* createEntityReader<T extends Record<string, unknown>>(
+export async function* createEntityReader<T extends BaseStorageRecord>(
   storage: PersistentStorage<T>,
   subIndexDir: string,
   options: EntityReaderOptions,
-): AsyncGenerator<StorageRecord<T>[], undefined> {
+): AsyncGenerator<StorageRecordReturn<T>[], undefined> {
   const { readBatchSize, startGlobalIndex, isStopped } = options;
+  const iter = await storage.iterateFrom({
+    subIndex: subIndexDir,
+    fromId: startGlobalIndex,
+  });
 
-  let globalStartIndex = startGlobalIndex;
- 
-  while (!isStopped?.()) {
-    const records = await storage
-      .readRecordsRange({
-        subIndexDir,
-        fromIndex: globalStartIndex,
-        count: readBatchSize,
-      })
-      .then((records) => {
-        return records;
-      });
+  try {
+    const cache: StorageRecordReturn<T>[] = [];
 
-    if (records.length === 0) {
-      break;
+    while (!isStopped?.() && iter.hasNext()) {
+      const item = iter.next();
+      if (!item) {
+        break;
+      }
+
+      cache.push(item)
+      if (cache.length >= readBatchSize) {
+        yield cache.splice(0, readBatchSize);
+      }
     }
 
-    yield records;
-
-    if (records.length < readBatchSize) {
-      break;
+    if (cache.length) {
+      yield cache.splice(0, cache.length);
     }
 
-    globalStartIndex = records.at(-1)!.id + 1;
+    console.log('entityReader stopped');
+  } finally {
+    iter.close();
   }
-
-  console.log('entityReader stopped');
 }

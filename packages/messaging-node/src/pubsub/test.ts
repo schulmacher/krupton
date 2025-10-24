@@ -1,9 +1,9 @@
-import { StorageRecord } from '@krupton/persistent-storage-node';
+import { BaseStorageRecord, StorageRecord } from '@krupton/persistent-storage-node';
 import { vi } from 'vitest';
 import { ZmqPublisher, ZmqPublisherRegistry } from './publisher.js';
 
 export function createMockZmqPublisherRegistry<
-  T extends StorageRecord<Record<string, unknown>>,
+  T extends StorageRecord<BaseStorageRecord>,
 >(): ZmqPublisherRegistry<T> {
   return {
     connect: vi.fn(() => Promise.resolve()),

@@ -4,6 +4,7 @@ import {
   type ExtractEndpointDefinitionResponseSchema,
   type ExtractEndpointParams,
 } from '@krupton/api-client-node';
+import { tryHard } from '@krupton/utils';
 import type { BinanceFetcherContext } from '../../process/fetcherProcess/binanceFetcherContext.js';
 import type { KrakenFetcherContext } from '../../process/fetcherProcess/krakenFetcherContext.js';
 import type {
@@ -50,31 +51,77 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
     const endpointPath = endpointFn.definition.path;
     let startTime = Date.now();
 
-    try {
-      await context.rateLimiter.throttle();
-      prevParams = await buildRequestParams({ prevResponse, prevParams });
+    prevParams = await buildRequestParams({ prevResponse, prevParams });
 
-      diagnosticContext.logger.debug('Executing fetch', {
-        platform: env.PLATFORM,
-        symbol: symbol,
-        endpoint: endpointPath,
-        params: prevParams,
-      });
+    diagnosticContext.logger.debug('Executing fetch', {
+      symbol: symbol,
+      endpoint: endpointPath,
+      params: prevParams,
+    });
 
-      startTime = Date.now();
-      const response = await endpointFn(prevParams);
-      context.rateLimiter.recordRequest();
+    const response = await tryHard(
+      async () => {
+        startTime = Date.now();
 
-      const duration = (Date.now() - startTime) / 1000;
+        await context.rateLimiter.throttle();
+        diagnosticContext.logger.debug('Throttled for', {
+          ms: Date.now() - startTime,
+          symbol: symbol,
+          endpoint: endpointPath,
+        });
+        
+        const result = await endpointFn(prevParams!);
 
-      state.fetchCount++;
-      state.lastFetchTime = Date.now();
+        context.rateLimiter.recordRequest();
 
-      try {
+        const duration = (Date.now() - startTime) / 1000;
+    
+        state.fetchCount++;
+        state.lastFetchTime = Date.now();
+    
+        try {
+          fetchCounter.inc({
+            platform: env.PLATFORM,
+            endpoint: endpointPath,
+            status: 'success',
+          });
+    
+          fetchDuration.observe(
+            {
+              platform: env.PLATFORM,
+              endpoint: endpointPath,
+            },
+            duration,
+          );
+    
+          totalFetchesGauge.set(state.fetchCount);
+          lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
+        } catch (error) {
+          diagnosticContext.logger.error(error, 'Fetch monitoring failed', {
+            platform: env.PLATFORM,
+            symbol: symbol,
+            endpoint: endpointPath,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+    
+        diagnosticContext.logger.debug('Fetch completed', {
+          symbol: symbol,
+          endpoint: endpointPath,
+          duration,
+        });
+
+        return result;
+      },
+      (error) => {
+        const duration = (Date.now() - startTime) / 1000;
+
+        rateLimiter.onError();
+
         fetchCounter.inc({
           platform: env.PLATFORM,
           endpoint: endpointPath,
-          status: 'success',
+          status: 'error',
         });
 
         fetchDuration.observe(
@@ -85,67 +132,35 @@ export const createExternalBridgeFetcherLoop = <E extends EndpointDefinition>(
           duration,
         );
 
-        totalFetchesGauge.set(state.fetchCount);
-        lastFetchTimestampGauge.set(state.lastFetchTime / 1000);
-      } catch (error) {
-        diagnosticContext.logger.error(error, 'Fetch monitoring failed', {
+        state.errors++;
+        totalErrorsGauge.set(state.errors);
+
+        diagnosticContext.logger.error(error, 'Fetch failed', {
           platform: env.PLATFORM,
           symbol: symbol,
           endpoint: endpointPath,
-          error: error instanceof Error ? error.message : String(error),
+          error:
+            error instanceof ApiClientError
+              ? error.toErrorPlainObject()
+              : error instanceof Error
+                ? error.message
+                : String(error),
         });
-      }
 
-      if (onSuccess) {
-        await onSuccess({
-          ...prevParams,
-          response,
-          prevResponse,
-        });
-      }
+        return 100;
+      },
+    );
+   
 
-      prevResponse = response;
-
-      diagnosticContext.logger.debug('Fetch completed', {
-        platform: env.PLATFORM,
-        symbol: symbol,
-        endpoint: endpointPath,
-        duration,
-      });
-    } catch (error) {
-      const duration = (Date.now() - startTime) / 1000;
-
-      rateLimiter.onError();
-
-      fetchCounter.inc({
-        platform: env.PLATFORM,
-        endpoint: endpointPath,
-        status: 'error',
-      });
-
-      fetchDuration.observe(
-        {
-          platform: env.PLATFORM,
-          endpoint: endpointPath,
-        },
-        duration,
-      );
-
-      state.errors++;
-      totalErrorsGauge.set(state.errors);
-
-      diagnosticContext.logger.error(error, 'Fetch failed', {
-        platform: env.PLATFORM,
-        symbol: symbol,
-        endpoint: endpointPath,
-        error:
-          error instanceof ApiClientError
-            ? error.toErrorPlainObject()
-            : error instanceof Error
-              ? error.message
-              : String(error),
+    if (onSuccess) {
+      await onSuccess({
+        ...prevParams,
+        response,
+        prevResponse,
       });
     }
+
+    prevResponse = response;
   };
 
   const fetchLoop = async (): Promise<void> => {
