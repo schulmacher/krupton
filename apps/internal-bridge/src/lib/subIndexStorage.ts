@@ -1,46 +1,48 @@
-import { PersistentStorage, StorageRecord } from '@krupton/persistent-storage-node';
+import {
+  BaseStorageRecord,
+  PersistentStorage
+} from '@krupton/persistent-storage-node';
 
-export interface PersistentSubIndexStorage<T extends StorageRecord<Record<string, unknown>>> {
-  readLastRecord: () => Promise<T | null>;
-  readRecordsRange: (fromIndex: number, count: number) => Promise<T[]>;
-  getNextId: () => number;
-  appendRecord: (record: T) => void;
-  replaceOrInsertLastRecord: (record: T) => Promise<void>;
-}
-
-export function createSubIndexStorage<T extends StorageRecord<Record<string, unknown>>>(
+export function createSubIndexStorage<T extends BaseStorageRecord>(
   storage: PersistentStorage<T>,
   subIndex: string,
-): PersistentSubIndexStorage<T> {
+) {
   return {
     readLastRecord: async () => {
       return await storage.readLastRecord(subIndex);
     },
 
-    readRecordsRange: async (fromIndex: number, count: number) => {
+    readRecordsRange: async (fromId: number, count: number) => {
       return await storage.readRecordsRange({
-        subIndexDir: subIndex,
-        fromIndex,
+        subIndex,
+        fromId,
         count,
       });
     },
 
-    getNextId: () => {
-      return storage.getNextId(subIndex);
+    iterateFrom: async (fromId: number) => {
+      return await storage.iterateFrom({
+        subIndex,
+        fromId,
+      });
     },
 
     appendRecord: (record: T) => {
       return storage.appendRecord({
-        subIndexDir: subIndex,
+        subIndex,
         record,
       });
     },
 
     replaceOrInsertLastRecord: async (record: T) => {
-      return await storage.replaceOrInsertLastRecord({
-        subIndexDir: subIndex,
+      await storage.replaceOrInsertLastRecord({
+        subIndex,
         record,
       });
     },
   };
 }
+
+export type PersistentSubIndexStorage<T extends BaseStorageRecord> = ReturnType<
+  typeof createSubIndexStorage<T>
+>;

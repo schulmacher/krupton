@@ -21,19 +21,26 @@ import {
 import { createUnifiedTradeStorage } from '../../../entities/unifiedTrade.js';
 import type { BinanceTransformerEnv } from '../environment.js';
 import { binanceTransformerEnvSchema } from '../environment.js';
+import { createTransformerMetricsContext } from '../metrics.js';
 
-export function createBinanceTradesTransformerContext(processContext: SF.ProcessLifecycleContext) {
-  const envContext = SF.createEnvContext(binanceTransformerEnvSchema);
+export function createBinanceTradesTransformerContext(
+  processContext: SF.ProcessLifecycleContext,
+  workerId?: string,
+) {
+  const envContext = SF.createEnvContext(binanceTransformerEnvSchema, {
+    source: {
+      SERVICE_NAME:
+        workerId && process.env.PROCESS_NAME
+          ? `${process.env.PROCESS_NAME}-${workerId}`
+          : process.env.PROCESS_NAME,
+    },
+  });
 
   const diagnosticContext = SF.createDiagnosticContext(envContext, {
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
   });
 
-  const metricsContext = SF.createMetricsContext({
-    envContext,
-    enableDefaultMetrics: true,
-    metrics: {},
-  });
+  const metricsContext = createTransformerMetricsContext(envContext);
 
   const inputStorageBaseDir = envContext.config.EXTERNAL_BRIDGE_STORAGE_BASE_DIR;
   const outputStorageBaseDir = envContext.config.INTERNAL_BRIDGE_STORAGE_BASE_DIR;

@@ -12,7 +12,7 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "python.languageServer": "Pylance",
+  "python.languageServer": "Jedi",
   // "python.analysis.autoImportCompletions": true,
   "python.analysis.indexing": true,
   "python.analysis.extraPaths": [

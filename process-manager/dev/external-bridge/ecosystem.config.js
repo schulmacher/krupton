@@ -69,19 +69,19 @@ module.exports = {
         PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_KRAKEN,
       },
     },
-    {
-      name: 'external-bridge-storage',
-      script: 'pnpm',
-      args: '--filter external-bridge dev:storage',
-      cwd: '../../../',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'development',
-        PROCESS_NAME: 'external-bridge-storage',
-        LOG_LEVEL: DEV_LOG_LEVEL,
-        PORT: PORTS.EXTERNAL_BRIDGE_STORAGE,
-      },
-    },
+    // {
+    //   name: 'external-bridge-storage',
+    //   script: 'pnpm',
+    //   args: '--filter external-bridge dev:storage',
+    //   cwd: '../../../',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     NODE_ENV: 'development',
+    //     PROCESS_NAME: 'external-bridge-storage',
+    //     LOG_LEVEL: DEV_LOG_LEVEL,
+    //     PORT: PORTS.EXTERNAL_BRIDGE_STORAGE,
+    //   },
+    // },
   ],
 };

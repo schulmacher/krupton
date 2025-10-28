@@ -16,13 +16,14 @@ export declare class SegmentedLog {
   append(message: Buffer): Buffer
   appendBatch(messages: Array<Buffer>): Array<Buffer>
   put(id: number, value: Buffer): void
-  iterateFrom(startId?: number | undefined | null): SegmentedLogIterator
+  iterateFrom(startId?: number | undefined | null, batchSize?: number | undefined | null): SegmentedLogIterator
   truncateBefore(id: number): void
   readLast(count?: number | undefined | null): Array<KeyValue>
   getLastKey(): Buffer | null
 }
 export declare class SegmentedLogIterator {
   next(): KeyValue | null
+  nextBatch(): Array<KeyValue>
   hasNext(): boolean
   close(): void
 }

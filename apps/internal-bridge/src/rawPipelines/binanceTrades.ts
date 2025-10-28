@@ -10,9 +10,10 @@ import {
   transformBinanceTradeWSToUnified,
   UnifiedTrade,
 } from '@krupton/persistent-storage-node/transformed';
-import { notNil, sleep } from '@krupton/utils';
-import { BinanceTradesTransformerContext } from '../process/transformer/binanceTrades/transformerContext';
-import { getRawBinanceTradesMergedStream } from '../streams/rawBinanceTradesMerged';
+import { notNil } from '@krupton/utils';
+import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
+import { BinanceTradesTransformerContext } from '../process/transformer/binanceTrades/transformerContext.js';
+import { getRawBinanceTradesMergedStream } from '../streams/rawBinanceTradesMerged.js';
 
 type GeneratedWSTradeMessage = TaggedMessage<
   WebSocketStorageRecord<typeof BinanceWS.TradeStream>,
@@ -23,7 +24,6 @@ type GeneratedAPITradeMessage = TaggedMessage<
   'apiTrade'
 >;
 type LastEmittedRef = {
-  trades: StorageRecord<UnifiedTrade>[];
   platformTradeId: number;
   apiTradeIndex: number;
   apiTradeIndexTimestamp: number;
@@ -31,79 +31,60 @@ type LastEmittedRef = {
   wsTradeIndexTimestamp: number;
 };
 
-// TODO move persistance interval to a separate process because
-// it seems to be quite CPU heavy and might block the tranformation process
-async function createPersistanceInterval(
+function createCheckpointFunction(
   context: BinanceTradesTransformerContext,
   normalizedSymbol: string,
   lastEmmittedRef: LastEmittedRef,
 ) {
-  const { outputStorage, transformerState, diagnosticContext, processContext } = context;
-  let running = false;
+  const { diagnosticContext, processContext, outputStorage, transformerState } = context;
+  const { cache, checkpoint } = createGenericCheckpointFunction<UnifiedTrade>({
+    diagnosticContext: diagnosticContext,
+    processContext: processContext,
 
-  const interval = setInterval(async () => {
-    if (running) {
-      return;
-    }
-
-    try {
-      running = true;
-      while (lastEmmittedRef.trades.length > 0) {
-        diagnosticContext.logger.debug(`Syncing trades to storage`, {
-          symbol: normalizedSymbol,
-          cacheLength: lastEmmittedRef.trades.length,
-          firstCacheTradeId: lastEmmittedRef.trades[0]?.id,
-        });
-
-        const records = lastEmmittedRef.trades.splice(0, 66);
+    async onCheckpoint(allRecords) {
+      for (let i = 0; i < allRecords.length; i += 100) {
+        const records = allRecords.slice(i, i + 100);
 
         await outputStorage.unifiedTrade.appendRecords({
-          subIndexDir: normalizedSymbol,
+          subIndex: normalizedSymbol,
           records,
         });
       }
 
+      void context.metricsContext.metrics.throughput.inc(
+        {
+          symbol: normalizedSymbol,
+          platform: 'binance',
+          type: 'trade',
+        },
+        allRecords.length,
+      );
+
       if (lastEmmittedRef.apiTradeIndex) {
-        transformerState.binanceHistoricalTrades
-          .replaceOrInsertLastRecord({
-            subIndexDir: normalizedSymbol,
-            record: {
-              lastProcessedId: lastEmmittedRef.apiTradeIndex,
-              timestamp: lastEmmittedRef.apiTradeIndexTimestamp,
-              lastProcessedTimestamp: lastEmmittedRef.apiTradeIndexTimestamp,
-            },
-          })
-          .catch((error) => {
-            diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
-          });
+        await transformerState.binanceHistoricalTrades.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            lastProcessedId: lastEmmittedRef.apiTradeIndex,
+            timestamp: lastEmmittedRef.apiTradeIndexTimestamp,
+            lastProcessedTimestamp: lastEmmittedRef.apiTradeIndexTimestamp,
+          },
+        });
       }
+
       if (lastEmmittedRef.wsTradeIndex) {
-        transformerState.binanceWSTrades
-          .replaceOrInsertLastRecord({
-            subIndexDir: normalizedSymbol,
-            record: {
-              lastProcessedId: lastEmmittedRef.wsTradeIndex,
-              timestamp: lastEmmittedRef.wsTradeIndexTimestamp,
-              lastProcessedTimestamp: lastEmmittedRef.wsTradeIndexTimestamp,
-            },
-          })
-          .catch((error) => {
-            diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
-          });
+        await transformerState.binanceWSTrades.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            lastProcessedId: lastEmmittedRef.wsTradeIndex,
+            timestamp: lastEmmittedRef.wsTradeIndexTimestamp,
+            lastProcessedTimestamp: lastEmmittedRef.wsTradeIndexTimestamp,
+          },
+        });
       }
-    } finally {
-      running = false;
-    }
-  }, 100);
+    },
+  });
 
-  const clearPersistanceInterval = async () => {
-    await sleep(100);
-    clearInterval(interval);
-  };
-
-  processContext.onShutdown(clearPersistanceInterval);
-
-  return clearPersistanceInterval;
+  return { cache, checkpoint };
 }
 
 function updateLastEmmittedRefFromProcessedMessages(
@@ -167,9 +148,7 @@ export async function startJoinAndTransformBinanceTradesPipeline(
   let result = await mergedStream.next();
 
   const lastUnifiedTrade = await outputStorage.unifiedTrade.readLastRecord(normalizedSymbol);
-  const emitCache: StorageRecord<UnifiedTrade>[] = [];
   const lastEmmittedRef: LastEmittedRef = {
-    trades: emitCache,
     platformTradeId: lastUnifiedTrade?.platformTradeId ?? 0,
     apiTradeIndex: 0,
     apiTradeIndexTimestamp: 0,
@@ -177,7 +156,7 @@ export async function startJoinAndTransformBinanceTradesPipeline(
     wsTradeIndexTimestamp: 0,
   };
 
-  const clearPersistanceInterval = await createPersistanceInterval(
+  const { checkpoint, cache: emitCache } = createCheckpointFunction(
     context,
     normalizedSymbol,
     lastEmmittedRef,
@@ -185,23 +164,24 @@ export async function startJoinAndTransformBinanceTradesPipeline(
 
   async function emitTrade({ trade }: { trade: UnifiedTrade; streamName: 'apiTrade' | 'wsTrade' }) {
     const record: StorageRecord<UnifiedTrade> = {
-      id: outputStorage.unifiedTrade.getNextId(normalizedSymbol),
       timestamp: Date.now(),
       ...trade,
     };
     emitCache.push(record);
     lastEmmittedRef.platformTradeId = trade.platformTradeId;
-    await context.producers.unifiedTrade
-      .send(normalizedSymbol, record)
-      .catch((error) => {
-        diagnosticContext.logger.error(error, 'Error sending trade to producer');
-      })
-      .then(() => {
-        diagnosticContext.logger.debug('Trade sent to producer', { normalizedSymbol, ...record });
-      });
+    // await context.producers.unifiedTrade
+    //   .send(normalizedSymbol, record)
+    //   .catch((error) => {
+    //     diagnosticContext.logger.error(error, 'Error sending trade to producer');
+    //   })
+    //   .then(() => {
+    //     diagnosticContext.logger.debug('Trade sent to producer', { normalizedSymbol, ...record });
+    //   });
   }
 
-  while (!result.done) {
+  let failCount = 0;
+
+  while (!result.done && !processContext.isShuttingDown()) {
     const messages = result.value;
 
     if (messages.length === 0) {
@@ -282,6 +262,7 @@ export async function startJoinAndTransformBinanceTradesPipeline(
       }
 
       if (trade.trade.platformTradeId === lastEmmittedRef.platformTradeId + 1) {
+        failCount = 0;
         await emitTrade(trade);
         takeMore.add(trade.streamName);
         continue;
@@ -294,33 +275,46 @@ export async function startJoinAndTransformBinanceTradesPipeline(
 
       // [2-lastId, 4-ws, 7-api, 8-ws, 9-api] - 4-ws to 7-api confirmed as a hole
       if (nextOfSameType && nextOfDifferentType) {
+        failCount = 0;
         await emitTrade(trade);
         takeMore.add(trade.streamName);
         continue;
       } else {
         if (!nextOfSameType) {
-          diagnosticContext.logger.debug('No next of same type', {
-            lastTradeId: lastEmmittedRef.platformTradeId,
-            currentTradeId: trade.trade.platformTradeId,
-            gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
-            streamName: trade.streamName,
-            compareType,
-          });
+          if (failCount === 50) {
+            diagnosticContext.logger.info('No next of same type!', {
+              lastTradeId: lastEmmittedRef.platformTradeId,
+              currentTradeId: trade.trade.platformTradeId,
+              gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
+              streamName: trade.streamName,
+              compareType,
+            });
+          }
           takeMore.add(trade.streamName);
         }
         if (!nextOfDifferentType) {
-          diagnosticContext.logger.debug('No next of different type', {
-            lastTradeId: lastEmmittedRef.platformTradeId,
-            currentTradeId: trade.trade.platformTradeId,
-            gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
-            streamName: trade.streamName,
-            compareType,
-          });
+          if (failCount === 50) {
+            diagnosticContext.logger.info('No next of different type!', {
+              lastTradeId: lastEmmittedRef.platformTradeId,
+              currentTradeId: trade.trade.platformTradeId,
+              gapSize: trade.trade.platformTradeId - lastEmmittedRef.platformTradeId,
+              streamName: trade.streamName,
+              compareType,
+            });
+          }
           takeMore.add(compareType);
+
+          failCount = failCount + 1;
+          if (failCount > 100) {
+            processContext.restart();
+          }
         }
+
         break;
       }
     }
+
+    await checkpoint();
 
     result = await mergedStream.next({
       // processed are handled in the start of iteration
@@ -331,7 +325,7 @@ export async function startJoinAndTransformBinanceTradesPipeline(
 
   diagnosticContext.logger.info(`Trade pipeline stopped, socket died? Restaring service!`);
 
-  await clearPersistanceInterval();
+  await checkpoint(true);
   await processContext.restart();
 }
 

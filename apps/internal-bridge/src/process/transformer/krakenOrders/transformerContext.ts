@@ -15,6 +15,7 @@ import path from 'node:path';
 import { createKrakenOrderBookTransformerStateStorage } from '../../../entities/transformerStateKraken.js';
 import { createUnifiedOrderBookStorage } from '../../../entities/unifiedTrade.js';
 import { KrakenTransformerEnv, krakenTransformerEnvSchema } from '../environment.js';
+import { createTransformerMetricsContext } from '../metrics.js';
 
 export function createKrakenOrdersTransformerContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenTransformerEnvSchema);
@@ -23,11 +24,7 @@ export function createKrakenOrdersTransformerContext(processContext: SF.ProcessL
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
   });
 
-  const metricsContext = SF.createMetricsContext({
-    envContext,
-    enableDefaultMetrics: true,
-    metrics: {},
-  });
+  const metricsContext = createTransformerMetricsContext(envContext);
 
   const inputStorageBaseDir = envContext.config.EXTERNAL_BRIDGE_STORAGE_BASE_DIR;
   const outputStorageBaseDir = envContext.config.INTERNAL_BRIDGE_STORAGE_BASE_DIR;

@@ -85,8 +85,12 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
 
     const db = options?.writable
       ? new SegmentedLog(dbPath, options?.compression ?? true)
-      : SegmentedLog.openAsSecondary(dbPath, getSecondaryPath(normalized), options?.compression ?? true);
-    
+      : SegmentedLog.openAsSecondary(
+          dbPath,
+          getSecondaryPath(normalized),
+          options?.compression ?? true,
+        );
+
     dbCache.set(normalized, db);
 
     if (!options?.writable) {

@@ -167,9 +167,9 @@ services:
     ports:
       - "${PERSES_PORT:-8080}:8080"
     volumes:
-      - ../../apps/monitoring-perses/config.yml:/etc/perses/config.yml:ro
+      - ../../runtime/monitoring-perses/config.yml:/etc/perses/config.yml:ro
       - ../../storage/perses:/data/perses
-      - ../../apps/monitoring-perses/data:/app/data
+      - ../../runtime/monitoring-perses/data:/app/data
     networks:
       - dev-network
     restart: unless-stopped
@@ -194,7 +194,7 @@ services:
       - "${VICTORIA_METRICS_PORT:-8428}:8428"
     volumes:
       - ../../storage/victoria_metrics:/data/victoria_metrics
-      - ../../apps/monitoring-victoria-metrics/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../runtime/monitoring-victoria-metrics/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - dev-network
     restart: unless-stopped

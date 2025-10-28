@@ -21,6 +21,7 @@ import {
 import { createUnifiedTradeStorage } from '../../../entities/unifiedTrade.js';
 import type { KrakenTransformerEnv } from '../environment.js';
 import { krakenTransformerEnvSchema } from '../environment.js';
+import { createTransformerMetricsContext } from '../metrics.js';
 
 export function createKrakenTradesTransformerContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(krakenTransformerEnvSchema);
@@ -29,11 +30,7 @@ export function createKrakenTradesTransformerContext(processContext: SF.ProcessL
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
   });
 
-  const metricsContext = SF.createMetricsContext({
-    envContext,
-    enableDefaultMetrics: true,
-    metrics: {},
-  });
+  const metricsContext = createTransformerMetricsContext(envContext);
 
   const inputStorageBaseDir = envContext.config.EXTERNAL_BRIDGE_STORAGE_BASE_DIR;
   const outputStorageBaseDir = envContext.config.INTERNAL_BRIDGE_STORAGE_BASE_DIR;

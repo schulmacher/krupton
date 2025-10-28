@@ -9,14 +9,14 @@ import {
   transformKrakenTradeWSToUnified,
   UnifiedTrade,
 } from '@krupton/persistent-storage-node/transformed';
-import { notNil, sleep } from '@krupton/utils';
-import { KrakenTradesTransformerContext } from '../process/transformer/krakenTrades/transformerContext';
-import { getRawKrakenTradesMergedStream } from '../streams/rawKrakenTradesMerged';
+import { notNil, yieldToEventLoop } from '@krupton/utils';
+import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
+import { KrakenTradesTransformerContext } from '../process/transformer/krakenTrades/transformerContext.js';
+import { getRawKrakenTradesMergedStream } from '../streams/rawKrakenTradesMerged.js';
 
 type GeneratedWSTradeMessage = TaggedMessage<KrakenTradeWSRecord, 'wsTrade'>;
 type GeneratedAPITradeMessage = TaggedMessage<KrakenRecentTradesRecord, 'apiTrade'>;
 type LastEmittedRef = {
-  trades: StorageRecord<UnifiedTrade>[];
   platformTradeId: number;
   apiTradeIndex: number;
   apiTradeIndexTimestamp: number;
@@ -24,79 +24,60 @@ type LastEmittedRef = {
   wsTradeIndexTimestamp: number;
 };
 
-// TODO move persistance interval to a separate process because
-// it seems to be quite CPU heavy and might block the tranformation process
-async function createPersistanceInterval(
+function createCheckpointFunction(
   context: KrakenTradesTransformerContext,
   normalizedSymbol: string,
   lastEmmittedRef: LastEmittedRef,
 ) {
   const { outputStorage, transformerState, diagnosticContext, processContext } = context;
-  let running = false;
+  const { cache, checkpoint } = createGenericCheckpointFunction<StorageRecord<UnifiedTrade>>({
+    diagnosticContext,
+    processContext,
 
-  const interval = setInterval(async () => {
-    if (running) {
-      return;
-    }
-
-    try {
-      running = true;
-      while (lastEmmittedRef.trades.length > 0) {
-        diagnosticContext.logger.debug(`Syncing trades to storage`, {
-          symbol: normalizedSymbol,
-          cacheLength: lastEmmittedRef.trades.length,
-          firstCacheTradeId: lastEmmittedRef.trades[0]?.id,
-        });
-
-        const records = lastEmmittedRef.trades.splice(0, 66);
+    async onCheckpoint(allRecords) {
+      for (let i = 0; i < allRecords.length; i += 100) {
+        const records = allRecords.slice(i, i + 100);
 
         await outputStorage.unifiedTrade.appendRecords({
-          subIndexDir: normalizedSymbol,
+          subIndex: normalizedSymbol,
           records,
         });
       }
 
+      void context.metricsContext.metrics.throughput.inc(
+        {
+          symbol: normalizedSymbol,
+          platform: 'kraken',
+          type: 'trade',
+        },
+        allRecords.length,
+      );
+
       if (lastEmmittedRef.apiTradeIndex) {
-        transformerState.krakenHistoricalTrades
-          .replaceOrInsertLastRecord({
-            subIndexDir: normalizedSymbol,
-            record: {
-              lastProcessedId: lastEmmittedRef.apiTradeIndex,
-              lastProcessedTimestamp: lastEmmittedRef.apiTradeIndexTimestamp,
-              timestamp: lastEmmittedRef.apiTradeIndexTimestamp,
-            },
-          })
-          .catch((error) => {
-            diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
-          });
+        await transformerState.krakenHistoricalTrades.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            lastProcessedId: lastEmmittedRef.apiTradeIndex,
+            lastProcessedTimestamp: lastEmmittedRef.apiTradeIndexTimestamp,
+            timestamp: lastEmmittedRef.apiTradeIndexTimestamp,
+          },
+        });
       }
+
       if (lastEmmittedRef.wsTradeIndex) {
-        transformerState.krakenWSTrades
-          .replaceOrInsertLastRecord({
-            subIndexDir: normalizedSymbol,
-            record: {
-              lastProcessedId: lastEmmittedRef.wsTradeIndex,
-              lastProcessedTimestamp: lastEmmittedRef.wsTradeIndexTimestamp,
-              timestamp: lastEmmittedRef.wsTradeIndexTimestamp,
-            },
-          })
-          .catch((error) => {
-            diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
-          });
+        await transformerState.krakenWSTrades.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            lastProcessedId: lastEmmittedRef.wsTradeIndex,
+            lastProcessedTimestamp: lastEmmittedRef.wsTradeIndexTimestamp,
+            timestamp: lastEmmittedRef.wsTradeIndexTimestamp,
+          },
+        });
       }
-    } finally {
-      running = false;
-    }
-  }, 100);
+    },
+  });
 
-  const clearPersistanceInterval = async () => {
-    await sleep(100);
-    clearInterval(interval);
-  };
-
-  processContext.onShutdown(clearPersistanceInterval);
-
-  return clearPersistanceInterval;
+  return { cache, checkpoint };
 }
 
 function updateLastEmmittedRefFromProcessedMessages(
@@ -160,9 +141,7 @@ export async function startJoinAndTransformKrakenTradesPipeline(
   let result = await mergedStream.next();
 
   const lastUnifiedTrade = await outputStorage.unifiedTrade.readLastRecord(normalizedSymbol);
-  const emitCache: StorageRecord<UnifiedTrade>[] = [];
   const lastEmmittedRef: LastEmittedRef = {
-    trades: emitCache,
     platformTradeId: lastUnifiedTrade?.platformTradeId ?? 0,
     apiTradeIndex: 0,
     apiTradeIndexTimestamp: 0,
@@ -170,7 +149,7 @@ export async function startJoinAndTransformKrakenTradesPipeline(
     wsTradeIndexTimestamp: 0,
   };
 
-  const clearPersistanceInterval = await createPersistanceInterval(
+  const { checkpoint, cache: emitCache } = createCheckpointFunction(
     context,
     normalizedSymbol,
     lastEmmittedRef,
@@ -178,23 +157,22 @@ export async function startJoinAndTransformKrakenTradesPipeline(
 
   async function emitTrade({ trade }: { trade: UnifiedTrade; streamName: 'apiTrade' | 'wsTrade' }) {
     const record: StorageRecord<UnifiedTrade> = {
-      id: outputStorage.unifiedTrade.getNextId(normalizedSymbol),
       timestamp: Date.now(),
       ...trade,
     };
     emitCache.push(record);
     lastEmmittedRef.platformTradeId = trade.platformTradeId;
-    await context.producers.unifiedTrade
-      .send(normalizedSymbol, record)
-      .catch((error) => {
-        diagnosticContext.logger.error(error, 'Error sending trade to producer');
-      })
-      .then(() => {
-        diagnosticContext.logger.debug('Trade sent to producer', { normalizedSymbol, ...record });
-      });
+    // await context.producers.unifiedTrade
+    //   .send(normalizedSymbol, record)
+    //   .catch((error) => {
+    //     diagnosticContext.logger.error(error, 'Error sending trade to producer');
+    //   })
+    //   .then(() => {
+    //     diagnosticContext.logger.debug('Trade sent to producer', { normalizedSymbol, ...record });
+    //   });
   }
 
-  while (!result.done) {
+  while (!result.done && !processContext.isShuttingDown()) {
     const messages = result.value;
 
     if (messages.length === 0) {
@@ -296,6 +274,9 @@ export async function startJoinAndTransformKrakenTradesPipeline(
       }
     }
 
+    await checkpoint();
+    await yieldToEventLoop();
+
     result = await mergedStream.next({
       // processed are handled in the start of iteration
       done: [],
@@ -305,7 +286,7 @@ export async function startJoinAndTransformKrakenTradesPipeline(
 
   diagnosticContext.logger.info(`Trade pipeline stopped, socket died? Restaring service!`);
 
-  await clearPersistanceInterval();
+  await checkpoint(true);
   await processContext.restart();
 }
 

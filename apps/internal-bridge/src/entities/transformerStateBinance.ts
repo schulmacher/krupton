@@ -1,6 +1,6 @@
 import { createPersistentStorage } from '@krupton/persistent-storage-node';
 import { join } from 'node:path';
-import { TransformerState } from './types';
+import { TransformerState } from './types.js';
 
 export const createBinanceHistoricalTradesTransformerStateStorage = (
   baseDir: string,

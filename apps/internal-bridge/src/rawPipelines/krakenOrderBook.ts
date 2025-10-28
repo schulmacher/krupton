@@ -3,15 +3,15 @@ import {
   transformKrakenBookWSToUnified,
   UnifiedOrderBook,
 } from '@krupton/persistent-storage-node/transformed';
-import { sleep } from '@krupton/utils';
-import { KrakenOrdersTransformerContext } from '../process/transformer/krakenOrders/transformerContext';
+import { yieldToEventLoop } from '@krupton/utils';
+import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
+import { KrakenOrdersTransformerContext } from '../process/transformer/krakenOrders/transformerContext.js';
 import {
   getRawKrakenOrderBookLastProcessedIndex,
   getRawKrakenOrderBookStream,
-} from '../streams/rawKrakenOrderBook';
+} from '../streams/rawKrakenOrderBook.js';
 
 type EmitCache = {
-  orderbook: StorageRecord<UnifiedOrderBook>[];
   wsIndex: number;
   wsTimestamp: number;
 };
@@ -20,30 +20,28 @@ export async function startTransformKrakenOrderBookPipeline(
   context: KrakenOrdersTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { outputStorage, diagnosticContext, processContext } = context;
+  const { diagnosticContext, processContext } = context;
 
   const wsOrderBookStream = await getRawKrakenOrderBookStream(context, normalizedSymbol);
 
   const emitCache: EmitCache = {
-    orderbook: [],
     wsIndex: 0,
     wsTimestamp: 0,
   };
-  const clearPersistanceInterval = await createPersistanceInterval(
+  const { checkpoint, cache: orderbookCache } = createCheckpointFunction(
     context,
     normalizedSymbol,
     emitCache,
   );
   async function emitOrderBook(orderbook: UnifiedOrderBook) {
     const record: StorageRecord<UnifiedOrderBook> = {
-      id: outputStorage.unifiedOrderBook.getNextId(normalizedSymbol),
       timestamp: Date.now(),
       ...orderbook,
     };
-    emitCache.orderbook.push(record);
-    await context.producers.unifiedOrderBook.send(normalizedSymbol, record).catch((error) => {
-      diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-    });
+    orderbookCache.push(record);
+    // await context.producers.unifiedOrderBook.send(normalizedSymbol, record).catch((error) => {
+    //   diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
+    // });
   }
 
   let lastProcessedIndex: number =
@@ -68,11 +66,14 @@ export async function startTransformKrakenOrderBookPipeline(
     }
 
     updateEmitCacheFromProcessedMessages(emitCache, messages);
+    
+    await yieldToEventLoop();
+    await checkpoint();
   }
 
   diagnosticContext.logger.warn(`Kraken orders pipeline stopped, socket died? Restarting šervice!`);
 
-  await clearPersistanceInterval();
+  await checkpoint(true);
   await processContext.restart();
 }
 
@@ -87,49 +88,47 @@ function updateEmitCacheFromProcessedMessages(
   }
 }
 
-async function createPersistanceInterval(
+function createCheckpointFunction(
   context: KrakenOrdersTransformerContext,
   normalizedSymbol: string,
   emitCache: EmitCache,
 ) {
   const { outputStorage, transformerState, diagnosticContext, processContext } = context;
-  const interval = setInterval(async () => {
-    while (emitCache.orderbook.length > 0) {
-      diagnosticContext.logger.debug(`Syncing orderbook to storage`, {
-        symbol: normalizedSymbol,
-        cacheLength: emitCache.orderbook.length,
-        firstCacheOrderBookId: emitCache.orderbook[0]?.id,
-      });
-      const records = emitCache.orderbook.splice(0, 100);
+  const { cache, checkpoint } = createGenericCheckpointFunction<StorageRecord<UnifiedOrderBook>>({
+    diagnosticContext,
+    processContext,
 
-      await outputStorage.unifiedOrderBook.appendRecords({
-        subIndexDir: normalizedSymbol,
-        records,
-      });
-    }
+    async onCheckpoint(allRecords) {
+      for (let i = 0; i < allRecords.length; i += 100) {
+        const records = allRecords.slice(i, i + 100);
 
-    if (emitCache.wsIndex) {
-      transformerState.krakenOrderBookWs
-        .replaceOrInsertLastRecord({
-          subIndexDir: normalizedSymbol,
+        await outputStorage.unifiedOrderBook.appendRecords({
+          subIndex: normalizedSymbol,
+          records,
+        });
+      }
+
+      void context.metricsContext.metrics.throughput.inc(
+        {
+          symbol: normalizedSymbol,
+          platform: 'kraken',
+          type: 'order_book',
+        },
+        allRecords.length,
+      );
+
+      if (emitCache.wsIndex) {
+        await transformerState.krakenOrderBookWs.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
           record: {
             lastProcessedId: emitCache.wsIndex,
             lastProcessedTimestamp: emitCache.wsTimestamp,
             timestamp: emitCache.wsTimestamp,
           },
-        })
-        .catch((error) => {
-          diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
         });
-    }
-  }, 100);
+      }
+    },
+  });
 
-  const clearPersistanceInterval = async () => {
-    await sleep(100);
-    clearInterval(interval);
-  };
-
-  processContext.onShutdown(clearPersistanceInterval);
-
-  return clearPersistanceInterval;
+  return { cache, checkpoint };
 }

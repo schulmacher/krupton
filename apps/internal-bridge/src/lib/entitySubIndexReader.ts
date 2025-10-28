@@ -1,6 +1,6 @@
-import { StorageRecord } from '@krupton/persistent-storage-node';
+import { BaseStorageRecord, StorageRecordReturn } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { PersistentSubIndexStorage } from './subIndexStorage';
+import { PersistentSubIndexStorage } from './subIndexStorage.js';
 
 export type EntitySubIndexReaderOptions = {
   readBatchSize: number;
@@ -9,21 +9,17 @@ export type EntitySubIndexReaderOptions = {
   diagnosticContext: SF.DiagnosticContext;
 };
 
-export async function* createEntitySubIndexReader<T extends StorageRecord<Record<string, unknown>>>(
+export async function* createEntitySubIndexReader<T extends BaseStorageRecord>(
   storage: PersistentSubIndexStorage<T>,
   options: EntitySubIndexReaderOptions,
-): AsyncGenerator<StorageRecord<T>[], undefined> {
+): AsyncGenerator<StorageRecordReturn<T>[], undefined> {
   const { readBatchSize, startGlobalIndex, isStopped, diagnosticContext } = options;
 
   let globalStartIndex = startGlobalIndex;
 
   while (!isStopped?.()) {
     // Read records using the subindex-bound storage
-    const records = await storage
-      .readRecordsRange(globalStartIndex, readBatchSize)
-      .then((records) => {
-        return records;
-      });
+    const records = await storage.readRecordsRange(globalStartIndex, readBatchSize);
 
     if (records.length === 0) {
       break;

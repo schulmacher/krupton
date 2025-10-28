@@ -1,6 +1,6 @@
-import { createConsistentConsumer } from '../lib/consistentConsumer';
-import { createSubIndexStorage } from '../lib/subIndexStorage';
-import { KrakenOrdersTransformerContext } from '../process/transformer/krakenOrders/transformerContext';
+import { createConsistentConsumer } from '../lib/consistentConsumer.js';
+import { createSubIndexStorage } from '../lib/subIndexStorage.js';
+import { KrakenOrdersTransformerContext } from '../process/transformer/krakenOrders/transformerContext.js';
 
 export async function getRawKrakenOrderBookStream(
   context: KrakenOrdersTransformerContext,
@@ -19,6 +19,7 @@ export async function getRawKrakenOrderBookStream(
       stream: 'kraken-ws-orderbook',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   return wsStream;

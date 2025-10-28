@@ -20,6 +20,7 @@ import {
 } from '../../../entities/transformerStateBinance.js';
 import { createUnifiedOrderBookStorage } from '../../../entities/unifiedTrade.js';
 import { BinanceTransformerEnv, binanceTransformerEnvSchema } from '../environment.js';
+import { createTransformerMetricsContext } from '../metrics.js';
 
 export function createBinanceOrdersTransformerContext(processContext: SF.ProcessLifecycleContext) {
   const envContext = SF.createEnvContext(binanceTransformerEnvSchema);
@@ -28,11 +29,7 @@ export function createBinanceOrdersTransformerContext(processContext: SF.Process
     minimumSeverity: (envContext.config.LOG_LEVEL as SF.LogSeverity) || 'info',
   });
 
-  const metricsContext = SF.createMetricsContext({
-    envContext,
-    enableDefaultMetrics: true,
-    metrics: {},
-  });
+  const metricsContext = createTransformerMetricsContext(envContext);
 
   const inputStorageBaseDir = envContext.config.EXTERNAL_BRIDGE_STORAGE_BASE_DIR;
   const outputStorageBaseDir = envContext.config.INTERNAL_BRIDGE_STORAGE_BASE_DIR;

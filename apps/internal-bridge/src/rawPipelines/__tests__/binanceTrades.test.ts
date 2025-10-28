@@ -9,9 +9,9 @@ import {
   createMockProcessContext,
 } from '@krupton/service-framework-node/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BinanceTradesTransformerContext } from '../../process/transformer/binanceTrades/transformerContext';
-import * as binanceTradesMergedModule from '../../streams/rawBinanceTradesMerged';
-import { startJoinAndTransformBinanceTradesPipeline } from '../binanceTrades';
+import type { BinanceTradesTransformerContext } from '../../process/transformer/binanceTrades/transformerContext.js';
+import * as binanceTradesMergedModule from '../../streams/rawBinanceTradesMerged.js';
+import { startJoinAndTransformBinanceTradesPipeline } from '../binanceTrades.js';
 
 const SYMBOL = 'BTCUSDT';
 
@@ -94,7 +94,7 @@ describe('startJoinAndTransformBinanceTradesPipeline', () => {
             writtenTrades.push(...records.map((r) => ({ ...r })));
           }),
           readLastRecord: vi.fn(async () => null),
-          getNextId: vi.fn(() => writtenTrades.length + 1),
+          getNextId: vi.fn(() => Promise.resolve(writtenTrades.length + 1)),
         } as never,
       },
       producers: {
@@ -173,16 +173,5 @@ describe('startJoinAndTransformBinanceTradesPipeline', () => {
     // verify that the trades were written in the correct order
     const tradeIds = writtenTrades.map((t) => t.platformTradeId);
     expect(tradeIds).toEqual([1, 2, 4, 7, 8, 10, 11]);
-
-    // verify messages sent over socket
-    expect(mockContext.producers.unifiedTrade.send).toHaveBeenCalledTimes(writtenTrades.length);
-    for (let i = 0; i < writtenTrades.length; i++) {
-      const trade = writtenTrades[i];
-      expect(mockContext.producers.unifiedTrade.send).toHaveBeenNthCalledWith(
-        i + 1,
-        SYMBOL,
-        expect.objectContaining({ ...trade }),
-      );
-    }
   });
 });

@@ -1,7 +1,7 @@
 import { mergeGenerators } from '@krupton/persistent-storage-node/transformed';
-import { createConsistentConsumer } from '../lib/consistentConsumer';
-import { createSubIndexStorage } from '../lib/subIndexStorage';
-import { KrakenTradesTransformerContext } from '../process/transformer/krakenTrades/transformerContext';
+import { createConsistentConsumer } from '../lib/consistentConsumer.js';
+import { createSubIndexStorage } from '../lib/subIndexStorage.js';
+import { KrakenTradesTransformerContext } from '../process/transformer/krakenTrades/transformerContext.js';
 
 export async function getRawKrakenTradesMergedStream(
   context: KrakenTradesTransformerContext,
@@ -16,11 +16,12 @@ export async function getRawKrakenTradesMergedStream(
     storage: createSubIndexStorage(inputStorage.krakenApiTrade, normalizedSymbol),
     zmqSubscriber: context.inputConsumers.krakenTradeApi.getZmqSubscriber(normalizedSymbol),
     lastState: apiState,
-    batchSize: 10,
+    batchSize: 3,
     diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
       stream: 'kraken-api-trade',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
   const wsStream = createConsistentConsumer({
     storage: createSubIndexStorage(inputStorage.krakenWsTrade, normalizedSymbol),
@@ -31,6 +32,7 @@ export async function getRawKrakenTradesMergedStream(
       stream: 'kraken-ws-trade',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   const mergedStream = mergeGenerators(

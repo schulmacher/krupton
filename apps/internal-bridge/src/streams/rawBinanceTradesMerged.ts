@@ -1,7 +1,7 @@
 import { mergeGenerators } from '@krupton/persistent-storage-node/transformed';
-import { createConsistentConsumer } from '../lib/consistentConsumer';
-import { createSubIndexStorage } from '../lib/subIndexStorage';
-import { BinanceTradesTransformerContext } from '../process/transformer/binanceTrades/transformerContext';
+import { createConsistentConsumer } from '../lib/consistentConsumer.js';
+import { createSubIndexStorage } from '../lib/subIndexStorage.js';
+import { BinanceTradesTransformerContext } from '../process/transformer/binanceTrades/transformerContext.js';
 
 export async function getRawBinanceTradesMergedStream(
   context: BinanceTradesTransformerContext,
@@ -17,11 +17,12 @@ export async function getRawBinanceTradesMergedStream(
     storage: createSubIndexStorage(inputStorage.binanceHistoricalTrade, normalizedSymbol),
     zmqSubscriber: context.inputConsumers.binanceTradeApi.getZmqSubscriber(normalizedSymbol),
     lastState: apiLastState,
-    batchSize: 10,
+    batchSize: 3,
     diagnosticContext: context.diagnosticContext.getChildDiagnosticContext({
       stream: 'binance-api-trade',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   const wsStream = createConsistentConsumer({
@@ -33,6 +34,7 @@ export async function getRawBinanceTradesMergedStream(
       stream: 'binance-ws-trade',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   const mergedStream = mergeGenerators(

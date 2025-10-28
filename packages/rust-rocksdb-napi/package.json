@@ -8,8 +8,11 @@
     "triples": {}
   },
   "scripts": {
-    "build": "napi build --platform --release",
-    "build:debug": "napi build --platform"
+    "build": "pnpm run build:node",
+    "build:debug": "napi build --platform",
+    "build:node": "napi build --platform --release",
+    "build:python": "uv run maturin build --release --no-default-features -F python",
+    "develop:python": "uv run maturin develop --release --no-default-features -F python"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.0"

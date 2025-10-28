@@ -35,6 +35,13 @@ export async function startBinanceOrdersTransformerService(
           diagnosticContext.logger.error(error, 'Error closing producer');
         }
       }
+
+      for (const storage of Object.values({
+        ...context.outputStorage,
+        ...context.transformerState,
+      })) {
+        storage.close();
+      }
       diagnosticContext.logger.info('Shutting down internal-bridge transformer services');
     });
   };
@@ -47,6 +54,8 @@ export async function startBinanceOrdersTransformerService(
     await producer.connect(context.symbols);
   }
 
+  await httpServer.startServer();
+
   for (const symbol of context.symbols) {
     const symbolDiagnostics = diagnosticContext.getChildDiagnosticContext({ symbol });
     const symbolContext = {
@@ -58,5 +67,5 @@ export async function startBinanceOrdersTransformerService(
     });
   }
 
-  await httpServer.startServer();
+  diagnosticContext.logger.info('Started service', context.envContext.config);
 }

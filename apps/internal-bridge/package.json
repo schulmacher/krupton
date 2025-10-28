@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev:transformer-binance-orders": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceOrdersTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
-    "dev:transformer-binance-trades": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/binanceTradesTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
-    "dev:transformer-kraken-orders": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenOrdersTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
-    "dev:transformer-kraken-trades": "concurrently -k -n server,typecheck -c cyan,red \"tsx watch src/krakenTradesTransformerProcess.ts --clear-screen=false\" \"tsc --noEmit --watch --preserveWatchOutput\"",
+    "dev:transformer-binance-orders": "node dist/binanceOrdersTransformerProcess.js",
+    "dev:transformer-binance-trades": "node dist/binanceTradesTransformerProcess.js",
+    "dev:transformer-kraken-orders": "node dist/krakenOrdersTransformerProcess.js",
+    "dev:transformer-kraken-trades": "node dist/krakenTradesTransformerProcess.js",
+    "dev:grpc-storage-server": "node dist/grpcStorageServerProcess.js",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
@@ -23,6 +24,8 @@
     "@krupton/persistent-storage-node": "workspace:*",
     "@krupton/utils": "workspace:*",
     "@krupton/messaging-node": "workspace:*",
+    "@grpc/grpc-js": "^1.12.4",
+    "@grpc/proto-loader": "^0.7.15",
     "ws": "^8.18.0"
   }
 }

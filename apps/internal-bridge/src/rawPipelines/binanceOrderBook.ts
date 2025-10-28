@@ -10,12 +10,13 @@ import {
   transformBinanceOrderBookToUnified,
   UnifiedOrderBook,
 } from '@krupton/persistent-storage-node/transformed';
-import { notNil, sleep } from '@krupton/utils';
-import { BinanceOrdersTransformerContext } from '../process/transformer/binanceOrders/transformerContext';
+import { notNil, yieldToEventLoop } from '@krupton/utils';
+import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
+import { BinanceOrdersTransformerContext } from '../process/transformer/binanceOrders/transformerContext.js';
 import {
   getRawBinanceLatestProcessedOrderBookId,
   getRawBinanceOrdersMergedStream,
-} from '../streams/rawBinanceOrdersMerged';
+} from '../streams/rawBinanceOrdersMerged.js';
 
 type GeneraredDiffDepthMessage = TaggedMessage<
   WebSocketStorageRecord<typeof BinanceWS.DiffDepthStream>,
@@ -27,7 +28,6 @@ type GeneraredOrderBookMessage = TaggedMessage<
 >;
 
 type EmitCache = {
-  orderbook: StorageRecord<UnifiedOrderBook>[];
   apiIndex: number;
   apiTimestamp: number;
   wsIndex: number;
@@ -38,41 +38,29 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
   context: BinanceOrdersTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { outputStorage, diagnosticContext, processContext } = context;
+  const { diagnosticContext, processContext } = context;
 
   const mergedStream = await getRawBinanceOrdersMergedStream(context, normalizedSymbol);
 
   let result = await mergedStream.next();
 
   const emitCache: EmitCache = {
-    orderbook: [],
     apiIndex: 0,
     apiTimestamp: 0,
     wsIndex: 0,
     wsTimestamp: 0,
   };
-  const clearPersistanceInterval = await createPersistanceInterval(
+  const { checkpoint, cache: orderbookCache } = createCheckpointFunction(
     context,
     normalizedSymbol,
     emitCache,
   );
   async function emitOrderBook(orderbook: UnifiedOrderBook) {
     const record: StorageRecord<UnifiedOrderBook> = {
-      id: outputStorage.unifiedOrderBook.getNextId(normalizedSymbol),
       timestamp: Date.now(),
       ...orderbook,
     };
-    emitCache.orderbook.push(record);
-    await context.producers.unifiedOrderBook
-      .send(normalizedSymbol, record)
-      .catch((error) => {
-        diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-      })
-      .then(() => {
-        diagnosticContext.logger.debug('Orderbook sent to producer', {
-          normalizedSymbol,
-        });
-      });
+    orderbookCache.push(record);
   }
 
   let lastOrderBookId: number = await getRawBinanceLatestProcessedOrderBookId(
@@ -80,7 +68,7 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
     normalizedSymbol,
   );
 
-  while (!result.done) {
+  while (!result.done && !processContext.isShuttingDown()) {
     const messages = result.value;
 
     if (messages.length === 0) {
@@ -125,7 +113,7 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
             },
           );
         } else if (diff.u < lastOrderBookId) {
-          context.diagnosticContext.logger.info('diff.u < lastOrderBookId... ignore message', {
+          context.diagnosticContext.logger.debug('diff.u < lastOrderBookId... ignore message', {
             diffLastUpdateId: diff.u,
             lastOrderBookId,
           });
@@ -138,6 +126,9 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
       updateEmitCacheFromProcessedMessages(emitCache, processedMessages);
     }
 
+    await checkpoint();
+    await yieldToEventLoop();
+
     result = await mergedStream.next({
       done: processedMessages,
       takeMore: [waitingForSnaphot ? null : ('diff' as const), 'snapshot' as const].filter(notNil),
@@ -146,7 +137,7 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
 
   diagnosticContext.logger.warn(`Trade pipeline stopped, socket died? Restarting šervice!`);
 
-  await clearPersistanceInterval();
+  await checkpoint(true);
   await processContext.restart();
 }
 
@@ -219,65 +210,58 @@ function updateEmitCacheFromProcessedMessages(
   }
 }
 
-async function createPersistanceInterval(
+function createCheckpointFunction(
   context: BinanceOrdersTransformerContext,
   normalizedSymbol: string,
   emitCache: EmitCache,
 ) {
   const { outputStorage, transformerState, diagnosticContext, processContext } = context;
+  const { cache, checkpoint } = createGenericCheckpointFunction<StorageRecord<UnifiedOrderBook>>({
+    diagnosticContext,
+    processContext,
 
-  const interval = setInterval(async () => {
-    while (emitCache.orderbook.length > 0) {
-      diagnosticContext.logger.debug(`Syncing orderbook to storage`, {
-        symbol: normalizedSymbol,
-        cacheLength: emitCache.orderbook.length,
-        firstCacheOrderBookId: emitCache.orderbook[0]?.id,
-      });
-      const records = emitCache.orderbook.splice(0, 100);
+    async onCheckpoint(allRecords) {
+      for (let i = 0; i < allRecords.length; i += 100) {
+        const records = allRecords.slice(i, i + 100);
 
-      await outputStorage.unifiedOrderBook.appendRecords({
-        subIndexDir: normalizedSymbol,
-        records,
-      });
-    }
+        await outputStorage.unifiedOrderBook.appendRecords({
+          subIndex: normalizedSymbol,
+          records,
+        });
+      }
 
-    if (emitCache.apiIndex) {
-      transformerState.binanceOrderBook
-        .replaceOrInsertLastRecord({
-          subIndexDir: normalizedSymbol,
+      void context.metricsContext.metrics.throughput.inc(
+        {
+          symbol: normalizedSymbol,
+          platform: 'binance',
+          type: 'order_book',
+        },
+        allRecords.length,
+      );
+
+      if (emitCache.apiIndex) {
+        await transformerState.binanceOrderBook.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
           record: {
             lastProcessedId: emitCache.apiIndex,
             lastProcessedTimestamp: emitCache.apiTimestamp,
             timestamp: emitCache.apiTimestamp,
           },
-        })
-        .catch((error) => {
-          diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
         });
-    }
+      }
 
-    if (emitCache.wsIndex) {
-      transformerState.binanceDiffDepth
-        .replaceOrInsertLastRecord({
-          subIndexDir: normalizedSymbol,
+      if (emitCache.wsIndex) {
+        await transformerState.binanceDiffDepth.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
           record: {
             lastProcessedId: emitCache.wsIndex,
             lastProcessedTimestamp: emitCache.wsTimestamp,
             timestamp: emitCache.wsTimestamp,
           },
-        })
-        .catch((error) => {
-          diagnosticContext.logger.error(error, 'Error replacing or inserting last record');
         });
-    }
-  }, 100);
+      }
+    },
+  });
 
-  const clearPersistanceInterval = async () => {
-    await sleep(100);
-    clearInterval(interval);
-  };
-
-  processContext.onShutdown(clearPersistanceInterval);
-
-  return clearPersistanceInterval;
+  return { cache, checkpoint };
 }

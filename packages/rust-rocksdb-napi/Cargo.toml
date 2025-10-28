@@ -4,15 +4,22 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
+name = "rocksdb_binding"
 crate-type = ["cdylib"]
 
 [dependencies]
 rocksdb = "0.24"
-napi = { version = "2", features = ["napi8"] }
-napi-derive = "2"
+napi = { version = "2", features = ["napi8"], optional = true }
+napi-derive = { version = "2", optional = true }
+pyo3 = { version = "0.27.1", features = ["extension-module"], optional = true }
 
 [build-dependencies]
-napi-build = "2"
+napi-build = "2" 
+
+[features]
+default = ["node"]
+node = ["napi", "napi-derive"]
+python = ["pyo3"]
 
 [profile.release]
 lto = true

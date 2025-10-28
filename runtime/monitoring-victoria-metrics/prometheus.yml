@@ -24,14 +24,14 @@ scrape_configs:
           component: 'kraken'
           environment: 'development'
 
-  - job_name: 'external-bridge-storage'
-    static_configs:
-      - targets: ['localhost:3200']
-        labels:
-          namespace: 'external-bridge'
-          service: 'storage'
-          component: ''
-          environment: 'development'
+  # - job_name: 'external-bridge-storage'
+  #   static_configs:
+  #     - targets: ['localhost:3200']
+  #       labels:
+  #         namespace: 'external-bridge'
+  #         service: 'storage'
+  #         component: ''
+  #         environment: 'development'
 
   - job_name: 'external-bridge-websockets-binance'
     static_configs:
@@ -49,6 +49,42 @@ scrape_configs:
           namespace: 'external-bridge'
           service: 'websocket'
           component: 'kraken'
+          environment: 'development'
+
+  - job_name: 'internal-bridge-transformer-binance-orders'
+    static_configs:
+      - targets: ['localhost:3300']
+        labels:
+          namespace: 'internal-bridge'
+          service: 'transformer'
+          component: 'binance-orders'
+          environment: 'development'
+
+  - job_name: 'internal-bridge-transformer-kraken-orders'
+    static_configs:
+      - targets: ['localhost:3310']
+        labels:
+          namespace: 'internal-bridge'
+          service: 'transformer'
+          component: 'kraken-orders'
+          environment: 'development'
+
+  - job_name: 'internal-bridge-transformer-binance-trades'
+    static_configs:
+      - targets: ['localhost:3301']
+        labels:
+          namespace: 'internal-bridge'
+          service: 'transformer'
+          component: 'binance-trades'
+          environment: 'development'
+
+  - job_name: 'internal-bridge-transformer-kraken-trades'
+    static_configs:
+      - targets: ['localhost:3311']
+        labels:
+          namespace: 'internal-bridge'
+          service: 'transformer'
+          component: 'kraken-trades'
           environment: 'development'
 
   - job_name: 'victoriametrics'

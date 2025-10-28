@@ -1,7 +1,7 @@
 import { mergeGenerators } from '@krupton/persistent-storage-node/transformed';
-import { createConsistentConsumer } from '../lib/consistentConsumer';
-import { createSubIndexStorage } from '../lib/subIndexStorage';
-import { BinanceOrdersTransformerContext } from '../process/transformer/binanceOrders/transformerContext';
+import { createConsistentConsumer } from '../lib/consistentConsumer.js';
+import { createSubIndexStorage } from '../lib/subIndexStorage.js';
+import { BinanceOrdersTransformerContext } from '../process/transformer/binanceOrders/transformerContext.js';
 
 export async function getRawBinanceOrdersMergedStream(
   context: BinanceOrdersTransformerContext,
@@ -23,6 +23,7 @@ export async function getRawBinanceOrdersMergedStream(
       stream: 'binance-api-orderbook-snapshot',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   const diffStream = createConsistentConsumer({
@@ -34,6 +35,7 @@ export async function getRawBinanceOrdersMergedStream(
       stream: 'binance-ws-orderbook-diff',
     }),
     isStopped: () => processContext.isShuttingDown(),
+    restartProcess: processContext.restart,
   });
 
   const mergedStream = mergeGenerators(
@@ -77,8 +79,8 @@ async function getRawBiananceLatestProcessedOrderBookSnapshotId(
 
   if (lastOrderBookState) {
     const lastOrderBookSnapshot = await context.inputStorage.binanceOrderBook.readRecordsRange({
-      subIndexDir: normalizedSymbol,
-      fromIndex: lastOrderBookState.lastProcessedId,
+      subIndex: normalizedSymbol,
+      fromId: lastOrderBookState.lastProcessedId,
       count: 1,
     });
 
@@ -101,8 +103,8 @@ async function getRawBiananceLatestProcessedDiffDepthId(
 
   if (lastDiffDepthState) {
     const lastDiffDepthSnapshot = await context.inputStorage.binanceDiffDepth.readRecordsRange({
-      subIndexDir: normalizedSymbol,
-      fromIndex: lastDiffDepthState.lastProcessedId,
+      subIndex: normalizedSymbol,
+      fromId: lastDiffDepthState.lastProcessedId,
       count: 1,
     });
 

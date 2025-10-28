@@ -1,27 +1,28 @@
 import { ZmqSubscriber } from '@krupton/messaging-node';
-import { StorageRecord } from '@krupton/persistent-storage-node';
+import { BaseStorageRecord, StorageRecordReturn } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { tryHard } from '@krupton/utils';
-import { TransformerState } from '../entities/types';
-import { createEntitySubIndexReader } from './entitySubIndexReader';
-import { PersistentSubIndexStorage } from './subIndexStorage';
+import { sleep } from '@krupton/utils';
+import { TransformerState } from '../entities/types.js';
+import { createEntitySubIndexReader } from './entitySubIndexReader.js';
+import { PersistentSubIndexStorage } from './subIndexStorage.js';
 
-interface ConsistentConsumerOptions<T extends StorageRecord<Record<string, unknown>>> {
+interface ConsistentConsumerOptions<T extends BaseStorageRecord> {
   storage: PersistentSubIndexStorage<T>;
   zmqSubscriber: ZmqSubscriber<T>;
   lastState: TransformerState | null;
   batchSize: number;
   isStopped?: () => boolean;
   diagnosticContext: SF.DiagnosticContext;
+  restartProcess: () => void;
 }
 
 /**
  * Because the PUB/SUB mechanism of ZMQ does not guarantee a 100% delivery rate even if the subscriber is connected
  * , thus we need to check if the messages are received in order.
  */
-export async function* createConsistentConsumer<T extends StorageRecord<Record<string, unknown>>>(
+export async function* createConsistentConsumer<T extends StorageRecordReturn<BaseStorageRecord>>(
   options: ConsistentConsumerOptions<T>,
-): AsyncGenerator<T[], T[] | void, void> {
+): AsyncGenerator<StorageRecordReturn<T>[], StorageRecordReturn<T>[] | void, void> {
   const { storage, zmqSubscriber, batchSize, isStopped = () => false, diagnosticContext } = options;
 
   // Load checkpoint
@@ -42,7 +43,7 @@ export async function* createConsistentConsumer<T extends StorageRecord<Record<s
   for await (const storageBatch of storageReader) {
     if (isStopped()) break;
 
-    yield storageBatch;
+    yield storageBatch as StorageRecordReturn<T>[];
 
     if (storageBatch.length > 0) {
       lastProcessedId = storageBatch.at(-1)!.id;
@@ -52,6 +53,22 @@ export async function* createConsistentConsumer<T extends StorageRecord<Record<s
   diagnosticContext.logger.info('Caught up with storage, switching to ZMQ', {
     lastProcessedId,
   });
+
+  const lastRecordInterval = setInterval(async () => {
+    const lastRecord = await storage.readLastRecord();
+
+    if (lastRecord?.id && lastRecord.id > lastProcessedId) {
+      setTimeout(() => {
+        if (lastRecord?.id && lastRecord.id > lastProcessedId) {
+          diagnosticContext.logger.fatal('Storage is ahead of queue, restarting.', {
+            lastProcessedId,
+            lastRecordId: lastRecord.id,
+          });
+          options.restartProcess();
+        }
+      }, 1_000);
+    }
+  }, 10_000);
 
   const zmqStream = zmqSubscriber.receive();
 
@@ -63,54 +80,59 @@ export async function* createConsistentConsumer<T extends StorageRecord<Record<s
     for (const message of zmqBatch) {
       const expectedId = lastProcessedId + 1;
 
+      if (message.id <= lastProcessedId) {
+        diagnosticContext.logger.warn('Skipping already processed message', {
+          messageId: message.id,
+          lastProcessedId,
+        });
+        continue;
+      }
+
       if (message.id > expectedId) {
         const gapSize = message.id - expectedId;
 
         diagnosticContext.logger.warn('Gap detected in ZMQ stream', {
           lastProcessedId,
-          currentId: message.id,
+          messageId: message.id,
           gapSize,
         });
+        const iter = await storage.iterateFrom(expectedId);
 
         try {
-          const missingRecords = await tryHard(
-            async (attempt) => {
-              const records = await storage.readRecordsRange(expectedId, gapSize);
+          let iteratorEndReachedCount = 0;
 
-              if (records.length !== gapSize && attempt <= 5) {
-                throw new Error('Expected ' + gapSize + ' records, got ' + records.length);
-              }
-
-              return records;
-            },
-            (error, attemptCount) => {
-              if (error instanceof Error && error.message !== 'No records found') {
-                diagnosticContext.logger.error(error, 'Failed to read records range', {
-                  expectedId,
-                  gapSize,
+          while (!gapFilledBatch.length || gapFilledBatch.at(-1)!.id !== expectedId) {
+            const record = iter.next();
+            if (record) {
+              iteratorEndReachedCount = 0;
+              gapFilledBatch.push(record as T);
+            } else {
+              iteratorEndReachedCount = iteratorEndReachedCount + 1;
+              if (iteratorEndReachedCount % 20) {
+                diagnosticContext.logger.error('Failed to fill gap', {
+                  lastProcessedId,
+                  messageId: message.id,
+                  lastFilledId: gapFilledBatch.at(-1)?.id,
+                  attempt: iteratorEndReachedCount,
                 });
-                return null;
               }
-
-              if (attemptCount < 5) {
-                return attemptCount * 1000;
-              }
-              return null;
-            },
-          );
+              await sleep(1_000);
+            }
+          }
 
           diagnosticContext.logger.info('Filled gap', {
-            fillCount: missingRecords.length,
-            gapSize,
+            lastProcessedId,
+            messageId: message.id,
+            gapFilledBatch: gapFilledBatch.length,
           });
-
-          missingRecords.push(...gapFilledBatch);
         } catch (error) {
           diagnosticContext.logger.error(error, 'Failed to fill gap', {
             lastProcessedId,
             messageId: message.id,
             gapSize,
           });
+        } finally {
+          iter.close();
         }
       }
 
@@ -120,4 +142,6 @@ export async function* createConsistentConsumer<T extends StorageRecord<Record<s
 
     yield gapFilledBatch;
   }
+
+  clearInterval(lastRecordInterval);
 }
