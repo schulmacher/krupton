@@ -20,10 +20,11 @@ export function createSubIndexStorage<T extends BaseStorageRecord>(
       });
     },
 
-    iterateFrom: async (fromId: number) => {
+    iterateFrom: async (fromId: number, batchSize?: number) => {
       return await storage.iterateFrom({
         subIndex,
         fromId,
+        batchSize
       });
     },
 

@@ -16,25 +16,15 @@ export async function* createEntitySubIndexReader<T extends BaseStorageRecord>(
   const { readBatchSize, startGlobalIndex, isStopped, diagnosticContext } = options;
 
   let globalStartIndex = startGlobalIndex;
+  let iter = await storage.iterateFrom(globalStartIndex, readBatchSize);
 
-  while (!isStopped?.()) {
-    // Read records using the subindex-bound storage
-    const records = await storage.readRecordsRange(globalStartIndex, readBatchSize);
-
-    if (records.length === 0) {
-      break;
+  try {
+    while (!isStopped?.() || iter.hasNext()) {
+      yield iter.nextBatch();
     }
 
-    yield records;
-
-    // If we got fewer records than requested, we've reached the end
-    if (records.length < readBatchSize) {
-      break;
-    }
-
-    // Move to the next batch
-    globalStartIndex = records.at(-1)!.id + 1;
+    diagnosticContext.logger.info('entitySubIndexReader stopped');
+  } finally {
+    iter.close();
   }
-
-  diagnosticContext.logger.info('entitySubIndexReader stopped');
 }

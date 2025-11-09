@@ -4,7 +4,7 @@ import {
   BinanceTradeWSRecord,
 } from '@krupton/persistent-storage-node';
 import { createEntityReader } from '@krupton/persistent-storage-node/transformed';
-import { sleep } from '@krupton/utils';
+import { sleep, yieldToEventLoop } from '@krupton/utils';
 import { createExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/externalBridgeFetcherLoop.js';
 import type { ExternalBridgeFetcherLoop } from '../lib/externalBridgeFetcher/types.js';
 import { normalizeSymbol } from '../lib/symbol/normalizeSymbol.js';
@@ -68,7 +68,7 @@ const handleHistoricalTradesResponse = async (
 type WsTradeHoleRange = {
   gapStart?: BinanceTradeWSRecord;
   gapEnd?: BinanceTradeWSRecord;
-  lastApiRecord?: BinanceHistoricalTradeRecord;
+  lastApiTradeId?: number;
 };
 
 async function seekWsTradeHoleRange(
@@ -105,6 +105,8 @@ async function seekWsTradeHoleRange(
     startGlobalIndex,
     isStopped: () => context.processContext.isShuttingDown(),
   })) {
+    // allow garbage collector to run... to fast loop
+    await yieldToEventLoop()
     for (const record of records) {
       const wsTradeId = record.message.data.t;
 
@@ -131,14 +133,14 @@ async function seekWsTradeHoleRange(
   if (gapEnd === undefined || gapStart === undefined) {
     return {
       gapStart,
-      lastApiRecord: lastApiRecord ?? undefined,
+      lastApiTradeId: lastApiId ?? undefined,
     };
   }
 
   return {
     gapStart,
     gapEnd,
-    lastApiRecord: lastApiRecord ?? undefined,
+    lastApiTradeId: lastApiId ?? undefined,
   };
 }
 
@@ -167,7 +169,7 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
           continue;
         }
 
-        const lastApiTradeId = wsHole.lastApiRecord?.response?.at(-1)?.id;
+        const lastApiTradeId = wsHole.lastApiTradeId;
         const fromId = Math.max(
           lastApiTradeId ? lastApiTradeId + 1 : 0,
           wsHole.gapStart.message.data.t + 1,
@@ -176,7 +178,6 @@ const createBinanceHistoricalTradesFetcherLoopForSymbol = async (
 
         context.diagnosticContext.logger.info('Detected gap in ws trades', {
           symbol: normalizedSymbol,
-          lastApiId: wsHole.lastApiRecord?.id,
           gapStartId: wsHole.gapStart.id,
           gapEndId: wsHole.gapEnd.id,
           gapSize: wsHole.gapEnd.message.data.t - fromId,

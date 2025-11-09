@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { SF } from '@krupton/service-framework-node';
-import { createBinanceWebsocketContext } from './process/websocketProcess/binanceWebsocketContext';
-import { startWebsocketService } from './process/websocketProcess/binanceWebsocketProcess';
+import { createBinanceWebsocketContext } from './process/websocketProcess/binanceWebsocketContext.js';
+import { startWebsocketService } from './process/websocketProcess/binanceWebsocketProcess.js';
 
 async function bootstrap(): Promise<void> {
   await SF.startProcessLifecycle(async (processContext) => {

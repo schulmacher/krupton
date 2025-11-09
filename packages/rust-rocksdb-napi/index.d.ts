@@ -15,9 +15,9 @@ export declare class SegmentedLog {
   close(): void
   append(message: Buffer): Buffer
   appendBatch(messages: Array<Buffer>): Array<Buffer>
-  put(id: number, value: Buffer): void
-  iterateFrom(startId?: number | undefined | null, batchSize?: number | undefined | null): SegmentedLogIterator
-  truncateBefore(id: number): void
+  put(key: Buffer, value: Buffer): void
+  iterateFrom(startKey?: Buffer | undefined | null, batchSize?: number | undefined | null): SegmentedLogIterator
+  truncateBefore(beforeKey: Buffer): void
   readLast(count?: number | undefined | null): Array<KeyValue>
   getLastKey(): Buffer | null
 }

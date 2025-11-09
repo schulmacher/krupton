@@ -8,8 +8,8 @@ import {
   WebSocketValidationError,
 } from '@krupton/api-client-ws-node';
 import { BinanceWS } from '@krupton/api-interface';
-import { BinanceWebSocketServiceContext } from '../../process/websocketProcess/binanceWebsocketContext';
-import { createPromiseLock, PromiseLock } from '../promise';
+import { BinanceWebSocketServiceContext } from '../../process/websocketProcess/binanceWebsocketContext.js';
+import { createPromiseLock, PromiseLock } from '../promise.js';
 
 const CommonDefinition = {
   commonResponseStream: BinanceWS.CommonResponseStream,

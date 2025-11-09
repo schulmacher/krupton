@@ -1,18 +1,18 @@
 const path = require('path');
 const PORTS = require('../../ports.js');
 
-const persesBinPath = path.resolve(__dirname, '../../../apps/monitoring-perses/bin/perses');
+const persesBinPath = path.resolve(__dirname, '../../../runtime/monitoring-perses/bin/perses');
 
-const persesConfigPath = path.resolve(__dirname, '../../../apps/monitoring-perses/config.yml');
+const persesConfigPath = path.resolve(__dirname, '../../../runtime/monitoring-perses/config.yml');
 
 const victoriaMetricsBinPath = path.resolve(
   __dirname,
-  '../../../apps/monitoring-victoria-metrics/bin/victoria-metrics-prod',
+  '../../../runtime/monitoring-victoria-metrics/bin/victoria-metrics-prod',
 );
 
 const victoriaMetricsConfigPath = path.resolve(
   __dirname,
-  '../../../apps/monitoring-victoria-metrics/prometheus.yml',
+  '../../../runtime/monitoring-victoria-metrics/prometheus.yml',
 );
 
 const victoriaMetricsDataPath = path.resolve(__dirname, '../../../storage/victoria_metrics');
@@ -23,7 +23,7 @@ module.exports = {
       name: 'perses',
       script: persesBinPath,
       args: [`--config=${persesConfigPath}`],
-      cwd: path.resolve(__dirname, '../../../apps/monitoring-perses'),
+      cwd: path.resolve(__dirname, '../../../runtime/monitoring-perses'),
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -43,7 +43,7 @@ module.exports = {
         `-httpListenAddr=:${PORTS.VICTORIA_METRICS}`,
         `-promscrape.config=${victoriaMetricsConfigPath}`,
       ],
-      cwd: path.resolve(__dirname, '../../../apps/monitoring-victoria-metrics'),
+      cwd: path.resolve(__dirname, '../../../runtime/monitoring-victoria-metrics'),
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,

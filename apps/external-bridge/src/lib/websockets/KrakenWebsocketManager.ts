@@ -7,8 +7,8 @@ import {
   WebSocketValidationError,
 } from '@krupton/api-client-ws-node';
 import { KrakenWS } from '@krupton/api-interface';
-import { KrakenWebSocketServiceContext } from '../../process/websocketProcess/krakenWebsocketContext';
-import { createPromiseLock, PromiseLock } from '../promise';
+import { KrakenWebSocketServiceContext } from '../../process/websocketProcess/krakenWebsocketContext.js';
+import { createPromiseLock, PromiseLock } from '../promise.js';
 
 const CommonDefinition = {
   subscriptionStatusStream: KrakenWS.SubscriptionStatusStream,

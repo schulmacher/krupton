@@ -7,7 +7,7 @@ import {
 } from '@krupton/persistent-storage-node';
 import { createTryhardExponentialBackoff, tryHard } from '@krupton/utils';
 import { SF } from '@krupton/service-framework-node';
-import { normalizeSymbol } from '../lib/symbol/normalizeSymbol';
+import { normalizeSymbol } from '../lib/symbol/normalizeSymbol.js';
 
 export async function saveBinanceOrderBookSnapshots(
   diagnosticContext: SF.DiagnosticContext,

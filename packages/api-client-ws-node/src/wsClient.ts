@@ -110,6 +110,7 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
   let pingInterval: NodeJS.Timeout | null = null;
   let wsIsAlive = false;
   let isManualDisconnect = false;
+  let pendingHandlers = 0;
 
   const enableValidation = config.validation ?? true;
   const enableReconnect = config.reconnect ?? true;
@@ -186,7 +187,11 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
       ws = new WebSocket(config.url);
 
       ws.on('open', () => {
-        reconnectAttempts = 0;
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+          reconnectAttempts = 0;
+        }
         wsIsAlive = true;
         handlers.onOpen?.();
 
@@ -211,12 +216,29 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
       });
 
       ws.on('message', async (data: WebSocket.RawData) => {
-        const message = data.toString();
-        await handleMessage(message);
+        try {
+          if (pendingHandlers % 1000) {
+            console.warn('More than 1000 messages not finished processing');
+          }
+          pendingHandlers = pendingHandlers + 1;
+          const message = data.toString();
+          await handleMessage(message);
+        } catch (err) {
+          console.warn('Failed to proccess message', err, data);
+        } finally {
+          pendingHandlers = pendingHandlers - 1;
+        }
       });
 
       ws.on('close', (code: number, reason: Buffer) => {
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
+
         handlers.onClose?.(code, reason.toString());
+
+        ws = null;
 
         if (!isManualDisconnect) {
           attemptReconnect();

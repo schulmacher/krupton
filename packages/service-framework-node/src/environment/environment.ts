@@ -150,7 +150,7 @@ export function createEnvParser(): EnvParser {
   };
 
   const parse = <T extends TB.TSchema>(schema: T, config: EnvParserConfig = {}): TB.Static<T> => {
-    const source = config.source ?? process.env;
+    const source = { ...process.env, ...config.source };
     const redactSensitive = config.redactSensitive ?? true;
 
     const coerced = coerceEnvValues(source, schema);

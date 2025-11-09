@@ -24,25 +24,12 @@ export async function* createEntityReader<T extends BaseStorageRecord>(
   const iter = await storage.iterateFrom({
     subIndex: subIndexDir,
     fromId: startGlobalIndex,
+    batchSize: readBatchSize,
   });
 
   try {
-    const cache: StorageRecordReturn<T>[] = [];
-
     while (!isStopped?.() && iter.hasNext()) {
-      const item = iter.next();
-      if (!item) {
-        break;
-      }
-
-      cache.push(item)
-      if (cache.length >= readBatchSize) {
-        yield cache.splice(0, readBatchSize);
-      }
-    }
-
-    if (cache.length) {
-      yield cache.splice(0, cache.length);
+      yield iter.nextBatch();
     }
 
     console.log('entityReader stopped');

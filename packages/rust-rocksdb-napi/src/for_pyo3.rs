@@ -1,21 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::core::{CoreKeyValue, CoreSegmentedLog};
-
-#[pyclass]
-#[derive(Clone)]
-pub struct KeyValue {
-    #[pyo3(get)]
-    pub key: Vec<u8>,
-    #[pyo3(get)]
-    pub value: Vec<u8>,
-}
-
-impl From<CoreKeyValue> for KeyValue {
-    fn from(v: CoreKeyValue) -> Self {
-        KeyValue { key: v.key, value: v.value }
-    }
-}
+use crate::core::{CoreSegmentedLog, CoreRocksDb};
 
 #[pyclass]
 pub struct SegmentedLog {
@@ -68,37 +53,36 @@ impl SegmentedLog {
     }
 
     pub fn append_batch(&self, messages: Vec<Vec<u8>>) -> PyResult<Vec<Vec<u8>>> {
+        let msgs: Vec<&[u8]> = messages.iter().map(|m| m.as_slice()).collect();
         self.inner
-            .append_batch(messages)
+            .append_batch(&msgs)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
     }
 
-    pub fn put(&self, id: i64, value: &[u8]) -> PyResult<()> {
+    pub fn put(&self, key: &[u8], value: &[u8]) -> PyResult<()> {
         self.inner
-            .put(id, value)
+            .put(key, value)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
     }
 
-    pub fn iterate_from(&self, start_id: Option<i64>, batch_size: Option<u32>) -> PyResult<SegmentedLogIterator> {
+    pub fn iterate_from(&self, start_key: Option<&[u8]>, batch_size: Option<u32>) -> PyResult<SegmentedLogIterator> {
         let inner = self
             .inner
-            .iterate_from(start_id, batch_size.map(|v| v as usize))
+            .iterate_from(start_key, batch_size.map(|v| v as usize))
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
         Ok(SegmentedLogIterator { inner })
     }
 
-    pub fn truncate_before(&self, id: i64) -> PyResult<()> {
+    pub fn truncate_before(&self, before_key: &[u8]) -> PyResult<()> {
         self.inner
-            .truncate_before(id)
+            .truncate_before(before_key)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
     }
 
-    pub fn read_last(&self, count: Option<u32>) -> PyResult<Vec<KeyValue>> {
-        let items = self
-            .inner
+    pub fn read_last(&self, count: Option<u32>) -> PyResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        self.inner
             .read_last(count)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
-        Ok(items.into_iter().map(KeyValue::from).collect())
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
     }
 
     pub fn get_last_key(&self) -> PyResult<Option<Vec<u8>>> {
@@ -115,12 +99,12 @@ pub struct SegmentedLogIterator {
 
 #[pymethods]
 impl SegmentedLogIterator {
-    pub fn next(&mut self) -> Option<KeyValue> {
-        self.inner.next().map(KeyValue::from)
+    pub fn next(&mut self) -> Option<(Vec<u8>, Vec<u8>)> {
+        self.inner.next().map(|(key, value)| (key.to_vec(), value.to_vec()))
     }
 
-    pub fn next_batch(&mut self) -> Vec<KeyValue> {
-        self.inner.next_batch().into_iter().map(KeyValue::from).collect()
+    pub fn next_batch(&mut self) -> Vec<(Vec<u8>, Vec<u8>)> {
+        self.inner.next_batch()
     }
 
     pub fn has_next(&self) -> bool {
@@ -132,11 +116,71 @@ impl SegmentedLogIterator {
     }
 }
 
+#[pyclass]
+pub struct RocksDb {
+    inner: CoreRocksDb,
+}
+
+#[pymethods]
+impl RocksDb {
+    #[new]
+    pub fn new(path: String, enable_compression: Option<bool>) -> PyResult<Self> {
+        let inner = CoreRocksDb::new(path, enable_compression)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        Ok(Self { inner })
+    }
+
+    #[staticmethod]
+    pub fn open_as_secondary(
+        primary_path: String,
+        secondary_path: String,
+        enable_compression: Option<bool>,
+    ) -> PyResult<Self> {
+        let inner = CoreRocksDb::open_as_secondary(primary_path, secondary_path, enable_compression)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        Ok(Self { inner })
+    }
+
+    pub fn try_catch_up_with_primary(&self) -> PyResult<()> {
+        self.inner
+            .try_catch_up_with_primary()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
+    }
+
+    pub fn close(&mut self) -> PyResult<()> {
+        self.inner
+            .close()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
+    }
+
+    pub fn put(&self, key: &[u8], value: &[u8]) -> PyResult<()> {
+        self.inner
+            .put(key, value)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))
+    }
+
+    pub fn iterate_from(&self, start_key: Option<&[u8]>, batch_size: Option<u32>) -> PyResult<SegmentedLogIterator> {
+        let inner = self
+            .inner
+            .iterate_from(start_key, batch_size.map(|v| v as usize))
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        Ok(SegmentedLogIterator { inner })
+    }
+
+    pub fn iterate_from_end(&self, start_key: Option<&[u8]>, batch_size: Option<u32>) -> PyResult<SegmentedLogIterator> {
+        let inner = self
+            .inner
+            .iterate_from_end(start_key, batch_size.map(|v| v as usize))
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        Ok(SegmentedLogIterator { inner })
+    }
+}
+
 #[pymodule]
 fn rocksdb_binding(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<SegmentedLog>()?;
     m.add_class::<SegmentedLogIterator>()?;
-    m.add_class::<KeyValue>()?;
+    m.add_class::<RocksDb>()?;
     Ok(())
 }
 

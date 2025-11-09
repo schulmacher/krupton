@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use crate::core::{CoreKeyValue, CoreSegmentedLog};
+use crate::core::CoreSegmentedLog;
 
 #[napi(object)]
 pub struct KeyValue {
@@ -9,11 +9,11 @@ pub struct KeyValue {
     pub value: Buffer,
 }
 
-impl From<CoreKeyValue> for KeyValue {
-    fn from(v: CoreKeyValue) -> Self {
+impl From<(Vec<u8>, Vec<u8>)> for KeyValue {
+    fn from(v: (Vec<u8>, Vec<u8>)) -> Self {
         KeyValue {
-            key: v.key.into(),
-            value: v.value.into(),
+            key: v.0.into(),
+            value: v.1.into(),
         }
     }
 }
@@ -73,34 +73,34 @@ impl SegmentedLog {
 
     #[napi]
     pub fn append_batch(&self, messages: Vec<Buffer>) -> Result<Vec<Buffer>> {
-        let msgs: Vec<Vec<u8>> = messages.into_iter().map(|b| b.to_vec()).collect();
+        let msgs: Vec<&[u8]> = messages.iter().map(|b| b.as_ref()).collect();
         let keys = self
             .inner
-            .append_batch(msgs)
+            .append_batch(&msgs)
             .map_err(|e| Error::from_reason(e))?;
         Ok(keys.into_iter().map(|k| k.into()).collect())
     }
 
     #[napi]
-    pub fn put(&self, id: i64, value: Buffer) -> Result<()> {
+    pub fn put(&self, key: Buffer, value: Buffer) -> Result<()> {
         self.inner
-            .put(id, value.as_ref())
+            .put(key.as_ref(), value.as_ref())
             .map_err(|e| Error::from_reason(e))
     }
 
     #[napi]
-    pub fn iterate_from(&self, start_id: Option<i64>, batch_size: Option<u32>) -> Result<SegmentedLogIterator> {
+    pub fn iterate_from(&self, start_key: Option<Buffer>, batch_size: Option<u32>) -> Result<SegmentedLogIterator> {
         let inner = self
             .inner
-            .iterate_from(start_id, batch_size.map(|v| v as usize))
+            .iterate_from(start_key.as_ref().map(|b| b.as_ref()), batch_size.map(|v| v as usize))
             .map_err(|e| Error::from_reason(e))?;
         Ok(SegmentedLogIterator { inner: inner })
     }
 
     #[napi]
-    pub fn truncate_before(&self, id: i64) -> Result<()> {
+    pub fn truncate_before(&self, before_key: Buffer) -> Result<()> {
         self.inner
-            .truncate_before(id)
+            .truncate_before(before_key.as_ref())
             .map_err(|e| Error::from_reason(e))
     }
 
@@ -132,7 +132,10 @@ pub struct SegmentedLogIterator {
 impl SegmentedLogIterator {
     #[napi]
     pub fn next(&mut self) -> Option<KeyValue> {
-        self.inner.next().map(KeyValue::from)
+        self.inner.next().map(|(key, value)| KeyValue {
+            key: key.to_vec().into(),
+            value: value.to_vec().into(),
+        })
     }
 
     #[napi]

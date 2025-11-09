@@ -21,6 +21,7 @@ module.exports = {
         // SYMBOLS: 'ETHUSDT',
         // SYMBOLS: '',
       },
+      restart_delay: 3000
     },
     {
       name: 'external-bridge-kraken-fetcher',
@@ -40,6 +41,7 @@ module.exports = {
         // SYMBOLS: 'ETHUSDT',
         // SYMBOLS: '',
       },
+      restart_delay: 3000
     },
     {
       name: 'external-bridge-binance-websocket',
@@ -54,6 +56,7 @@ module.exports = {
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_BINANCE,
       },
+      restart_delay: 3000
     },
     {
       name: 'external-bridge-kraken-websocket',
@@ -68,6 +71,7 @@ module.exports = {
         LOG_LEVEL: DEV_LOG_LEVEL,
         PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_KRAKEN,
       },
+      restart_delay: 3000
     },
     // {
     //   name: 'external-bridge-storage',

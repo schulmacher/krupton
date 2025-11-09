@@ -146,6 +146,8 @@ function startProcessLifecycleContext(
   };
 
   const handleUnhandledRejection = (reason: unknown, promise: Promise<unknown>): void => {
+    console.error(reason);
+    console.error(promise);
     diagnosticContext.logger.fatal(new Error('Unhandled promise rejection detected'), {
       reason: stringifyJSONSafe(reason),
       reasonString: String(reason),

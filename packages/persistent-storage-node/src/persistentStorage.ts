@@ -52,6 +52,7 @@ type ReadRangeParams = {
 type IterateFromParams = {
   subIndex: string;
   fromId: number;
+  batchSize?: number;
 };
 
 type CreatePersistentStorageOptions = {
@@ -160,7 +161,7 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
       const { record, subIndex, id: key } = params;
       const db = getOrCreateDb(subIndex);
       record.timestamp = record.timestamp ?? Date.now();
-      db.put(key, Buffer.from(JSON.stringify(record)));
+      db.put(serializeKey(key), Buffer.from(JSON.stringify(record)));
     },
 
     /**
@@ -171,13 +172,11 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
       const db = getOrCreateDb(subIndex);
       record.timestamp = record.timestamp ?? Date.now();
 
-      // Try to read the most recent record
       const [last] = db.readLast(1);
       let key = last?.key ? parseKey(last.key) : undefined;
       if (key) {
-        db.put(key, Buffer.from(JSON.stringify(record)));
+        db.put(serializeKey(key), Buffer.from(JSON.stringify(record)));
       } else {
-        // Append if database empty
         key = parseKey(db.append(Buffer.from(JSON.stringify(record))));
       }
 
@@ -189,7 +188,7 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
       const db = getOrCreateDb(normalizeIndexDir(subIndex));
 
       const results: StorageRecordReturn<T>[] = [];
-      const iter = db.iterateFrom(0);
+      const iter = db.iterateFrom(undefined);
 
       try {
         while (iter.hasNext()) {
@@ -210,7 +209,7 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
     async iterateFrom(params: IterateFromParams): Promise<PersistentStorageIterator<T>> {
       const { subIndex, fromId } = params;
       const db = getOrCreateDb(normalizeIndexDir(subIndex));
-      const iter = db.iterateFrom(fromId);
+      const iter = db.iterateFrom(serializeKey(fromId), params.batchSize);
 
       return {
         hasNext() {
@@ -228,6 +227,15 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
           value.id = parseKey(item.key);
           return value;
         },
+        nextBatch() {
+          const items = iter.nextBatch();
+
+          return items.map((item) => {
+            const value = JSON.parse(item.value.toString());
+            value.id = parseKey(item.key);
+            return value;
+          });
+        },
       };
     },
 
@@ -239,7 +247,7 @@ export function createPersistentStorage<T extends BaseStorageRecord>(
       const db = getOrCreateDb(subIndex);
 
       const results: StorageRecordReturn<T>[] = [];
-      const iter = db.iterateFrom(fromId);
+      const iter = db.iterateFrom(serializeKey(fromId));
       const maxCount = count ?? 1000;
 
       try {
@@ -298,14 +306,20 @@ export function parseKey(key: Buffer): number {
     throw new Error(`Invalid key length ${key.byteLength}, expected 8 bytes`);
   }
 
-  // Read big-endian 64-bit signed integer and convert to JS number
   const id = Number(key.readBigInt64BE(0));
 
   return id;
 }
 
+export function serializeKey(id: number): Buffer {
+  const buffer = Buffer.allocUnsafe(8);
+  buffer.writeBigInt64BE(BigInt(id), 0);
+  return buffer;
+}
+
 export type PersistentStorageIterator<T extends BaseStorageRecord> = {
   next(): StorageRecordReturn<T> | null;
+  nextBatch(): StorageRecordReturn<T>[];
   hasNext(): boolean;
   close(): void;
 };

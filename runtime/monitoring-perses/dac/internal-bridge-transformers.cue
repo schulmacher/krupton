@@ -45,7 +45,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform, type) (rate(internal_bridge_transformer_transformation_throughput[2m])) * 60"
+												query: "sum by (platform, type) (rate(internal_bridge_transformer_transformation_throughput[30s]))"
 											}
 										}
 									}
@@ -77,7 +77,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform, symbol) (rate(internal_bridge_transformer_transformation_throughput[2m])) * 60"
+												query: "sum by (platform, symbol) (rate(internal_bridge_transformer_transformation_throughput[30s]))"
 											}
 										}
 									}
@@ -109,7 +109,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum by (platform) (rate(internal_bridge_transformer_transformation_throughput[2m])) * 60"
+												query: "sum by (platform) (rate(internal_bridge_transformer_transformation_throughput[30s]))"
 											}
 										}
 									}
@@ -141,7 +141,7 @@ dashboardBuilder & {
 													kind: "PrometheusDatasource"
 													name: "victoriametrics"
 												}
-												query: "sum(rate(internal_bridge_transformer_transformation_throughput[2m])) * 60"
+												query: "sum(rate(internal_bridge_transformer_transformation_throughput[30s]))"
 											}
 										}
 									}

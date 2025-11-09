@@ -86,3 +86,33 @@ export function stringifyJSONSafe(value: unknown): unknown | undefined {
     return;
   }
 }
+
+export function createPromiseLock(): {
+  lock: () => void;
+  unlock: () => void;
+  promise: Promise<void>;
+} {
+  let resolvePromise: (() => void) | null = null;
+  let promise = Promise.resolve();
+
+  return {
+    lock: () => {
+      promise = new Promise<void>((resolve) => {
+        resolvePromise = resolve;
+      });
+    },
+    unlock: () => {
+      if (resolvePromise) {
+        resolvePromise();
+        resolvePromise = null;
+      }
+    },
+    get promise() {
+      return promise;
+    },
+  };
+}
+
+export async function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}

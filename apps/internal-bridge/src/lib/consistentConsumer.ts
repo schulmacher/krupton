@@ -1,7 +1,7 @@
 import { ZmqSubscriber } from '@krupton/messaging-node';
 import { BaseStorageRecord, StorageRecordReturn } from '@krupton/persistent-storage-node';
 import { SF } from '@krupton/service-framework-node';
-import { sleep } from '@krupton/utils';
+import { sleep, yieldToEventLoop } from '@krupton/utils';
 import { TransformerState } from '../entities/types.js';
 import { createEntitySubIndexReader } from './entitySubIndexReader.js';
 import { PersistentSubIndexStorage } from './subIndexStorage.js';
@@ -42,6 +42,8 @@ export async function* createConsistentConsumer<T extends StorageRecordReturn<Ba
 
   for await (const storageBatch of storageReader) {
     if (isStopped()) break;
+    // allow gc and other events
+    await yieldToEventLoop();
 
     yield storageBatch as StorageRecordReturn<T>[];
 

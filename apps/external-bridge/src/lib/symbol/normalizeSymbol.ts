@@ -1,6 +1,6 @@
-import { getBinanceLatestExchangeInfo } from './binanceLatestExchangeInfoProvider';
-import { getKrakenSymbolFromNormalSymbol, getNormalSymbolFromKrakenSymbol } from './kraken';
-import { getKrakenLatestAssetInfo, getKrakenLatestAssetPairs } from './krakenLatestAssetsProvider';
+import { getBinanceLatestExchangeInfo } from './binanceLatestExchangeInfoProvider.js';
+import { getKrakenSymbolFromNormalSymbol, getNormalSymbolFromKrakenSymbol } from './kraken.js';
+import { getKrakenLatestAssetInfo, getKrakenLatestAssetPairs } from './krakenLatestAssetsProvider.js';
 
 export function normalizeSymbol(fromPlatform: 'binance' | 'kraken', symbol: string) {
   switch (fromPlatform) {

@@ -1,6 +1,6 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DirectoryStats, FileInfo } from './types';
+import { DirectoryStats, FileInfo } from './types.js';
 
 const STORAGE_DIRECTORY_PATTERNS = [
   'external-bridge/binance/**',
@@ -44,7 +44,7 @@ function matchesPattern(relativePath: string, pattern: string): string | null {
       const parts = afterPrefix.split('/');
 
       if (parts.length >= 1 && parts[0]) {
-        return `${prefix}/${parts[0]}`;
+      return `${prefix}/${parts[0]}`;
       }
     }
   } else {
