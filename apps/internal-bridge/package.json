@@ -9,7 +9,6 @@
     "dev:transformer-binance-trades": "node dist/binanceTradesTransformerProcess.js",
     "dev:transformer-kraken-orders": "node dist/krakenOrdersTransformerProcess.js",
     "dev:transformer-kraken-trades": "node dist/krakenTradesTransformerProcess.js",
-    "dev:grpc-storage-server": "node dist/grpcStorageServerProcess.js",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
@@ -18,14 +17,12 @@
   "dependencies": {
     "@krupton/api-client-node": "workspace:*",
     "@krupton/api-client-ws-node": "workspace:*",
-    "@krupton/config": "workspace:*",
     "@krupton/api-interface": "workspace:*",
-    "@krupton/service-framework-node": "workspace:*",
-    "@krupton/persistent-storage-node": "workspace:*",
-    "@krupton/utils": "workspace:*",
+    "@krupton/config": "workspace:*",
     "@krupton/messaging-node": "workspace:*",
-    "@grpc/grpc-js": "^1.12.4",
-    "@grpc/proto-loader": "^0.7.15",
+    "@krupton/persistent-storage-node": "workspace:*",
+    "@krupton/service-framework-node": "workspace:*",
+    "@krupton/utils": "workspace:*",
     "ws": "^8.18.0"
   }
 }

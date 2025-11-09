@@ -33,6 +33,8 @@
     "migrate-rocks": "tsx scripts/migrate-to-levelsdb.ts"
   },
   "dependencies": {
+    "@krupton/api-client-node": "workspace:*",
+    "@krupton/api-client-ws-node": "workspace:*",
     "@krupton/api-interface": "workspace:*",
     "@krupton/config": "workspace:*",
     "@krupton/rust-rocksdb-napi": "workspace:*",

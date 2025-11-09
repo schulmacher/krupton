@@ -1,6 +1,6 @@
 import { BaseStorageRecord, StorageRecord } from '@krupton/persistent-storage-node';
 import { vi } from 'vitest';
-import { ZmqPublisher, ZmqPublisherRegistry } from './publisher.js';
+import { ZmqPublisher, ZmqPublisherRegistry } from './pubsub/publisher.js';
 
 export function createMockZmqPublisherRegistry<
   T extends StorageRecord<BaseStorageRecord>,

@@ -59,20 +59,5 @@ module.exports = {
         PORT: PORTS.INTERNAL_BRIDGE_KRAKEN_TRADES_TRANSFORMER,
       },
     },
-    {
-      name: 'internal-bridge-flink-grpc-storage-server',
-      script: 'pnpm',
-      args: '--filter internal-bridge dev:grpc-storage-server',
-      cwd: '../../../',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'development',
-        PROCESS_NAME: 'internal-bridge-grpc-storage-server',
-        LOG_LEVEL: DEV_LOG_LEVEL,
-        PORT: PORTS.INTERNAL_BRIDGE_FLINK_GRPC_STORAGE,
-        GRPC_PORT: PORTS.INTERNAL_BRIDGE_FLINK_GRPC_STORAGE_GRPC_PORT,
-      },
-    },
   ],
 };
