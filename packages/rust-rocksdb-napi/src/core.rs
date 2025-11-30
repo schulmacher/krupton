@@ -21,15 +21,18 @@ impl CoreSegmentedLog {
             opts.set_compression_type(rocksdb::DBCompressionType::None);
         }
 
-        opts.set_write_buffer_size(64 * 1024 * 1024);
-        opts.set_allow_concurrent_memtable_write(true);
+        // 🧠 memory + concurrency
+        opts.set_write_buffer_size(8 * 1024 * 1024);          // 8 MB memtable
+        opts.set_max_write_buffer_number(2);                 // ≤ 16 MB total
+        opts.set_max_background_jobs(1);                     // 1 compaction thread
+        opts.set_max_subcompactions(1);                      // no parallel compaction
+        opts.set_allow_concurrent_memtable_write(false);     // serialize writes
         opts.set_enable_write_thread_adaptive_yield(true);
 
-        opts.set_level_zero_file_num_compaction_trigger(4);
-        opts.set_level_zero_slowdown_writes_trigger(20);
-        opts.set_level_zero_stop_writes_trigger(30);
-        opts.set_max_background_jobs(4);
-        opts.set_max_subcompactions(2);
+        // 🧱 level-0 management
+        opts.set_level_zero_file_num_compaction_trigger(2);
+        opts.set_level_zero_slowdown_writes_trigger(8);
+        opts.set_level_zero_stop_writes_trigger(12);
 
         let db = DBWithThreadMode::<MultiThreaded>::open(&opts, path)
             .map_err(|e| e.to_string())?;
@@ -56,7 +59,7 @@ impl CoreSegmentedLog {
     pub fn open_read_only(path: String, enable_compression: Option<bool>) -> CoreResult<Self> {
         let mut opts = Options::default();
         
-        let lru = Cache::new_lru_cache(128 * 1024 * 1024); // 128MB; tune to your budget
+        let lru = Cache::new_lru_cache(32 * 1024 * 1024);
 
         let mut bbo = BlockBasedOptions::default();
         bbo.set_block_cache(&lru);
@@ -109,7 +112,7 @@ impl CoreSegmentedLog {
     ) -> CoreResult<Self> {
         let mut opts = Options::default();
 
-        let lru = Cache::new_lru_cache(128 * 1024 * 1024); // 128MB; tune to your budget
+        let lru = Cache::new_lru_cache(32 * 1024 * 1024);
 
         let mut bbo = BlockBasedOptions::default();
         bbo.set_block_cache(&lru);
