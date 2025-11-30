@@ -1,5 +1,5 @@
 import { SF } from '@krupton/service-framework-node';
-import { startJoinAndTransformKrakenTradesPipeline } from '../../../rawPipelines/krakenTrades.js';
+import { startTransformKrakenTradeWSPipeline } from '../../../rawPipelines/krakenTradesWS.js';
 import { KrakenTradesTransformerContext } from './transformerContext.js';
 
 export async function startKrakenTradesTransformerService(
@@ -61,7 +61,7 @@ export async function startKrakenTradesTransformerService(
       ...context,
       diagnosticContext: symbolDiagnostics,
     };
-    startJoinAndTransformKrakenTradesPipeline(symbolContext, symbol).catch((error) => {
+    startTransformKrakenTradeWSPipeline(symbolContext, symbol).catch((error) => {
       symbolDiagnostics.logger.error(error, 'Error in entity readers');
     });
   }

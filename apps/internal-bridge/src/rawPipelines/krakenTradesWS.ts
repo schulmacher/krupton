@@ -1,0 +1,128 @@
+import { KrakenTradeWSRecord, StorageRecord } from '@krupton/persistent-storage-node';
+import {
+  transformKrakenTradeWSToUnified,
+  UnifiedTrade
+} from '@krupton/persistent-storage-node/transformed';
+import { yieldToEventLoop } from '@krupton/utils';
+import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
+import { KrakenTradesTransformerContext } from '../process/transformer/krakenTrades/transformerContext.js';
+import { getRawKrakenWSTradesStream } from '../streams/rawKrakenWSTrades.js';
+
+type EmitCache = {
+  wsIndex: number;
+  wsTimestamp: number;
+};
+
+export async function startTransformKrakenTradeWSPipeline(
+  context: KrakenTradesTransformerContext,
+  normalizedSymbol: string,
+) {
+  const { diagnosticContext, processContext, transformerState } = context;
+
+  const wsStream = await getRawKrakenWSTradesStream(context, normalizedSymbol);
+
+  const emitCache: EmitCache = {
+    wsIndex: 0,
+    wsTimestamp: 0,
+  };
+  const { checkpoint, cache: tradesCache } = createCheckpointFunction(
+    context,
+    normalizedSymbol,
+    emitCache,
+  );
+  async function emit(trade: UnifiedTrade) {
+    const record: StorageRecord<UnifiedTrade> = {
+      timestamp: Date.now(),
+      ...trade,
+    };
+    tradesCache.push(record);
+    // await context.producers.UnifiedTrade.send(normalizedSymbol, record).catch((error) => {
+    //   diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
+    // });
+  }
+
+  const lastUnifiedTrade = await transformerState.krakenWSTrades.readLastRecord(normalizedSymbol);
+  let lastProcessedIndex: number = lastUnifiedTrade?.lastProcessedId ?? 0
+
+  for await (const messages of wsStream) {
+    if (messages.length === 0) {
+      diagnosticContext.logger.debug('No messages received, waiting...');
+      continue;
+    }
+
+    for (const message of messages) {
+      if (message.id > lastProcessedIndex) {
+        for (const transformed of transformKrakenTradeWSToUnified(message, normalizedSymbol)) {
+          await emit(transformed);
+          lastProcessedIndex = message.id;
+        }
+      }
+    }
+
+    updateEmitCacheFromProcessedMessages(emitCache, messages);
+
+    await yieldToEventLoop();
+    await checkpoint();
+  }
+
+  diagnosticContext.logger.warn(`Kraken Trades WS pipeline stopped, socket died? Restarting šervice!`);
+
+  await checkpoint(true);
+  await processContext.restart();
+}
+
+function updateEmitCacheFromProcessedMessages(
+  emitCache: EmitCache,
+  messages: KrakenTradeWSRecord[],
+) {
+  const lastMessage = messages.at(-1);
+  if (lastMessage) {
+    emitCache.wsIndex = lastMessage.id;
+    emitCache.wsTimestamp = lastMessage.timestamp;
+  }
+}
+
+function createCheckpointFunction(
+  context: KrakenTradesTransformerContext,
+  normalizedSymbol: string,
+  emitCache: EmitCache,
+) {
+  const { outputStorage, transformerState, diagnosticContext, processContext } = context;
+  const { cache, checkpoint } = createGenericCheckpointFunction<StorageRecord<UnifiedTrade>>({
+    diagnosticContext,
+    processContext,
+
+    async onCheckpoint(allRecords) {
+      for (let i = 0; i < allRecords.length; i += 100) {
+        const records = allRecords.slice(i, i + 100);
+
+        await outputStorage.unifiedTrade.appendRecords({
+          subIndex: normalizedSymbol,
+          records,
+        });
+      }
+
+      void context.metricsContext.metrics.throughput.inc(
+        {
+          symbol: normalizedSymbol,
+          platform: 'kraken',
+          type: 'trade_ws',
+        },
+        allRecords.length,
+      );
+
+      if (emitCache.wsIndex) {
+        await transformerState.krakenWSTrades.replaceOrInsertLastRecord({
+          subIndex: normalizedSymbol,
+          record: {
+            lastProcessedId: emitCache.wsIndex,
+            lastProcessedTimestamp: emitCache.wsTimestamp,
+            timestamp: emitCache.wsTimestamp,
+          },
+        });
+      }
+    },
+  });
+
+  return { cache, checkpoint };
+}

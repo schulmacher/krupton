@@ -1,0 +1,53 @@
+services:
+  internal-bridge-transformer-binance-trades:
+    container_name: internal-bridge-transformer-binance-trades
+    image: krupton-node-base
+    working_dir: /workspace/apps/internal-bridge
+    command: >
+      sh -c "node dist/binanceTradesTransformerProcess.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'internal-bridge-transformer-binance-trades'
+    networks:
+      - default
+
+  internal-bridge-transformer-binance-trades:
+    container_name: internal-bridge-transformer-binance-trades
+    image: krupton-node-base
+    working_dir: /workspace/apps/internal-bridge
+    command: >
+      sh -c "node dist/binanceOrdersTransformerProcess.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'internal-bridge-transformer-binance-trades'
+    networks:
+      - default
+
+  internal-bridge-transformer-kraken-trades:
+    container_name: internal-bridge-transformer-kraken-trades
+    image: krupton-node-base
+    working_dir: /workspace/apps/internal-bridge
+    command: >
+      sh -c "node dist/krakenTradesTransformerProcess.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'internal-bridge-transformer-kraken-trades'
+    networks:
+      - default
+
+  internal-bridge-transformer-kraken-orders:
+    container_name: internal-bridge-transformer-kraken-orders
+    image: krupton-node-base
+    working_dir: /workspace/apps/internal-bridge
+    command: >
+      sh -c "node dist/krakenOrdersTransformerProcess.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'internal-bridge-transformer-kraken-orders'
+    networks:
+      - default
+
+
+networks:
+  default:
+    driver: bridge

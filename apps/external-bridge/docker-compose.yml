@@ -1,0 +1,49 @@
+services:
+  external-bridge-binance-websocket:
+    container_name: external-bridge-binance-websocket
+    image: krupton-node-base
+    working_dir: /workspace/apps/external-bridge
+    command: >
+      sh -c "node dist/binanceWebsocket.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'external-bridge-binance-websocket'
+    networks:
+      - default
+
+  external-bridge-kraken-websocket:
+    image: krupton-node-base
+    working_dir: /workspace/apps/external-bridge
+    command: >
+      sh -c "node dist/krakenWebsocket.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'external-bridge-kraken-websocket'
+    networks:
+      - default
+
+  external-bridge-binance-fetcher:
+    image: krupton-node-base
+    working_dir: /workspace/apps/external-bridge
+    command: >
+      sh -c "node dist/binanceFetcher.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'external-bridge-binance-fetcher'
+    networks:
+      - default
+
+  external-bridge-kraken-fetcher:
+    image: krupton-node-base
+    working_dir: /workspace/apps/external-bridge
+    command: >
+      sh -c "node dist/krakenFetcher.js"
+    restart: always
+    environment:
+      PROCESS_NAME: 'external-bridge-kraken-fetcher'
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

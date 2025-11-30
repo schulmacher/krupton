@@ -6,7 +6,7 @@ import {
   MainToWorkerMessage,
   WorkerToMainMessage,
 } from '../../../lib/worker.js';
-import { startJoinAndTransformBinanceTradesPipeline } from '../../../rawPipelines/binanceTrades.js';
+import { startTransformBinanceTradeWSPipeline } from '../../../rawPipelines/binanceTradesWS.js';
 import { BinanceTradesTransformerContext } from './transformerContext.js';
 
 export async function startBinanceTradesTransformerService(
@@ -126,7 +126,7 @@ export async function startBinanceTradesTransformerWorker(
     diagnosticContext: symbolDiagnostics,
   };
 
-  startJoinAndTransformBinanceTradesPipeline(symbolContext, symbol).catch((error) => {
+  startTransformBinanceTradeWSPipeline(symbolContext, symbol).catch((error) => {
     symbolDiagnostics.logger.error(error, 'Error in entity readers');
   });
   diagnosticContext.logger.info('Started pipeline for symbol', { symbol });

@@ -1,0 +1,72 @@
+services:
+  external-bridge-binance-websocket:
+    extends:
+      file: ./apps/external-bridge/docker-compose.yml
+      service: external-bridge-binance-websocket
+    environment:
+      PORT: 3100
+      STORAGE_BASE_DIR: '/workspace/data'
+      LOG_LEVEL: 'info'
+    volumes:
+      - ${HOME}/krupton/data:/workspace/data:rw
+      # - ${HOME}/krupton/code/krupton/apps/external-bridge/dist:/workspace/apps/external-bridge/dist:ro
+
+  # external-bridge-kraken-websocket:
+  #   extends:
+  #     file: ./apps/external-bridge/docker-compose.yml
+  #     service: external-bridge-kraken-websocket
+  #   environment:
+  #     PORT: 3101
+  #     STORAGE_BASE_DIR: '/workspace/data'
+  #     LOG_LEVEL: 'info'
+  #   volumes:
+  #     - ${HOME}/krupton/data:/workspace/data:rw
+
+  # internal-bridge-transformer-binance-trades:
+  #   extends:
+  #     file: ./apps/internal-bridge/docker-compose.yml
+  #     service: internal-bridge-transformer-binance-trades
+  #   environment:
+  #     PORT: 3101
+  #     STORAGE_BASE_DIR: '/workspace/data'
+  #     LOG_LEVEL: 'info'
+  #   volumes:
+  #     - ${HOME}/krupton/data:/workspace/data:rw
+
+  # internal-bridge-transformer-binance-orders:
+  #   extends:
+  #     file: ./apps/internal-bridge/docker-compose.yml
+  #     service: internal-bridge-transformer-binance-orders
+  #   environment:
+  #     PORT: 3101
+  #     STORAGE_BASE_DIR: '/workspace/data'
+  #     LOG_LEVEL: 'info'
+  #   volumes:
+  #     - ${HOME}/krupton/data:/workspace/data:rw
+
+  # internal-bridge-transformer-kraken-trades:
+  #   extends:
+  #     file: ./apps/internal-bridge/docker-compose.yml
+  #     service: internal-bridge-transformer-kraken-trades
+  #   environment:
+  #     PORT: 3101
+  #     STORAGE_BASE_DIR: '/workspace/data'
+  #     LOG_LEVEL: 'info'
+  #   volumes:
+  #     - ${HOME}/krupton/data:/workspace/data:rw
+
+  # internal-bridge-transformer-kraken-orders:
+  #   extends:
+  #     file: ./apps/internal-bridge/docker-compose.yml
+  #     service: internal-bridge-transformer-kraken-orders
+  #   environment:
+  #     PORT: 3101
+  #     STORAGE_BASE_DIR: '/workspace/data'
+  #     LOG_LEVEL: 'info'
+  #   volumes:
+  #     - ${HOME}/krupton/data:/workspace/data:rw
+
+
+networks:
+  default:
+    driver: bridge

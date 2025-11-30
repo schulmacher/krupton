@@ -1,8 +1,0 @@
-# Use official VictoriaMetrics image
-# See: https://docs.victoriametrics.com/victoriametrics/quick-start/
-FROM victoriametrics/victoria-metrics:v1.108.1
-
-# Note: Data directories are created via volume mounts in docker-compose.yml
-# Port 8428 is already exposed in the base image
-
-
