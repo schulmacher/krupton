@@ -1,0 +1,22 @@
+{
+  "name": "@krupton/py-predictor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "pnpm build",
+    "build": "echo 0",
+    "dev": "uv run python -m src",
+    "start": "uv run python -m src",
+    "lint": "uv run ruff check .",
+    "format": "uv run ruff format .",
+    "test": "uv run pytest .",
+    "typecheck": "echo \"No typecheck for Python\"",
+    "clean": "rm -rf .venv __pycache__ .pytest_cache .ruff_cache",
+    "migration:new": "uv run yoyo new ./postgres_migrations -m",
+    "migration:apply": "uv run yoyo apply",
+    "migration:status": "uv run yoyo list"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

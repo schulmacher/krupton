@@ -1,4 +1,3 @@
-import { mergeGenerators } from '@krupton/persistent-storage-node/transformed';
 import { createConsistentConsumer } from '../lib/consistentConsumer.js';
 import { createSubIndexStorage } from '../lib/subIndexStorage.js';
 import { BinanceTradesTransformerContext } from '../process/transformer/binanceTrades/transformerContext.js';

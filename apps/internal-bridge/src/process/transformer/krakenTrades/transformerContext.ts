@@ -57,8 +57,8 @@ export function createKrakenTradesTransformerContext(processContext: SF.ProcessL
     unifiedTrade: createUnifiedTradeStorage(outputKrakenTradeStorageBaseDir, { writable: true }),
   };
   const producers = {
-    unifiedTrade: createZmqPublisherRegistry<StorageRecord<UnifiedTrade>>({
-      socketTemplate: (symbol) => zmqSocketTempalatesUnifiedData.trade(symbol),
+    unifiedTrade: createZmqPublisherRegistry<StorageRecord<UnifiedTrade> & { id: number }>({
+      socketTemplate: (platformAndSymbol) => zmqSocketTempalatesUnifiedData.trade(platformAndSymbol),
       diagnosticContext,
     }),
   };

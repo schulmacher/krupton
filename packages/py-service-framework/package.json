@@ -1,0 +1,19 @@
+{
+  "name": "@krupton/service-framework-py",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "uv venv && uv sync",
+    "dev": "echo 'no need'",
+    "lint": "uv run ruff check src",
+    "lint:fix": "uv run ruff check --fix src",
+    "format": "uv run ruff format src",
+    "test": "echo \"uv run pytest tests/\"",
+    "typecheck": "echo 'No typecheck for Python'",
+    "build": "echo 'Python package builds on install'",
+    "clean": "rm -rf .venv __pycache__ .pytest_cache .ruff_cache"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

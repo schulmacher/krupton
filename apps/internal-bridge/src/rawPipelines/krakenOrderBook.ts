@@ -20,7 +20,7 @@ export async function startTransformKrakenOrderBookPipeline(
   context: KrakenOrdersTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { diagnosticContext, processContext } = context;
+  const { diagnosticContext, processContext, outputStorage } = context;
 
   const wsOrderBookStream = await getRawKrakenOrderBookStream(context, normalizedSymbol);
 
@@ -33,15 +33,21 @@ export async function startTransformKrakenOrderBookPipeline(
     normalizedSymbol,
     emitCache,
   );
+
+  const lastStoredRecord = await outputStorage.unifiedOrderBook.readLastRecord(normalizedSymbol);
+  let localId = (lastStoredRecord?.id ?? 0) + 1;
+
   async function emitOrderBook(orderbook: UnifiedOrderBook) {
     const record: StorageRecord<UnifiedOrderBook> = {
       timestamp: Date.now(),
       ...orderbook,
     };
     orderbookCache.push(record);
-    // await context.producers.unifiedOrderBook.send(normalizedSymbol, record).catch((error) => {
-    //   diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-    // });
+    void context.producers.unifiedOrderBook
+      .send(`kraken-${normalizedSymbol}`, { ...record, id: localId++ })
+      .catch((error) => {
+        diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
+      });
   }
 
   let lastProcessedIndex: number =

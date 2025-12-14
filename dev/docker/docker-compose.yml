@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-krupton
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: krupton
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_krupton:/var/lib/postgresql/data
+
+volumes:
+  postgres_krupton:
+

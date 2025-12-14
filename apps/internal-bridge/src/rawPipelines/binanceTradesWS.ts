@@ -1,7 +1,7 @@
 import { BinanceTradeWSRecord, StorageRecord } from '@krupton/persistent-storage-node';
 import {
   transformBinanceTradeWSToUnified,
-  UnifiedTrade
+  UnifiedTrade,
 } from '@krupton/persistent-storage-node/transformed';
 import { yieldToEventLoop } from '@krupton/utils';
 import { createGenericCheckpointFunction } from '../lib/checkpoint.js';
@@ -17,7 +17,7 @@ export async function startTransformBinanceTradeWSPipeline(
   context: BinanceTradesTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { diagnosticContext, processContext, transformerState } = context;
+  const { diagnosticContext, processContext, transformerState, outputStorage } = context;
 
   const wsStream = await getRawBinanceWSTradesStream(context, normalizedSymbol);
 
@@ -30,19 +30,25 @@ export async function startTransformBinanceTradeWSPipeline(
     normalizedSymbol,
     emitCache,
   );
+
+  const lastStoredRecord = await outputStorage.unifiedTrade.readLastRecord(normalizedSymbol);
+  let localId = (lastStoredRecord?.id ?? 0) + 1;
+
   async function emit(trade: UnifiedTrade) {
     const record: StorageRecord<UnifiedTrade> = {
       timestamp: Date.now(),
       ...trade,
     };
     tradesCache.push(record);
-    // await context.producers.UnifiedTrade.send(normalizedSymbol, record).catch((error) => {
-    //   diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-    // });
+    void context.producers.unifiedTrade
+      .send(`binance-${normalizedSymbol}`, { ...record, id: localId++ })
+      .catch((error) => {
+        diagnosticContext.logger.error(error, 'Error sending trade to producer');
+      });
   }
 
   const lastUnifiedTrade = await transformerState.binanceWSTrades.readLastRecord(normalizedSymbol);
-  let lastProcessedIndex: number = lastUnifiedTrade?.lastProcessedId ?? 0
+  let lastProcessedIndex: number = lastUnifiedTrade?.lastProcessedId ?? 0;
 
   for await (const messages of wsStream) {
     if (messages.length === 0) {
@@ -63,7 +69,9 @@ export async function startTransformBinanceTradeWSPipeline(
     await checkpoint();
   }
 
-  diagnosticContext.logger.warn(`Binance WS Trades zrpipeline stopped, socket died? Restarting šervice!`);
+  diagnosticContext.logger.warn(
+    `Binance WS Trades pipeline stopped, socket died? Restarting šervice!`,
+  );
 
   await checkpoint(true);
   await processContext.restart();

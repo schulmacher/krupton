@@ -51,7 +51,7 @@ export async function startBinanceOrdersTransformerService(
     consumer.connect(context.symbols);
   }
   for (const producer of Object.values(context.producers)) {
-    await producer.connect(context.symbols);
+    await producer.connect(context.symbols.map(symbol => `binance-${symbol}`));
   }
 
   await httpServer.startServer();

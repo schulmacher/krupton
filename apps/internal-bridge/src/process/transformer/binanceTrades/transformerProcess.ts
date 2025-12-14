@@ -116,7 +116,7 @@ export async function startBinanceTradesTransformerWorker(
     consumer.connect([symbol]);
   }
   for (const producer of Object.values(context.producers)) {
-    await producer.connect([symbol]);
+    await producer.connect([`binance-${symbol}`]);
   }
 
   diagnosticContext.logger.info('Starting pipeline for symbol', { symbol });

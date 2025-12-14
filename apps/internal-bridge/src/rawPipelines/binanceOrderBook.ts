@@ -38,7 +38,7 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
   context: BinanceOrdersTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { diagnosticContext, processContext } = context;
+  const { diagnosticContext, processContext, outputStorage } = context;
 
   const mergedStream = await getRawBinanceOrdersMergedStream(context, normalizedSymbol);
 
@@ -55,12 +55,21 @@ export async function startJoinAndTransformBinanceOrderBookPipeline(
     normalizedSymbol,
     emitCache,
   );
+
+  const lastStoredRecord = await outputStorage.unifiedOrderBook.readLastRecord(normalizedSymbol);
+  let localId = (lastStoredRecord?.id ?? 0) + 1;
+
   async function emitOrderBook(orderbook: UnifiedOrderBook) {
     const record: StorageRecord<UnifiedOrderBook> = {
       timestamp: Date.now(),
       ...orderbook,
     };
     orderbookCache.push(record);
+    void context.producers.unifiedOrderBook
+      .send(`binance-${normalizedSymbol}`, { ...record, id: localId++ })
+      .catch((error) => {
+        diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
+      });
   }
 
   let lastOrderBookId: number = await getRawBinanceLatestProcessedOrderBookId(

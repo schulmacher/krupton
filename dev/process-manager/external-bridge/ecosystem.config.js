@@ -1,0 +1,91 @@
+const PORTS = require('../../ports.js');
+const { DEV_LOG_LEVEL } = require('../const.js');
+
+module.exports = {
+  apps: [
+    // {
+    //   name: 'external-bridge-binance-fetcher',
+    //   script: 'pnpm',
+    //   args: '--filter external-bridge dev:fetcher-binance',
+    //   cwd: '../../../',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     NODE_ENV: 'development',
+    //     PROCESS_NAME: 'external-bridge-binance-fetcher',
+    //     PLATFORM: 'binance',
+    //     LOG_LEVEL: DEV_LOG_LEVEL,
+    //     PORT: PORTS.EXTERNAL_BRIDGE_FETCHER_BINANCE,
+    //     // SYMBOLS: 'btc_usdt,eth_usdt',
+    //     // SYMBOLS: 'KASUSDT,USDTKAS',
+    //     // SYMBOLS: 'ETHUSDT',
+    //     // SYMBOLS: '',
+    //   },
+    //   restart_delay: 3000
+    // },
+    // {
+    //   name: 'external-bridge-kraken-fetcher',
+    //   script: 'pnpm',
+    //   args: '--filter external-bridge dev:fetcher-kraken',
+    //   cwd: '../../../',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     NODE_ENV: 'development',
+    //     PROCESS_NAME: 'external-bridge-kraken-fetcher',
+    //     PLATFORM: 'kraken',
+    //     LOG_LEVEL: DEV_LOG_LEVEL,
+    //     PORT: PORTS.EXTERNAL_BRIDGE_FETCHER_KRAKEN,
+    //     // SYMBOLS: 'btc_usdt,eth_usdt',
+    //     // SYMBOLS: 'KASUSDT,USDTKAS',
+    //     // SYMBOLS: 'ETHUSDT',
+    //     // SYMBOLS: '',
+    //   },
+    //   restart_delay: 3000
+    // },
+    // {
+    //   name: 'external-bridge-binance-websocket',
+    //   script: 'pnpm',
+    //   args: '--filter external-bridge dev:websocket-binance',
+    //   cwd: '../../../',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     NODE_ENV: 'development',
+    //     PROCESS_NAME: 'external-bridge-binance-websocket',
+    //     LOG_LEVEL: DEV_LOG_LEVEL,
+    //     PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_BINANCE,
+    //   },
+    //   restart_delay: 3000
+    // },
+    {
+      name: 'external-bridge-kraken-websocket',
+      script: 'pnpm',
+      args: '--filter external-bridge dev:websocket-kraken',
+      cwd: '../../../',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'development',
+        PROCESS_NAME: 'external-bridge-kraken-websocket',
+        LOG_LEVEL: DEV_LOG_LEVEL,
+        PORT: PORTS.EXTERNAL_BRIDGE_WEBSOCKET_KRAKEN,
+      },
+      restart_delay: 3000
+    },
+    // {
+    //   name: 'external-bridge-storage',
+    //   script: 'pnpm',
+    //   args: '--filter external-bridge dev:storage',
+    //   cwd: '../../../',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     NODE_ENV: 'development',
+    //     PROCESS_NAME: 'external-bridge-storage',
+    //     LOG_LEVEL: DEV_LOG_LEVEL,
+    //     PORT: PORTS.EXTERNAL_BRIDGE_STORAGE,
+    //   },
+    // },
+  ],
+};

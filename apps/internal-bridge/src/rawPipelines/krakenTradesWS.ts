@@ -17,7 +17,7 @@ export async function startTransformKrakenTradeWSPipeline(
   context: KrakenTradesTransformerContext,
   normalizedSymbol: string,
 ) {
-  const { diagnosticContext, processContext, transformerState } = context;
+  const { diagnosticContext, processContext, transformerState, outputStorage } = context;
 
   const wsStream = await getRawKrakenWSTradesStream(context, normalizedSymbol);
 
@@ -30,15 +30,21 @@ export async function startTransformKrakenTradeWSPipeline(
     normalizedSymbol,
     emitCache,
   );
+
+  const lastStoredRecord = await outputStorage.unifiedTrade.readLastRecord(normalizedSymbol);
+  let localId = (lastStoredRecord?.id ?? 0) + 1;
+
   async function emit(trade: UnifiedTrade) {
     const record: StorageRecord<UnifiedTrade> = {
       timestamp: Date.now(),
       ...trade,
     };
     tradesCache.push(record);
-    // await context.producers.UnifiedTrade.send(normalizedSymbol, record).catch((error) => {
-    //   diagnosticContext.logger.error(error, 'Error sending orderbook to producer');
-    // });
+    void context.producers.unifiedTrade
+      .send(`kraken-${normalizedSymbol}`, { ...record, id: localId++ })
+      .catch((error) => {
+        diagnosticContext.logger.error(error, 'Error sending trade to producer');
+      });
   }
 
   const lastUnifiedTrade = await transformerState.krakenWSTrades.readLastRecord(normalizedSymbol);

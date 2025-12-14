@@ -1,0 +1,57 @@
+[project]
+name = "krupton-workspace"
+version = "0.1.0"
+description = "Python monorepo workspace for trading system"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.12.3",
+    "psycopg[binary,pool]>=3.2",
+    "psycopg2-binary>=2.9",
+    "yoyo-migrations>=9.0",
+    "fastapi>=0.119.1",
+    "uvicorn>=0.38.0",
+    "prometheus-client>=0.23.1",
+    "psutil>=7.1.1",
+    "py-service-framework",
+    "py-predictor",
+    "numpy<2.2.0",
+    "maturin>=1.9.6",
+    "msgspec>=0.19.0",
+    "polars>=1.35.1",
+    "joblib>=1.5.2",
+    "pyzmq>=26.0.0",
+]
+
+[tool.uv.sources]
+py-service-framework = { workspace = true }
+api-interface = { workspace = true }
+py-predictor = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "packages/py-service-framework",
+    "apps/py-predictor",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.4.2",
+    "httpx>=0.28.1",
+    "ruff>=0.14.1",
+    "watchfiles>=1.1.1",
+]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+

@@ -72,8 +72,9 @@ export function createBinanceOrdersTransformerContext(processContext: SF.Process
   };
 
   const producers = {
-    unifiedOrderBook: createZmqPublisherRegistry<StorageRecord<UnifiedOrderBook>>({
-      socketTemplate: (symbol) => zmqSocketTempalatesUnifiedData.orderBook(symbol),
+    unifiedOrderBook: createZmqPublisherRegistry<StorageRecord<UnifiedOrderBook> & { id: number }>({
+      socketTemplate: (platformAndSymbol) =>
+        zmqSocketTempalatesUnifiedData.orderBook(platformAndSymbol),
       diagnosticContext,
     }),
   };

@@ -56,8 +56,14 @@ export function createKrakenOrdersTransformerContext(processContext: SF.ProcessL
   };
 
   const producers = {
-    unifiedOrderBook: createZmqPublisherRegistry<StorageRecord<UnifiedOrderBook>>({
-      socketTemplate: (symbol) => zmqSocketTempalatesUnifiedData.orderBook(symbol),
+    unifiedOrderBook: createZmqPublisherRegistry<StorageRecord<UnifiedOrderBook> & { id: number }>({
+      socketTemplate: (platformAndSymbol) => {
+        const socket = zmqSocketTempalatesUnifiedData.orderBook(platformAndSymbol);
+
+        console.log('socket', socket);
+
+        return socket;
+      },
       diagnosticContext,
     }),
   };

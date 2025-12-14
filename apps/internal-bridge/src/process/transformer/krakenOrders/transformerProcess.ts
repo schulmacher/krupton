@@ -49,8 +49,14 @@ export async function startKrakenOrdersTransformerService(
   for (const consumer of Object.values(context.inputConsumers)) {
     consumer.connect(context.symbols);
   }
+  console.log('HELP WTF OMG!!'); 
+  console.log('HELP WTF OMG!!'); 
+  console.log('HELP WTF OMG!!'); 
+  console.log('HELP WTF OMG!!'); 
+
   for (const producer of Object.values(context.producers)) {
-    await producer.connect(context.symbols);
+    console.log(context.symbols.map(symbol => `kraken-${symbol}`)); 
+    await producer.connect(context.symbols.map(symbol => `kraken-${symbol}`));
   }
 
   await httpServer.startServer();

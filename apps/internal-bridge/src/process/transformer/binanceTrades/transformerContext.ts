@@ -67,8 +67,9 @@ export function createBinanceTradesTransformerContext(
     unifiedTrade: createUnifiedTradeStorage(outputBinanceTradeStorageBaseDir, { writable: true }),
   };
   const producers = {
-    unifiedTrade: createZmqPublisherRegistry<StorageRecord<UnifiedTrade>>({
-      socketTemplate: (symbol) => zmqSocketTempalatesUnifiedData.trade(symbol),
+    unifiedTrade: createZmqPublisherRegistry<StorageRecord<UnifiedTrade> & { id: number }>({
+      socketTemplate: (platformAndSymbol) =>
+        zmqSocketTempalatesUnifiedData.trade(platformAndSymbol),
       diagnosticContext,
     }),
   };

@@ -21,7 +21,7 @@ impl CoreSegmentedLog {
             opts.set_compression_type(rocksdb::DBCompressionType::None);
         }
 
-        // 🧠 memory + concurrency
+        // memory + concurrency
         opts.set_write_buffer_size(8 * 1024 * 1024);          // 8 MB memtable
         opts.set_max_write_buffer_number(2);                 // ≤ 16 MB total
         opts.set_max_background_jobs(1);                     // 1 compaction thread
@@ -29,7 +29,7 @@ impl CoreSegmentedLog {
         opts.set_allow_concurrent_memtable_write(false);     // serialize writes
         opts.set_enable_write_thread_adaptive_yield(true);
 
-        // 🧱 level-0 management
+        // level-0 management
         opts.set_level_zero_file_num_compaction_trigger(2);
         opts.set_level_zero_slowdown_writes_trigger(8);
         opts.set_level_zero_stop_writes_trigger(12);

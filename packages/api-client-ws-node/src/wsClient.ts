@@ -217,8 +217,8 @@ export function createWSConsumer<T extends Record<string, WebSocketStreamDefinit
 
       ws.on('message', async (data: WebSocket.RawData) => {
         try {
-          if (pendingHandlers % 1000) {
-            console.warn('More than 1000 messages not finished processing');
+          if (pendingHandlers >= 1000 && pendingHandlers % 1000 === 0) {
+            console.warn('More than 1000 messages not finished processing', pendingHandlers);
           }
           pendingHandlers = pendingHandlers + 1;
           const message = data.toString();

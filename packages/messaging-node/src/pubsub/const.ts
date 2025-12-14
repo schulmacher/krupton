@@ -11,6 +11,6 @@ export const zmqSocketTempalatesRawData = {
 } as const;
 
 export const zmqSocketTempalatesUnifiedData = {
-  trade: (symbol: string) => `ipc:///tmp/zmq-pubsub-unified-trade-${symbol}.sock`,
-  orderBook: (symbol: string) => `ipc:///tmp/zmq-pubsub-unified-order-book-${symbol}.sock`,
+  trade: (platformAndSymbol: string) => `ipc:///tmp/zmq-pubsub-unified-trade-${platformAndSymbol}.sock`,
+  orderBook: (platformAndSymbol: string) => `ipc:///tmp/zmq-pubsub-unified-order-book-${platformAndSymbol}.sock`,
 } as const;
