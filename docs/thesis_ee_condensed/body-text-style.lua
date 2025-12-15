@@ -44,7 +44,7 @@ function CodeBlock(elem)
   if elem.classes[1] == "mermaid" then
     -- Convert mermaid to PNG image
     local hash = pandoc.sha1(elem.text):sub(1, 12)
-    local images_dir = "docs_thesis_ee_condensed/images"
+    local images_dir = "docs/thesis_ee_condensed/images"
     local mmd_file = images_dir .. "/mermaid_" .. hash .. ".mmd"
     local png_file = images_dir .. "/mermaid_" .. hash .. ".png"
     
@@ -79,7 +79,7 @@ function CodeBlock(elem)
     if img_check then
       img_check:close()
       -- Return image without size attributes - let Word use native size
-      local img = pandoc.Image({}, "docs_thesis_ee_condensed/images/mermaid_" .. hash .. ".png", "")
+      local img = pandoc.Image({}, "docs/thesis_ee_condensed/images/mermaid_" .. hash .. ".png", "")
       return pandoc.Para({img})
     else
       -- Fallback: keep as code block if conversion failed

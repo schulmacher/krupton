@@ -1,0 +1,207 @@
+/*-- scss:defaults --*/
+
+// TalTech brand colors (from taltechslides.cls)
+$TTUred: #AB1352;
+$TTUpink: #E4067E;
+$TTUblue: #332B60;
+$TTUlight: #dadae4;
+$TTUdark: #8b92ab;
+
+// Base theme colors
+$body-bg: #fff;
+$body-color: $TTUblue;
+$link-color: $TTUpink;
+$link-color-hover: lighten($TTUpink, 15%);
+
+// Headings
+$presentation-heading-font: "Lato", sans-serif;
+$presentation-heading-color: $TTUred;
+$presentation-heading-font-weight: bold;
+
+// Code blocks
+$code-block-bg: $TTUlight;
+$code-color: $TTUblue;
+
+// Main font
+$presentation-font-size-root: 32px;
+
+/*-- scss:rules --*/
+
+// Import Lato font
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+
+.reveal {
+  font-family: "Lato", sans-serif;
+}
+
+// Frame titles (h2)
+.reveal h2 {
+  color: $TTUred;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+// Section titles (h1)
+.reveal h1 {
+  color: $TTUred;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+// Subsection titles (h3, h4)
+.reveal h3, .reveal h4 {
+  color: $TTUblue;
+  font-weight: bold;
+}
+
+// Bullet points and structure
+.reveal ul,
+.reveal ol {
+  color: $TTUblue;
+}
+
+.reveal ul li::marker {
+  color: $TTUblue;
+}
+
+// Links
+.reveal a {
+  color: $TTUpink;
+  
+  &:hover {
+    color: lighten($TTUpink, 15%);
+  }
+}
+
+// Strong/bold text
+.reveal strong,
+.reveal b {
+  color: $TTUred;
+  font-weight: bold;
+}
+
+// Code blocks
+.reveal pre {
+  background-color: $TTUlight;
+  border: 1px solid $TTUdark;
+}
+
+.reveal code {
+  color: $TTUblue;
+  background-color: lighten($TTUlight, 5%);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+// Tables
+.reveal table {
+  border-collapse: collapse;
+  
+  th {
+    background-color: $TTUblue;
+    color: white;
+    font-weight: bold;
+  }
+  
+  td, th {
+    border: 1px solid $TTUdark;
+    padding: 0.5em;
+  }
+  
+  tr:nth-child(even) {
+    background-color: lighten($TTUlight, 5%);
+  }
+}
+
+// Title slide
+#title-slide {
+  text-align: left;
+
+  .title {
+    color: $TTUred;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.3em;
+    line-height: 1.2;
+  }
+  
+  .subtitle {
+    color: $TTUpink;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.1em;
+  }
+  
+  .author,
+  .institute,
+  .date {
+    color: $TTUblue;
+    font-size: 0.8em;
+  }
+
+  .footer {
+    &::before {
+
+    }
+  }
+}
+
+// Footer with TalTech logo (similar to LaTeX template)
+.reveal .footer {
+  color: $TTUblue;
+  font-size: 0.55em;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: top;
+  padding: 1em 1em;
+  gap: 0.5em;
+  
+  // Logo positioning (left side via pseudo-element on parent container)
+  position: relative;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    left: 2em;
+    bottom: 0.5em;
+    width: calc(7vh * 2.5) !important;
+    height: 7vh !important; 
+    background-image: url('data:image/png;base64,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');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: left center;
+  }
+}
+
+// Slide numbers (right aligned in footer, similar to LaTeX template)
+.reveal .slide-number {
+  color: $TTUblue;
+  background-color: transparent;
+  font-size: 0.7em;
+  font-weight: normal;
+  right: 1em !important;
+  bottom: 0.5em !important;
+}
+
+// Blockquotes
+.reveal blockquote {
+  border-left: 5px solid $TTUred;
+  background-color: lighten($TTUlight, 5%);
+  padding: 0.5em 1em;
+  color: $TTUblue;
+}
+
+// Alerts
+.reveal .alert {
+  color: $TTUpink;
+  font-weight: bold;
+}
+
+// Speaker notes styling
+.reveal aside.notes {
+  color: $TTUblue;
+  font-size: 0.8em;
+}
+

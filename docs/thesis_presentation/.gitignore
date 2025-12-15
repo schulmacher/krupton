@@ -1,0 +1,9 @@
+/.quarto/
+/_site/
+*.html
+*.pdf
+*.pptx
+*.png
+*.jpg
+*.jpeg
+/slides_files/

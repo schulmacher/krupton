@@ -151,3 +151,6 @@ target/
 dump_*.ndjson
 # NAPI compiled binaries (keep platform-specific ones that are committed)
 *.node
+
+# Generated
+docs/thesis_ee_condensed/images

@@ -1,0 +1,491 @@
+---
+title: "Madala latentsusega süsteem krüptovaluutade hinnaennustamiseks: teenusepõhine arhitektuur ja masinõppe töövoog"
+author: "Autor: Erik Schults, EDTR230794"
+institute: |
+  Juhendaja: Olga Dunejeva, vanemlektor
+lang: et
+date: "2025-12-15"
+format:
+  revealjs:
+    theme: taltech-theme.scss
+    transition: slide
+    slide-number: true
+    controls: true
+    progress: true
+    navigation-mode: linear
+    highlight-style: github
+    chalkboard: true
+    footer: "<span style='text-transform: uppercase; font-size: 0.5em; color: #8b92ab;'>Tallinn University of Technology</span> <span style='margin: 0 1em;'></span> <span style='text-transform: uppercase; font-weight: bold;'>Madala latentsusega süsteem krüptovaluutade hinnaennustamiseks</span>"
+  pptx:
+    slide-number: true
+    incremental: true
+---
+
+## Probleem ja motivatsioon
+
+- **Turg**: 24/7, kõrge volatiilsus, suur likviidsus
+- **Praktiline väljakutse**: börside API-d on platvormipõhised ja erineva semantikaga
+- **Süsteemne väljakutse**: väga suur sündmussagedus <small>(Binance XRPUSDT WS orders 2025-10-24 13,228 sündmust sekundis)</small> → madala latentsusega töötlus
+- **ML väljakutse**: haruldaste sündmuste tuvastamine tasakaalustamata andmetes
+
+## Eesmärk ja ülesanded
+
+**Eesmärk**: kavandada, implementeerida ja valideerida terviklik turuandmete töötlemise + ML ennustamise süsteem.
+
+- **SOA polüglotse monorepona** (TypeScript, Python, Rust)
+- **Madal-latentsusega sõnumivahendus** (RocksDB + ZeroMQ) vs Kafka
+- **Tunnuste genereerimine** aknastatud agregatsiooniga
+- **Ahne iteratiivne tunnuste valik** ML töövoos
+- **Reaalajas ennustamine** ansamblipõhise lähenemisega
+
+## Süsteemi tervikpilt
+
+```{mermaid}
+flowchart LR
+  EB["external-bridge<br/>andmete sissevõtt"] --> IB["internal-bridge<br/>normaliseerimine"]
+  IB --> ST["RocksDB<br/>püsisalvestus"]
+  IB --> ZMQ["ZeroMQ pub/sub<br/>madal latentsus"]
+  ZMQ --> PY["py-predictor<br/>tunnused + ML"]
+  ST -. "offline replay" .-> PY
+```
+## Repositooriumi struktuur (monorepo)
+
+- **`apps/`**: deploy-tavad teenused
+  - `external-bridge`: REST + WebSocket sissevõtt, salvestus, publish
+  - `internal-bridge`: platvormispetsiifiline → ühtne skeem, režiimivahetus
+  - `py-predictor`: feature’d, treening, inferents
+- **`packages/`**: jagatud teegid (API kliendid, framework, storage, messaging)
+- **`runtime/`**: hetkel ainult monitooringu konfiguratsioon
+
+## API-liideste raamistik
+
+- **Eesmärk**: uue börsi lisamine ei tohi tähendada käsitsi kliendi ümberkirjutamist
+- **Lähenemine**: endpointid kirjeldatakse deklaratiivselt (path, parameetrid, request/response skeem)
+- **Tulemus**: TypeScriptis tüübiturvalised kliendid + runtime-skeemivalideerimine
+
+## API "definitsioonist" tüübitud kliendini
+
+```{mermaid}
+flowchart LR
+  Endpoint["<b>GetOrderBookEndpoint</b><br/>━━━━━━━━━━━━<br/>path: /api/v3/depth<br/>query: #123; symbol, limit #125;<br/>response: #123; lastUpdateId, bids, asks #125;"]
+  
+  Endpoint --> ApiImpl["createApiImpl(Endpoint)"] --> Call["impl(request)<br/>=> GetOrderBookResponse"]
+
+  Call --> Response["response (validated)"]
+
+```
+
+```{mermaid}
+flowchart LR
+  Entity["createEndpointStorage(Endpoint)"] --> Append["entity.append(response)"]
+```
+
+## Salvestuse evolutsioon (miks RocksDB oli vajalik)
+
+- **JSONL**: lihtne inspekteerida, aga suure mahu juures kallis “jätka sealt, kus pooleli jäi”
+- **SQLite**: indeksid ja päringud, kuid ebasoodne kettakasutus ja aeglane truncation/masskustutus
+- **RocksDB (LSM-tree)**: write-heavy voogudele sobiv, kiire append + range-scan, salvestusruum ~**5–10×** väiksem
+
+## RocksDB primary/secondary (miks oluline)
+
+- **primary**: kirjutamine (external-bridge/internal-bridge)
+- **secondary**\*: paralleellugemine (catch-up, replay, analüüs)
+- **tulemus**: reaalajas sissevõtt ei pea blokeerima ajaloolise järelejõudmise tõttu
+
+\* <small>RocksDB on embedded, mitte tsentraalne nagu PostgreSQL</small>
+
+## Miks RocksDB + ZeroMQ (vs Kafka)
+
+**Motiiv**: ühe masina deterministlik arendus ja väiksem latentsus/overhead.
+
+- **Kafka**: suurem operatsiooniline keerukus, kõrgem end-to-end latentsus, lihtsam kasutamine
+- **ZeroMQ IPC**: madal IPC aluskulu, lihtne lokaalne töövoog
+- **RocksDB**: lokaalne püsisalvestus + replay, primary/secondary paralleellugemiseks
+
+## Empiiriline võrdlus (1M sõnumit)
+
+| Mõõdik | Kafka (KRaft) | RocksDB + ZeroMQ |
+|---|---:|---:|
+| **Mediaanlatentsus** | ~26,4 ms | ~8,4 ms |
+| **Latentsuse kiirenemine** | 1× | 3,1× |
+| **Operatsiooniline overhead** | kõrge | madal |
+
+## Jälgitavus (operatiivne pilt)
+
+- **Mõõdikud**: Prometheus-formaat (teenused eksponeerivad runtime meetrikaid)
+- **Ajaline andmebaas**: VictoriaMetrics
+- **Dashboard-as-Code**: Perses konfiguratsioonid repositooriumis
+
+## Näide: protsessi jälgimine
+
+![](../metrics_process_ui.png)
+
+## Näide: läbilaskevõime jälgimine (UI)
+
+![](../metrics_transformers_ui.png)
+
+## Näide: läbilaskevõime dashboard (Perses kood)
+
+![](../metrics_transformers_dac.png)
+
+## External Bridge: roll
+
+**Ülesanne**: koguda reaalajas turuandmeid mitmelt börsilt ja tagada talletus.
+
+- **REST päringud**: ajaloolised tehingud + snapshot’id (pull)
+- **WebSocket vood**: reaalaja tehingud + order book diff’id (push)
+- **Salvestuse haldus**: varundus ja statistika
+
+## REST vs WebSocket fetcherid (praktikas)
+
+- **REST**:
+  - rate limit ja eksponentsiaalne backoff vigade korral
+  - ajalooline catch-up ja snapshotid
+- **WebSocket**:
+  - ühenduse elutsükkel, heartbeat, taasühendus (nt platvormipõhised limiidid)
+  - subscribe kinnitused ja päringu/vastuse korrelatsioon
+  - sissetulevate sõnumite suunamine handler’itesse registri järgi
+
+## External Bridge: Binance tehinguraamatu järjepidevus
+
+```{mermaid}
+flowchart LR
+  A["WS diff (U,u)"] --> B{"Kas kehtib<br/>M₂.U = M₁.u + 1 ?"}
+  B -->|"jah"| C["Rakenda diff"]
+  B -->|"ei"| D["Telli REST snapshot<br/>ja resünkrooni"]
+```
+
+## Internal Bridge: roll
+
+**Ülesanne**: ühendada REST snapshot’id ja WS diferentsiaalvood ühtseks, järjestusgarantiiga toruks.
+
+- platvormispetsiifiline normaliseerimine ühtseks skeemiks
+- deduplitseerimine ja järjestuse valideerimine
+- kontrollpunktidel põhinev taastumine
+
+## Kahe-režiimiline tarbimine (catch-up → realtime)
+
+```{mermaid}
+flowchart LR
+  Start["Start"] --> Load["Lae checkpoint"]
+  Load --> Catch["Storage catch-up<br/>pakiorienteeritud lugemine"]
+  Catch --> Check{"Kas jõudis järele?"}
+  Check -->|"ei"| Catch
+  Check -->|"jah"| RT["Reaalaja ZMQ tarbimine"]
+```
+
+## Reaalaja lüngatuvastus ja täitmine
+
+```{mermaid}
+flowchart LR
+  A["ZMQ sõnum"] --> B{"ID võrdlus"}
+  B -->|"ID = oodatud"| C["Töötle ja suurenda loendurit"]
+  B -->|"ID < oodatud"| D["Duplikaat: jäta vahele"]
+  B -->|"ID > oodatud"| E["Lünk: loe salvestusest<br/>puuduvad kirjed"]
+  E --> C
+```
+
+## Kahe streami liitmine: REST + WebSocket
+
+```{mermaid}
+flowchart LR
+    REST["REST API<br/>(ajaloolised tehingud)"] --> Merge["Ühendamine ja<br/>deduplitseerimine"]
+    WS["WebSocket<br/>(reaalajas tehingud)"] --> Merge
+    Merge --> Validate{"Järjestuse<br/>valideerimine"}
+    Validate -->|"Kehtiv"| Output["Ühtselt järjestatud<br/>tehingute voog"]
+    Validate -->|"Lünk"| Gap["Täida lünk<br/> teisest voost <br/> või oota uut sündmust"]
+    Gap --> Output
+    
+    style Merge fill:#e1f5ff
+    style Output fill:#c8e6c9
+```
+
+**Eesmärk**: REST API annab ajaloolise konteksti, WebSocket annab reaalajas uuendused → ühtselt järjestatud voog.
+
+## Feature engineering (Python): disaini eesmärgid
+
+- **Vektoriseeritus**: NumPy/BLAS massiivoperatsioonid
+- **Paralleelsus**: mitme protsessiga (GIL vältimine)
+- **Mäluefektiivsus**: Structure-of-Arrays, null-koopia vaated
+- **Determinism**: checkpoint + joondatud aknapiirid
+
+::: {.notes}
+**GIL (Global Interpreter Lock):**
+- Python'i "lukk", mis lubab ainult üht thread'i korraga käivitada Python koodi
+- Tähendab: mitu thread'i ei anna reaalselt paralleelsust CPU-intensiivsetele ülesannetele
+- **Lahendus**: kasuta mitut protsessi (mitte thread'e) → iga protsess saab oma GIL
+
+**Kuidas NumPy aitab:**
+- NumPy operatsioonid käivad **väljaspool Python'i** (C/Fortran koodi sees)
+- Kui NumPy arvutab, **laseb ta GIL lukust lahti** → teised thread'id saavad töötada
+- Kuid me kasutame **mitut protsessi** (mitte thread'e), kuna iga protsess on täiesti sõltumatu
+- NumPy kasutab **BLAS** (Basic Linear Algebra Subprograms) – super-optimeeritud teegid matriksarvutusteks
+
+**BLAS:**
+- Low-level teegid vektori ja maatriksi operatsioonideks
+- Äärmiselt optimeeritud (kasutab CPU SIMD, cache'i efektiivsust)
+- NumPy kasutab BLAS → massiivoperatsioonid on väga kiired
+
+**Miks üks protsess ei piisa (isegi NumPy'ga):**
+- Isegi kui NumPy vabastab GIL, **sama protsessi sees** mitu thread'i jagavad:
+  - Sama mäluruumi
+  - NumPy/BLAS thread pool'i (konflikt!)
+  - CPU tuumad (konkurents)
+- Tulemus: thread'id **ootavad üksteist** ressursside pärast → pseudo-paralleelsus
+
+**Meie lahendus:**
+- **Mitme worker protsessi** (mitte thread'e):
+  - Iga protsess = täielik isolatsioon (oma mäluruum, oma BLAS, oma CPU tuumad)
+  - **Tõeline paralleelsus**: protsessid ei konflikti ega oota üksteist
+- NumPy + BLAS massiivoperatsioonid → iga protsess arvutab kiirelt
+- **Tulemus**: lineaarne kiirenemine worker'ite arvuga (nt 4 protsessi = ~4× kiirem)
+:::
+
+## Aknastamine ja joondus
+
+**Fikseeritud aknad**: aknapiirid epohhist tuletatud täisarvulise jagamisega.
+
+```{mermaid}
+flowchart LR
+  E["Sündmus t (ms)"] --> W["Aknastamine:<br/>start = floor(t / size) * size"]
+  W --> A["Aknapõhised<br/>agregaadid"]
+```
+
+## Näited olulistest tunnustest {.smaller}
+
+<small>
+
+| Andmeallikas | Tunnuse grupp | Kirjeldus |
+|---|---|---|
+| **Order Book** | `close_ba`, `close_bb` | Parim müügi-/ostuhind akna lõpus* |
+| **Order Book** | `n_updates` | Tehinguraamatu uuenduste arv* |
+| **Order Book** | `sw_mid` | Näitab ajaga kaalutud keskhinda (bid+ask)/2 |
+| **Order Book** | `sw_micro` | Näitab mahuga kaalutud hinda, mis peegeldab raamatu survet |
+| **Order Book** | `sw_imb` | Näitab ostja/müüja tasakaalustamatust (bid−ask)/(bid+ask) |
+| **Order Book** | `sw` | Kogu raskus |
+| **Order Book** | `n_mid_up`, `n_mid_down` | Näitavad keskhinna tõusu-/langusliikumiste arvu |
+| **Trades** | `open`, `high`, `low`, `close` | OHLC hinnad akna sees (target feature) |
+| **Trades** | `sum_pv` | Hinna×mahu summa (VWAP lugeja)* |
+| **Trades** | `sum_dt` | Tehingutevaheline aeg kokku (Σ Δt)* |
+| **Trades** | `buy_vol`, `sell_vol` | Näitavad ostu- vs müügipoolset aktiivsust |
+| **Trades** | `sum_logret`, `sum_logret2` | Näitavad hinnamuutuse drifti ja volatiilsust |
+
+\* Kasutatud iteratiivse tunnuste valiku parimate mudelite seas
+
+</small>
+
+::: {.notes}
+- **sw_mid**: Ajaga kaalutud keskhind. `mid = (bid+ask)/2`, siis `sw_mid = Σ(Δt × mid)`. **Δt** on aeg millisekundites, kui kaua iga order book seisund kestis.
+- **sw_micro**: Mahuga kaalutud mikrohind. `micro = (ask×bid_vol + bid×ask_vol)/(bid_vol+ask_vol)`. Näitab kuhu hind tõenäoliselt liigub - kui bid pool paksem, mikrohind lähemal bid'ile.
+- **sw_imb**: Tasakaalustamatus. `imb = (total_bid - total_ask)/(total_bid + total_ask)`, vahemik [-1,+1]. +1=ostusurve, -1=müügisurve.
+
+**Näide mikrohinnast**: Bid 100€×10, Ask 101€×2 → micro=(101×10+100×2)/12=100.83€
+
+**Näide Δt'st**: t=1000ms: mid=100.5; t=1500ms: mid=100.7 → eelmine mid kehtis Δt=500ms. Stabiilsed hinnad saavad suurema kaalu.
+:::
+
+## SoA vs AoS (miks oluline)
+
+- **SoA**: eraldi massiivid ajale, hinnale, kogusele → parem vahemälu lokaalsus ja vektoriseerimine
+- **Null-koopia**: puhvri-protokolli vaated → väiksem ülekannekulu
+- **Tulemus**: rohkem tööd “ühe op’iga”, vähem Python-skaalarloogikat
+
+## IPC: kohandatud lukuvaba rõngaspuhver (tulemus)
+
+Empiiriline võrdlus `multiprocessing.Queue`-ga (MessagePack, ~150 B sõnum):
+
+| Sõnumite arv | Rõngaspuhver | Queue + baidid | Kiirenemine |
+|---:|---:|---:|---:|
+| 1 000 000 | ~1,67 μs/sõn | ~5,95 μs/sõn | ~3,5× |
+| 10 000 000 | ~1,64 μs/sõn | ~5,96 μs/sõn | ~3,6× |
+
+## RocksDB → Parquet eksport
+
+**Eesmärk**: teisendada reaalajas akende andmed analüütiliseks töötluseks.
+
+- **RocksDB**: kiire write-heavy reaalajas salvestus
+- **Parquet**: veergupõhine formaat, optimeeritud ML analüüsiks (polars optimeeritud)
+
+Parquet faili struktuur: `storage/date=YYYY-MM-DD/part-XXXX.parquet`
+
+## ML töövoog
+
+- normaliseerimine, k-nihke alusel read veergudeks
+- kronoloogiline train/test jaotus (infolekke vältimine)
+- transformatsioonid ilma tulevikuleketa (nt z-skoor treeningstatistikaga)
+- kohandatud skoorimõõdik (klassipõhine recall x precision)
+
+::: {.notes}
+- **Recall (saagis)**: Mitu protsenti tegelikest positiivsetest juhtudest mudel ära tundis. 
+  - Valem: TP/(TP+FN)
+  - Näide: Kui 100 juhust oli 20 tõeliselt positiivset ja mudel leidis 15, siis recall = 15/20 = 75%
+
+- **Precision (täpsus)**: Mitu protsenti mudeli positiivsetest ennustustest olid õiged.
+  - Valem: TP/(TP+FP)
+  - Näide: Kui mudel ennustas 30 korda "positiivne" ja sellest 15 olid õiged, siis precision = 15/30 = 50%
+
+- **Segadusmaatriks**: TN (true negative), FP (false positive), FN (false negative), TP (true positive)
+
+- **Miks mõlemad on vajalikud**: Recall näitab, kas me tabame kõik positiivsed juhtumid. Precision näitab, kas me ei tee liiga palju valepositiivseid.
+:::
+
+## K-nihke liitmised: ridadest veergudeks {.smaller}
+
+**Probleem**: ML mudelid (decision tree) vajavad iga rea kohta **mitmeid ajalisi vaatlusi**.
+
+**Lahendus**: K-shift joins - liida iga rea külge varasemad (-n...-1) ja järgnevad (1...m) akende tunnused.
+
+::: {.columns}
+
+::: {.column width="60%"}
+```{mermaid}
+flowchart LR
+    Prev["Rida -n"] --> Result["Rikastatud rida<br/>-n tunnused<br/>...<br/>0 tunnused<br/>1..m tunnused"]
+    Current["Rida 0"] --> Result
+    Next["Rida m"] --> Result
+
+    style Current fill:#e1f5ff
+    style Result fill:#c8e6c9
+```
+:::
+
+::: {.column width="40%"}
+**Tulemus**: 
+
+Iga rida sisaldab nüüd ajaloo (lookback) ja tuleviku (target) tunnuseid → sobiv mudeli treenimiseks.
+:::
+
+:::
+
+## Fibonacci-viitega momentumi tunnused {.smaller}
+
+**Eesmärk**: Tabada mitmeskaalalisi momentumimustritele võrreldes praegust väärtust mineviku viidetega.
+
+**Fibonacci tagasivaade**: 2, 3, 5, 8, 13 aknaid tagasi.
+
+::: {.columns}
+
+::: {.column width="60%"}
+```{mermaid}
+flowchart LR
+    F2["Akna -2<br/>väärtus X"] --> Comp["Võrdlus"]
+    F3["Akna -3<br/>väärtus X"] --> Comp
+    F5["Akna -5<br/>väärtus X"] --> Comp
+    Comp --> Features["Momentumi tunnused<br/>diff: sign(X₋₂ - X₀)<br/>doubled: X₋₂ > X₋₃?"]
+
+    style Features fill:#c8e6c9
+```
+:::
+
+::: {.column width="40%"}
+**Tüübid**:
+
+- **diff**: suunatunnused sign(X₋ₙ - X₀) võrdlevad hetke minevikuga
+- **doubled**: kiirendus (X₋ₙ > X₋₂ₙ?) võrdleb minevikku minevikuga
+
+:::
+
+:::
+
+## Ahne iteratiivne tunnuste valik
+
+Probleem: kombineerimine kasvab eksponentsiaalselt.
+
+- **Naiivne**: \(C(50,7)\approx 99M\) kombinatsiooni
+- **Ahne**: hoia igal sammul ainult **top-K** ja laienda
+- **Tüüpiline eelarve**: ~1750 hindamist (K=5, F=50, D=7)
+
+```{mermaid}
+flowchart LR
+  A["Dim 1: hinda kõik grupid"] --> B["Vali top-K"]
+  B --> C["Dim 2: laienda top-K + 1 grupp"]
+  C --> D["Kärbi top-K"]
+  D --> E["Korda kuni D või paranemine peatub"]
+```
+
+::: {.notes}
+**Doubled selgitus:**
+
+"Doubled" võrdleb Fibonacci viiteid **omavahel** (mitte praeguse väärtusega):
+- Näiteks: Kas X₋₂ > X₋₃? (võrdleme 2 ja 3 aknat tagasi)
+- Või: Kas X₋₅ > X₋₈? (võrdleme 5 ja 8 aknat tagasi)
+
+See tabab **kiirendust/aeglustumist** trendis:
+- Kui X₋₂ > X₋₃ > X₋₅: trend kiirenes
+- Kui X₋₂ < X₋₃ < X₋₅: trend aeglustus
+
+Erinevus:
+- **stepper/diff**: võrrelda praegust (X₀) minevikuga (X₋ₙ) → suund
+- **doubled**: võrrelda minevikku minevikuga (X₋₂ vs X₋₃) → kiirenemine
+
+See annab lisainformatsiooni hinnamuutuste dünaamika kohta.
+:::
+
+## Tulemused (ETH_USDT, Kraken, okt–nov 2024) {.smaller}
+
+**Võrdlus (iter vs dt_all vs rf_all)** näitab, et väike tunnuste hulk võib ületada täistunnuste baasmeetodeid.
+
+| Metoodika | Sihtmärk | Skoor | Tunnused | Segadusmaatriks (TN, FP, FN, TP) |
+|---|---|---:|---|---|
+| iter | `target_high_up_0.09p` | **0,0933** | 4 | (158, 68, 6, 16) |
+| dt_all | `target_high_up_0.09p` | 0,0261 | kõik (50+) | (161, 65, 14, 8) |
+| rf_all | `target_high_up_0.09p` | 0,0000 | kõik (50+) | (226, 0, 22, 0) |
+| iter | `target_high_up_0.29p` | **0,6640** | 2 | (245, 0, 1, 2) |
+| dt_all | `target_high_up_0.29p` | 0,0000 | kõik (50+) | (245, 0, 3, 0) |
+| rf_all | `target_high_up_0.29p` | 0,0000 | kõik (50+) | (245, 0, 3, 0) |
+
+::: {.notes}
+**Lävede arvutamine:**
+
+Protsendilised lävede (nt 0.09p, 0.29p) on tuletatud treeningandmete hinnamuutuste jaotusest:
+
+1. Arvuta pct_change = (target_close - prev_close) / prev_close
+2. Eralda positiivsed (tõusud) ja negatiivsed (langused) muutused
+3. Arvuta kvartiilid: p20, p40, p60, p80, p95
+4. Ümarda 4 komakohani
+
+Näiteks: 0.09p = 0.09% = 0.0009, 0.29p = 0.29% = 0.0029
+
+Need läved tagavad, et klassid on piisavalt tasakaalustatud (mitte liiga haruldased ega liiga sagedased).
+:::
+
+## Reaalajas järeldus: MoE-inspireeritud ansambel
+
+Idee: mitu “spetsialisti” ja täpsusele optimeeritud valik.
+
+- **neg-specialists**: maksimeeri negatiivse klassi täpsus (valepositiivsete vähendamine)
+- **pos-specialists**: maksimeeri positiivse klassi täpsus (haruldaste sündmuste tabamine)
+- **agregeerimine**: häälteenamus + täpsuskaalutud usaldusväärsus
+
+## Lävipõhine suunaline süntees (signaalid)
+
+Mitmest binaarsest sihtmärgist tuletatakse kokkuvõttesignaal:
+
+- **"up"**: üles-lävede vahemik olemas, alla-läved puuduvad
+- **"down"**: alla-lävede vahemik olemas, üles-läved puuduvad
+- **"volatile"**: mõlemad vahemikud olemas
+- **"stable"**: kumbagi vahemikku pole
+
+## Piirangud ja kompromissid
+
+- valideerimine piiratud andmetel (üks sümbol, peamiselt üks börsikontekst)
+- reaalaja osa käesolevas versioonis CLI simulatsioonina, mitte täielik produktsioonijuurutus
+- kompromiss latentsuse ja järjepidevuse vahel (checkpoint vs fire-and-forget edastus)
+
+## Kokkuvõte
+
+- loodi **madala latentsusega** SOA arhitektuur ühel masinal
+- RocksDB + ZeroMQ pakkus **oluliselt väiksemat latentsust** kui Kafka baseline
+- Python feature-pipeline demonstreeris, et hoolikalt disainitud paralellisatsioon + SoA annab suure jõudluse
+- ML töövoog kinnitas **tunnuste säästlikkuse** väärtust haruldaste sündmuste prognoosimisel
+
+## Tulevikutöö
+
+- reaalajas ennustamine
+- backtest koos tehingukulude
+- valideerimine mitmel sümbolil ja börsil, stressitest
+- refaktordamine ühele protsessile IPC latentsuse eemaldamiseks
+- VPS reaalne production keskkond mitme node'iga (kus iga CPU kohta eraldi protsess)
+- reaalajas 24/7 uute mudelite ehitamine kasutades LLM-i eksperimentideks, et genereerida uusi nt transformatsiooni meetodeid
+
+## Tänan tähelepanu eest
